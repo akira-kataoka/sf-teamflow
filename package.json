@@ -2,7 +2,7 @@
   "name": "sf-teamflow",
   "displayName": "SF TeamFlow — Salesforce Team Dev Orchestrator",
   "description": "Salesforce チーム開発を「環境 / Git / CI/CD」で体系化する VSCode 拡張。Org 環境マネージャ・Git 差分デプロイ・GitHub Actions スキャフォルドをワンストップで提供します。",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "publisher": "akira-kataoka",
   "license": "MIT",
   "engines": {
@@ -51,27 +51,11 @@
         },
         {
           "id": "teamflow.orgs",
-          "name": "Orgs / 環境",
-          "icon": "resources/activitybar.svg"
-        },
-        {
-          "id": "teamflow.environments",
-          "name": "チーム環境",
-          "icon": "resources/activitybar.svg"
-        },
-        {
-          "id": "teamflow.git",
-          "name": "バックアップ (Git)",
+          "name": "Org 詳細",
           "icon": "resources/activitybar.svg"
         }
       ]
     },
-    "viewsWelcome": [
-      {
-        "view": "teamflow.git",
-        "contents": "まだバージョン管理(Git)が始まっていません。\n\nバージョン管理を使うと、作業のバックアップ・履歴・チーム共同作業が安全にできます。\n\n[ガイド付きセットアップ](command:teamflow.guidedSetup)\n[GitHubに公開する](command:teamflow.gitPublish)\n\nチーム開発の進め方は [ガイドを開く](command:teamflow.openWorkflowGuide) で確認できます。"
-      }
-    ],
     "walkthroughs": [
       {
         "id": "teamflow.gettingStarted",
@@ -280,54 +264,9 @@
           "group": "navigation@2"
         },
         {
-          "command": "teamflow.guidedSetup",
+          "command": "teamflow.setupWizard",
           "when": "view == teamflow.orgs",
           "group": "navigation@3"
-        },
-        {
-          "command": "teamflow.setupWizard",
-          "when": "view == teamflow.environments",
-          "group": "navigation@0"
-        },
-        {
-          "command": "teamflow.openConfig",
-          "when": "view == teamflow.environments",
-          "group": "navigation@1"
-        },
-        {
-          "command": "teamflow.scaffoldCICD",
-          "when": "view == teamflow.environments",
-          "group": "navigation@2"
-        },
-        {
-          "command": "teamflow.openWorkflowGuide",
-          "when": "view == teamflow.environments",
-          "group": "navigation@3"
-        },
-        {
-          "command": "teamflow.gitCommitPush",
-          "when": "view == teamflow.git",
-          "group": "navigation@1"
-        },
-        {
-          "command": "teamflow.gitSync",
-          "when": "view == teamflow.git",
-          "group": "navigation@2"
-        },
-        {
-          "command": "teamflow.manageBranches",
-          "when": "view == teamflow.git",
-          "group": "navigation@3"
-        },
-        {
-          "command": "teamflow.manageTags",
-          "when": "view == teamflow.git",
-          "group": "navigation@4"
-        },
-        {
-          "command": "teamflow.refreshOrgs",
-          "when": "view == teamflow.git",
-          "group": "navigation@5"
         }
       ],
       "view/item/context": [

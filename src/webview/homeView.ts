@@ -289,6 +289,12 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .fileitem { display: flex; align-items: center; gap: 7px; padding: 3px 2px; font-size: 11.5px; }
   .filetag { font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); flex: 0 0 auto; }
   .filepath { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .85; direction: rtl; text-align: left; }
+
+  details.more { margin: 2px 0 10px; }
+  details.more > summary { cursor: pointer; font-size: 12.5px; padding: 8px 10px; border: 1px dashed var(--vscode-panel-border, #8884); border-radius: 8px; opacity: .85; list-style: none; }
+  details.more > summary::-webkit-details-marker { display: none; }
+  details.more[open] > summary { opacity: 1; margin-bottom: 8px; }
+  .addorg { margin-bottom: 8px; }
 </style>
 </head>
 <body>
@@ -314,27 +320,27 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
 
   // Grouped, numbered workflow — the core of the "structured, not a wall of buttons" design.
   const SECTIONS = [
-    { no: '1', title: '開発する', hint: 'Orgと同期', tiles: [
-      { c: 'teamflow.retrieveMetadata', em: '📥', label: 'メタデータ取得', need: 'org' },
-      { c: 'teamflow.sourcePull', em: '⬇️', label: 'Orgから取込', need: 'org' },
-      { c: 'teamflow.sourcePush', em: '⬆️', label: 'Orgへ反映', need: 'org' },
-      { c: 'teamflow.pushAndTest', em: '🔁', label: '反映してテスト', need: 'org' },
+    { no: '1', title: '開発する', hint: 'Orgと同期', tier: 'core', tiles: [
+      { c: 'teamflow.sourcePull', em: '⬇️', label: 'Orgから取込', need: 'org', desc: 'Org側の変更をローカルに取り込みます' },
+      { c: 'teamflow.sourcePush', em: '⬆️', label: 'Orgへ反映', need: 'org', desc: 'ローカルの変更をOrgに反映します' },
     ]},
-    { no: '2', title: '保存する', hint: 'バックアップ', tiles: [
-      { c: 'teamflow.gitCommitPush', em: '💾', label: '保存してバックアップ', need: 'repo', badge: 'changes' },
-      { c: 'teamflow.gitSync', em: '🔄', label: 'GitHubと同期', need: 'remote', badge: 'ahead' },
-      { c: 'teamflow.manageBranches', em: '🌿', label: 'ブランチ管理', need: 'repo' },
-      { c: 'teamflow.manageTags', em: '🏷️', label: 'タグ管理（リリース）', need: 'repo' },
+    { no: '2', title: '保存する', hint: 'バックアップ', tier: 'core', tiles: [
+      { c: 'teamflow.gitCommitPush', em: '💾', label: '保存してバックアップ', need: 'repo', badge: 'changes', desc: '変更を保存してGitHubに送ります' },
+      { c: 'teamflow.gitSync', em: '🔄', label: 'GitHubと同期', need: 'remote', badge: 'ahead', desc: '取り込み→バックアップ' },
     ]},
-    { no: '3', title: 'テスト・リリース', hint: '品質確認', three: true, tiles: [
-      { c: 'teamflow.runTests', em: '🧪', label: 'テスト実行', need: 'org' },
-      { c: 'teamflow.validateDiff', em: '✅', label: '検証（お試し）', need: 'repo', badge: 'deploy' },
-      { c: 'teamflow.deployDiff', em: '🚀', label: 'デプロイ', need: 'repo', badge: 'deploy' },
+    { no: '3', title: 'テスト・リリース', hint: '品質確認', tier: 'more', three: true, tiles: [
+      { c: 'teamflow.runTests', em: '🧪', label: 'テスト実行', need: 'org', desc: 'Apexテストを実行します' },
+      { c: 'teamflow.validateDiff', em: '✅', label: '検証（お試し）', need: 'repo', badge: 'deploy', desc: 'デプロイせず差分を検証' },
+      { c: 'teamflow.deployDiff', em: '🚀', label: 'デプロイ', need: 'repo', badge: 'deploy', desc: '差分をOrgにデプロイ' },
     ]},
-    { no: '⋯', title: 'その他', hint: '', three: true, tiles: [
-      { c: 'teamflow.createScratchOrg', em: '🌱', label: 'スクラッチ作成' },
-      { c: 'teamflow.authorizeOrg', em: '🔌', label: 'Orgを追加' },
-      { c: 'teamflow.openWorkflowGuide', em: '📘', label: 'ガイド' },
+    { no: '4', title: 'バージョン管理', hint: 'ブランチ/タグ', tier: 'more', tiles: [
+      { c: 'teamflow.manageBranches', em: '🌿', label: 'ブランチ管理', need: 'repo', desc: '切替/作成/削除' },
+      { c: 'teamflow.manageTags', em: '🏷️', label: 'タグ管理', need: 'repo', desc: 'リリースの目印' },
+    ]},
+    { no: '⋯', title: 'その他', hint: '', tier: 'more', three: true, tiles: [
+      { c: 'teamflow.retrieveMetadata', em: '📥', label: 'メタデータ取得', need: 'org', desc: '既存Orgから取り込み' },
+      { c: 'teamflow.createScratchOrg', em: '🌱', label: 'スクラッチ作成', desc: '使い捨て開発Org' },
+      { c: 'teamflow.openWorkflowGuide', em: '📘', label: 'ガイド', desc: '進め方を見る' },
     ]},
   ];
 
@@ -389,8 +395,12 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       $('changedbox').innerHTML = '';
     }
 
-    // grouped action sections
-    $('sections').innerHTML = SECTIONS.map(sec => {
+    // grouped action sections — progressive disclosure:
+    //  * brand-new project (no repo / no org / no config): hide all actions,
+    //    the hero + checklist alone guide the first run.
+    //  * otherwise: show the daily essentials (core) and tuck the rest behind
+    //    a "もっと操作" expander so the screen is not a wall of buttons.
+    function renderSec(sec) {
       const tiles = sec.tiles.map(t => {
         let disabled = false;
         if (t.need==='repo' && !s.hasRepo) disabled = true;
@@ -400,14 +410,24 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
         if (t.badge==='changes' && s.changes>0) badge = '<span class="badge">'+s.changes+'</span>';
         if (t.badge==='ahead' && s.ahead>0) badge = '<span class="badge">'+s.ahead+'</span>';
         if (t.badge==='deploy' && s.deployCount>0) badge = '<span class="badge">'+s.deployCount+'</span>';
-        return '<button class="tile '+(na.c===t.c?'primary':'')+'" data-cmd="'+t.c+'" '+(disabled?'disabled':'')+'>'+
+        const tip = t.desc ? ' title="'+escapeAttr(t.desc)+'"' : '';
+        return '<button class="tile '+(na.c===t.c?'primary':'')+'" data-cmd="'+t.c+'" '+(disabled?'disabled':'')+tip+'>'+
           badge+'<span class="em">'+t.em+'</span><span>'+escapeHtml(t.label)+'</span></button>';
       }).join('');
       const hint = sec.hint ? '<span class="sechint">'+sec.hint+'</span>' : '';
       return '<section><div class="sechead"><span class="stepno">'+sec.no+'</span>'+
         '<span class="sectitle">'+sec.title+'</span>'+hint+'</div>'+
         '<div class="grid '+(sec.three?'three':'')+'">'+tiles+'</div></section>';
-    }).join('');
+    }
+    const fresh = !s.hasRepo && s.orgs.length===0 && !s.configured;
+    if (fresh) {
+      $('sections').innerHTML = '';
+    } else {
+      const core = SECTIONS.filter(x=>x.tier==='core').map(renderSec).join('');
+      const more = SECTIONS.filter(x=>x.tier==='more').map(renderSec).join('');
+      $('sections').innerHTML = core +
+        '<details class="more"><summary>▸ もっと操作（テスト / デプロイ / タグ / Org追加）</summary>'+more+'</details>';
+    }
 
     // branch
     if (s.hasRepo) {
@@ -421,11 +441,12 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     }
 
     // orgs
+    const addBtn = '<button class="iconbtn addorg" data-cmd="teamflow.authorizeOrg">＋ Orgを追加</button>';
     if (s.orgs.length===0) {
-      $('orgs').innerHTML = '<div class="empty">「Orgを追加」から認証してください。</div>';
+      $('orgs').innerHTML = '<div class="empty">まだOrgがありません。</div>' + addBtn;
     } else {
       const colors = { Production:'#e5534b', Sandbox:'#4aa3df', DevHub:'#b07cf0', Scratch:'#3fb950', Other:'#888' };
-      $('orgs').innerHTML = s.orgs.map(o =>
+      $('orgs').innerHTML = addBtn + s.orgs.map(o =>
         '<div class="card '+(o.isDefault?'active':'')+'" data-org="'+escapeAttr(o.username)+'">'+
           '<span class="dot" style="background:'+(colors[o.category]||'#888')+'"></span>'+
           '<span class="name">'+(o.isDefault?'★ ':'')+escapeHtml(o.displayName)+

@@ -3,7 +3,6 @@ import { logger } from "./util/logger.js";
 import { run } from "./util/exec.js";
 import { runSf } from "./util/cli.js";
 import { OrgTreeProvider, type TreeNode } from "./orgManager/orgTreeProvider.js";
-import { EnvironmentsTreeProvider } from "./orgManager/environmentsTreeProvider.js";
 import type { OrgInfo } from "./orgManager/orgService.js";
 import {
   changedFiles,
@@ -30,7 +29,6 @@ import {
 import { cicdFiles } from "./cicd/templates.js";
 import { writeScaffold } from "./cicd/scaffolder.js";
 import { schemaJson } from "./config/schema.js";
-import { GitTreeProvider } from "./git/gitTreeProvider.js";
 import { registerGitCommands } from "./git/gitCommands.js";
 import { registerProjectCommands } from "./sfProject/projectCommands.js";
 import { StatusBar } from "./statusBar.js";
@@ -40,8 +38,6 @@ import { HomeViewProvider } from "./webview/homeView.js";
 import { SetupWizard } from "./webview/setupWizard.js";
 
 let orgTree: OrgTreeProvider;
-let envTree: EnvironmentsTreeProvider;
-let gitTree: GitTreeProvider;
 let statusBar: StatusBar;
 let homeView: HomeViewProvider;
 let setupWizard: SetupWizard;
@@ -73,8 +69,6 @@ function runInTerminal(command: string): void {
 
 function refreshAll(): void {
   orgTree.refresh();
-  envTree.refresh();
-  gitTree.refresh();
   void statusBar.update(workspaceRoot(), orgTree.knownOrgs);
   void homeView?.postState();
 }
@@ -83,8 +77,6 @@ export function activate(context: vscode.ExtensionContext): void {
   logger.info(`SF TeamFlow activated (cli=${cliPath()})`);
 
   orgTree = new OrgTreeProvider(cliPath, workspaceRoot);
-  envTree = new EnvironmentsTreeProvider(workspaceRoot, () => orgTree.knownOrgs);
-  gitTree = new GitTreeProvider(workspaceRoot);
   statusBar = new StatusBar();
   context.subscriptions.push(statusBar);
   homeView = new HomeViewProvider(
@@ -96,11 +88,12 @@ export function activate(context: vscode.ExtensionContext): void {
   );
   setupWizard = new SetupWizard(context.extensionUri, orgTree, workspaceRoot, refreshAll);
 
+  // Consolidated to two surfaces: the rich Home webview (primary) and the Org
+  // detail tree (power right-click ops). The former Environments / Git trees
+  // were redundant with Home and have been retired to reduce confusion.
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(HomeViewProvider.viewType, homeView),
-    vscode.window.registerTreeDataProvider("teamflow.orgs", orgTree),
-    vscode.window.registerTreeDataProvider("teamflow.environments", envTree),
-    vscode.window.registerTreeDataProvider("teamflow.git", gitTree)
+    vscode.window.registerTreeDataProvider("teamflow.orgs", orgTree)
   );
 
   const register = (id: string, fn: (...args: any[]) => unknown) =>
@@ -499,7 +492,7 @@ async function initTeamProject(): Promise<void> {
     logger.warn(`schema 書き込み失敗: ${String(err)}`);
   }
 
-  envTree.refresh();
+  refreshAll();
   const doc = await vscode.workspace.openTextDocument(configPath(root));
   await vscode.window.showTextDocument(doc);
   const next = await vscode.window.showInformationMessage(
