@@ -5,3 +5,5 @@ out-test/
 .vscode-test/
 *.log
 .DS_Store
+
+preview/*.png

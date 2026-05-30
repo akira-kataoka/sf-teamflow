@@ -36,11 +36,11 @@ interface HomeState {
 }
 
 /**
- * The primary, click-first interface: a sidebar webview that surfaces the few
- * actions a junior dev does daily as big buttons, the orgs as selectable cards,
- * and the branch as a dropdown — so almost nothing needs to be typed and there
- * is little to read. The heavy logic still lives in the tested command/service
- * layer; this view just dispatches to it and renders live state.
+ * The primary, click-first interface: a sidebar webview that organises the day's
+ * work into a numbered flow (① develop with the org → ② save/back up → ③ release)
+ * instead of a flat wall of buttons, and surfaces a single recommended "next
+ * action" so a junior dev always knows what to click. Heavy logic stays in the
+ * tested command/service layer; this view dispatches to it and renders state.
  */
 export class HomeViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "teamflow.home";
@@ -216,48 +216,66 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
   :root { color-scheme: light dark; }
-  body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); padding: 10px 8px 24px; }
-  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; opacity: .65; margin: 16px 2px 6px; font-weight: 600; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
-  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 14px; font-size: 12px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); }
-  .chip.prod { background: var(--vscode-inputValidation-errorBackground, #5a1d1d); color: var(--vscode-foreground); outline: 1px solid #e55; }
+  body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); padding: 8px 8px 24px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 13px; font-size: 11.5px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); }
+  .chip.prod { background: var(--vscode-inputValidation-errorBackground, #5a1d1d); outline: 1px solid #e55; }
   .chip.dim { opacity: .6; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  button.tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 14px 6px; border: 1px solid var(--vscode-panel-border, #8884); border-radius: 10px; background: var(--vscode-button-secondaryBackground, #3a3d41); color: var(--vscode-button-secondaryForeground, #fff); cursor: pointer; font-size: 12px; line-height: 1.2; min-height: 64px; transition: filter .1s; }
+
+  /* next-action hero */
+  .hero { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 10px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); cursor: pointer; margin-bottom: 12px; }
+  .hero .em { font-size: 26px; line-height: 1; }
+  .hero .tx { flex: 1; }
+  .hero .t1 { font-size: 11px; opacity: .85; }
+  .hero .t2 { font-size: 14px; font-weight: 600; margin-top: 2px; }
+  .hero .go { font-size: 18px; opacity: .85; }
+  .hero.calm { background: var(--vscode-button-secondaryBackground, #3a3d41); color: var(--vscode-button-secondaryForeground, #fff); cursor: default; }
+
+  /* sections */
+  section { border: 1px solid var(--vscode-panel-border, #8884); border-radius: 10px; padding: 8px 8px 10px; margin-bottom: 10px; }
+  .sechead { display: flex; align-items: center; gap: 8px; margin: 2px 2px 8px; }
+  .stepno { width: 20px; height: 20px; border-radius: 50%; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); font-size: 11px; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; font-weight: 600; }
+  .sectitle { font-size: 12.5px; font-weight: 600; }
+  .sechint { font-size: 11px; opacity: .6; margin-left: auto; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  button.tile { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 11px 4px; border: 1px solid var(--vscode-panel-border, #8884); border-radius: 9px; background: var(--vscode-button-secondaryBackground, #3a3d41); color: var(--vscode-button-secondaryForeground, #fff); cursor: pointer; font-size: 11.5px; line-height: 1.2; min-height: 58px; text-align: center; }
   button.tile:hover:not(:disabled) { filter: brightness(1.15); }
-  button.tile .em { font-size: 22px; }
-  button.tile.primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border-color: transparent; }
-  button.tile:disabled { opacity: .4; cursor: default; }
-  .badge { background: var(--vscode-activityBarBadge-background, #d33); color: var(--vscode-activityBarBadge-foreground,#fff); border-radius: 9px; padding: 0 6px; font-size: 11px; margin-left: 2px; }
-  .card { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--vscode-panel-border, #8884); border-radius: 8px; margin-bottom: 6px; cursor: pointer; }
+  button.tile.primary { outline: 2px solid var(--vscode-focusBorder); }
+  button.tile .em { font-size: 19px; }
+  button.tile:disabled { opacity: .35; cursor: default; }
+  .badge { position: absolute; top: 5px; right: 7px; background: var(--vscode-activityBarBadge-background, #d33); color: var(--vscode-activityBarBadge-foreground,#fff); border-radius: 9px; padding: 0 6px; font-size: 11px; }
+
+  /* org cards + branch */
+  .card { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border: 1px solid var(--vscode-panel-border, #8884); border-radius: 8px; margin-bottom: 6px; cursor: pointer; }
   .card:hover { background: var(--vscode-list-hoverBackground); }
   .card.active { outline: 2px solid var(--vscode-focusBorder); }
   .card .dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
-  .card .name { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .card .cat { font-size: 11px; opacity: .6; }
+  .card .name { flex: 1; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card .cat { font-size: 10.5px; opacity: .6; }
   .card .open { font-size: 11px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--vscode-panel-border,#8884); background: transparent; color: var(--vscode-foreground); cursor: pointer; }
   .row { display: flex; gap: 6px; align-items: center; }
   select { flex: 1; padding: 6px; background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground); border: 1px solid var(--vscode-dropdown-border, #8884); border-radius: 6px; }
-  .iconbtn { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--vscode-panel-border,#8884); background: var(--vscode-button-secondaryBackground,#3a3d41); color: var(--vscode-button-secondaryForeground,#fff); cursor: pointer; }
-  .step { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+  .iconbtn { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--vscode-panel-border,#8884); background: var(--vscode-button-secondaryBackground,#3a3d41); color: var(--vscode-button-secondaryForeground,#fff); cursor: pointer; white-space: nowrap; }
+  .empty { opacity: .6; font-size: 11.5px; padding: 4px 2px; }
+  .step { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 8px; cursor: pointer; border: 1px dashed var(--vscode-panel-border, #8884); margin-bottom: 6px; }
   .step:hover { background: var(--vscode-list-hoverBackground); }
-  .step .mk { font-size: 16px; }
-  .step.done { opacity: .55; }
-  .empty { opacity: .6; font-size: 12px; padding: 6px 2px; }
+  .step .mk { font-size: 15px; }
 </style>
 </head>
 <body>
   <div id="status" class="chips"></div>
+  <div id="hero"></div>
   <div id="setup"></div>
-
-  <h2>クイック操作</h2>
-  <div id="actions" class="grid"></div>
-
-  <h2>ブランチ</h2>
-  <div id="branchbox"></div>
-
-  <h2>接続中の Org</h2>
-  <div id="orgs"></div>
+  <div id="sections"></div>
+  <section>
+    <div class="sechead"><span class="stepno">🌿</span><span class="sectitle">作業ブランチ</span></div>
+    <div id="branchbox"></div>
+  </section>
+  <section>
+    <div class="sechead"><span class="stepno">☁️</span><span class="sectitle">接続中の Org</span><span class="sechint">クリックで切替</span></div>
+    <div id="orgs"></div>
+  </section>
 
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
@@ -265,18 +283,36 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   function send(type, extra) { vscode.postMessage(Object.assign({ type }, extra || {})); }
   function cmd(c) { send('command', { command: c }); }
 
-  const TILES = [
-    { c: 'teamflow.gitCommitPush', em: '💾', label: '保存して\\nバックアップ', primary: true, need: 'repo', badge: 'changes' },
-    { c: 'teamflow.gitSync',       em: '🔄', label: 'GitHubと同期', need: 'remote' },
-    { c: 'teamflow.deployDiff',    em: '☁️', label: 'デプロイ', need: 'repo' },
-    { c: 'teamflow.validateDiff',  em: '✅', label: '検証 (お試し)', need: 'repo' },
-    { c: 'teamflow.sourcePull',    em: '⬇️', label: 'Orgから取込', need: 'org' },
-    { c: 'teamflow.sourcePush',    em: '⬆️', label: 'Orgへ反映', need: 'org' },
-    { c: 'teamflow.retrieveMetadata', em: '📥', label: 'メタデータ取得', need: 'org' },
-    { c: 'teamflow.createScratchOrg', em: '🧪', label: 'スクラッチ作成' },
-    { c: 'teamflow.authorizeOrg',  em: '🔌', label: 'Orgを追加' },
-    { c: 'teamflow.openWorkflowGuide', em: '📘', label: 'ガイド' },
+  // Grouped, numbered workflow — the core of the "structured, not a wall of buttons" design.
+  const SECTIONS = [
+    { no: '1', title: '開発する', hint: 'Orgと同期', tiles: [
+      { c: 'teamflow.retrieveMetadata', em: '📥', label: 'メタデータ取得', need: 'org' },
+      { c: 'teamflow.sourcePull', em: '⬇️', label: 'Orgから取込', need: 'org' },
+      { c: 'teamflow.sourcePush', em: '⬆️', label: 'Orgへ反映', need: 'org' },
+    ]},
+    { no: '2', title: '保存する', hint: 'バックアップ', tiles: [
+      { c: 'teamflow.gitCommitPush', em: '💾', label: '保存してバックアップ', need: 'repo', badge: 'changes' },
+      { c: 'teamflow.gitSync', em: '🔄', label: 'GitHubと同期', need: 'remote', badge: 'ahead' },
+    ]},
+    { no: '3', title: 'リリースする', hint: 'デプロイ', tiles: [
+      { c: 'teamflow.validateDiff', em: '✅', label: '検証（お試し）', need: 'repo' },
+      { c: 'teamflow.deployDiff', em: '🚀', label: 'デプロイ', need: 'repo' },
+    ]},
+    { no: '⋯', title: 'その他', hint: '', three: true, tiles: [
+      { c: 'teamflow.createScratchOrg', em: '🧪', label: 'スクラッチ作成' },
+      { c: 'teamflow.authorizeOrg', em: '🔌', label: 'Orgを追加' },
+      { c: 'teamflow.openWorkflowGuide', em: '📘', label: 'ガイド' },
+    ]},
   ];
+
+  function nextAction(s) {
+    if (!s.hasRepo) return { em:'🧭', t1:'まず最初に', t2:'セットアップを始める', c:'teamflow.guidedSetup' };
+    if (s.orgs.length === 0) return { em:'🔌', t1:'次にやること', t2:'Orgを認証する', c:'teamflow.authorizeOrg' };
+    if (!s.configured) return { em:'⚙️', t1:'次にやること', t2:'チーム設定を作る', c:'teamflow.initTeamProject' };
+    if (s.changes > 0) return { em:'💾', t1:'次にやること', t2:'変更 '+s.changes+'件を保存してバックアップ', c:'teamflow.gitCommitPush' };
+    if (s.ahead > 0) return { em:'🔄', t1:'次にやること', t2:'未バックアップ '+s.ahead+'件をGitHubへ', c:'teamflow.gitSync' };
+    return { em:'✅', t1:'準備OK', t2:'変更を加えたら自動でここに表示されます', calm:true };
+  }
 
   function render(s) {
     // status chips
@@ -291,30 +327,41 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       let b = '🌿 ' + escapeHtml(s.branch || '(なし)');
       if (s.env) b += ' → ' + escapeHtml(s.env.name);
       chips.push('<span class="chip">' + b + '</span>');
-      if (s.ahead>0||s.behind>0) chips.push('<span class="chip">⬆️'+s.ahead+' ⬇️'+s.behind+'</span>');
     }
     $('status').innerHTML = chips.join('');
 
-    // setup checklist (only when something is missing)
-    const setupSteps = [];
-    if (!s.hasRepo) setupSteps.push({ done:false, mk:'⭕', label:'バージョン管理を始める', c:'teamflow.guidedSetup' });
-    if (s.orgs.length===0) setupSteps.push({ done:false, mk:'⭕', label:'Orgを認証する', c:'teamflow.authorizeOrg' });
-    if (!s.configured) setupSteps.push({ done:false, mk:'⭕', label:'チーム設定を作る', c:'teamflow.initTeamProject' });
-    if (setupSteps.length>0) {
-      $('setup').innerHTML = '<h2>はじめの設定</h2>' + setupSteps.map(st =>
-        '<div class="step" data-cmd="'+st.c+'"><span class="mk">'+st.mk+'</span><span>'+st.label+'</span></div>').join('');
-    } else { $('setup').innerHTML = ''; }
+    // next-action hero
+    const na = nextAction(s);
+    $('hero').innerHTML = '<div class="hero '+(na.calm?'calm':'')+'" '+(na.c?'data-cmd="'+na.c+'"':'')+'>'+
+      '<span class="em">'+na.em+'</span><span class="tx"><div class="t1">'+na.t1+'</div>'+
+      '<div class="t2">'+escapeHtml(na.t2)+'</div></span>'+(na.c?'<span class="go">▶</span>':'')+'</div>';
 
-    // action tiles
-    $('actions').innerHTML = TILES.map(t => {
-      let disabled = false;
-      if (t.need==='repo' && !s.hasRepo) disabled = true;
-      if (t.need==='remote' && !s.hasRemote) disabled = true;
-      if (t.need==='org' && s.orgs.length===0) disabled = true;
-      let badge = '';
-      if (t.badge==='changes' && s.changes>0) badge = '<span class="badge">'+s.changes+'</span>';
-      return '<button class="tile '+(t.primary?'primary':'')+'" data-cmd="'+t.c+'" '+(disabled?'disabled':'')+'>'+
-        '<span class="em">'+t.em+'</span><span>'+t.label.replace(/\\n/g,'<br>')+badge+'</span></button>';
+    // setup checklist (only when something is missing)
+    const setup = [];
+    if (!s.hasRepo) setup.push({ label:'バージョン管理を始める', c:'teamflow.guidedSetup' });
+    if (s.orgs.length===0) setup.push({ label:'Orgを認証する', c:'teamflow.authorizeOrg' });
+    if (!s.configured) setup.push({ label:'チーム設定を作る', c:'teamflow.initTeamProject' });
+    $('setup').innerHTML = setup.length>0
+      ? setup.map(st => '<div class="step" data-cmd="'+st.c+'"><span class="mk">⭕</span><span>'+st.label+'</span></div>').join('')
+      : '';
+
+    // grouped action sections
+    $('sections').innerHTML = SECTIONS.map(sec => {
+      const tiles = sec.tiles.map(t => {
+        let disabled = false;
+        if (t.need==='repo' && !s.hasRepo) disabled = true;
+        if (t.need==='remote' && !s.hasRemote) disabled = true;
+        if (t.need==='org' && s.orgs.length===0) disabled = true;
+        let badge = '';
+        if (t.badge==='changes' && s.changes>0) badge = '<span class="badge">'+s.changes+'</span>';
+        if (t.badge==='ahead' && s.ahead>0) badge = '<span class="badge">'+s.ahead+'</span>';
+        return '<button class="tile '+(na.c===t.c?'primary':'')+'" data-cmd="'+t.c+'" '+(disabled?'disabled':'')+'>'+
+          badge+'<span class="em">'+t.em+'</span><span>'+escapeHtml(t.label)+'</span></button>';
+      }).join('');
+      const hint = sec.hint ? '<span class="sechint">'+sec.hint+'</span>' : '';
+      return '<section><div class="sechead"><span class="stepno">'+sec.no+'</span>'+
+        '<span class="sectitle">'+sec.title+'</span>'+hint+'</div>'+
+        '<div class="grid '+(sec.three?'three':'')+'">'+tiles+'</div></section>';
     }).join('');
 
     // branch
@@ -325,7 +372,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       $('branchsel').addEventListener('change', (e)=> send('switchBranch', { name: e.target.value }));
       $('newbranch').addEventListener('click', ()=> cmd('teamflow.gitNewBranch'));
     } else {
-      $('branchbox').innerHTML = '<div class="empty">バージョン管理を始めると表示されます。</div>';
+      $('branchbox').innerHTML = '<div class="empty">「セットアップを始める」で開始できます。</div>';
     }
 
     // orgs
