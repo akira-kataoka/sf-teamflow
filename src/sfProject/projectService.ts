@@ -106,6 +106,40 @@ export function buildScratchDeleteArgs(orgUsername: string): string[] {
   return ["org", "delete", "scratch", "--target-org", orgUsername, "--no-prompt"];
 }
 
+export interface RunTestsOptions {
+  orgUsername: string;
+  /** When set, run only these classes (RunSpecifiedTests); else use `level`. */
+  classNames?: string[];
+  level?: "RunLocalTests" | "RunAllTestsInOrg";
+}
+
+/**
+ * Build `sf apex run test` argv. Human-readable result + code coverage so a
+ * beginner sees pass/fail and % at a glance. Pure & unit-tested.
+ */
+export function buildRunTestsArgs(opts: RunTestsOptions): string[] {
+  const args = [
+    "apex",
+    "run",
+    "test",
+    "--target-org",
+    opts.orgUsername,
+    "--result-format",
+    "human",
+    "--code-coverage",
+    "--wait",
+    "30",
+  ];
+  if (opts.classNames && opts.classNames.length > 0) {
+    for (const c of opts.classNames) {
+      args.push("--class-names", c);
+    }
+  } else {
+    args.push("--test-level", opts.level || "RunLocalTests");
+  }
+  return args;
+}
+
 /** Curated metadata types shown in the retrieve picker (label + sf type name). */
 export const COMMON_METADATA_TYPES: { label: string; type: string; detail: string }[] = [
   { label: "Apexクラス", type: "ApexClass", detail: "ApexClass" },

@@ -10,6 +10,7 @@ import {
   buildScratchDeleteArgs,
   buildSourcePullArgs,
   buildSourcePushArgs,
+  buildRunTestsArgs,
   COMMON_METADATA_TYPES,
 } from "./projectService.js";
 
@@ -148,6 +149,63 @@ export function registerProjectCommands(
     }
     const args = buildRetrieveArgs({ orgUsername: org.username, manifest });
     ctx.runInTerminal(renderCommand(ctx.cliPath(), args));
+  });
+
+  // Apexテストを実行（既定: ローカルテスト全件）.
+  reg("teamflow.runTests", async () => {
+    const org = await pickOrg("テストを実行するOrgを選択");
+    if (!org) {
+      return;
+    }
+    const choice = await vscode.window.showQuickPick(
+      [
+        { label: "$(beaker) ローカルテストを全部実行", detail: "推奨", mode: "local" },
+        { label: "$(symbol-class) クラスを指定して実行", detail: "テストクラス名を入力", mode: "class" },
+        { label: "$(globe) 組織の全テストを実行", detail: "時間がかかります", mode: "all" },
+      ],
+      { title: `「${org.displayName}」でApexテスト` }
+    );
+    if (!choice) {
+      return;
+    }
+    let classNames: string[] | undefined;
+    let level: "RunLocalTests" | "RunAllTestsInOrg" = "RunLocalTests";
+    if (choice.mode === "class") {
+      const input = await vscode.window.showInputBox({
+        title: "テストクラス名",
+        prompt: "カンマ区切りで複数可",
+        placeHolder: "AccountServiceTest, ContactServiceTest",
+      });
+      if (!input) {
+        return;
+      }
+      classNames = input.split(",").map((s) => s.trim()).filter(Boolean);
+    } else if (choice.mode === "all") {
+      level = "RunAllTestsInOrg";
+    }
+    ctx.runInTerminal(
+      renderCommand(ctx.cliPath(), buildRunTestsArgs({ orgUsername: org.username, classNames, level }))
+    );
+  });
+
+  // 反映してテスト: スクラッチ/Sandbox に push してから即テスト（高速ループ）.
+  reg("teamflow.pushAndTest", async () => {
+    const root = ctx.workspaceRoot();
+    if (!root) {
+      return;
+    }
+    const org = await pickOrg("反映＆テストするOrg（スクラッチ/Sandbox）");
+    if (!org) {
+      return;
+    }
+    const dirs = await readSfdxPackageDirs(root);
+    const push = renderCommand(ctx.cliPath(), buildSourcePushArgs(org.username, dirs));
+    const test = renderCommand(
+      ctx.cliPath(),
+      buildRunTestsArgs({ orgUsername: org.username, level: "RunLocalTests" })
+    );
+    // Run sequentially in the terminal; tests only run if the deploy succeeds.
+    ctx.runInTerminal(`${push} && ${test}`);
   });
 
   // スクラッチ/Sandbox にローカルソースを反映 (push).

@@ -2,7 +2,7 @@
   "name": "sf-teamflow",
   "displayName": "SF TeamFlow — Salesforce Team Dev Orchestrator",
   "description": "Salesforce チーム開発を「環境 / Git / CI/CD」で体系化する VSCode 拡張。Org 環境マネージャ・Git 差分デプロイ・GitHub Actions スキャフォルドをワンストップで提供します。",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publisher": "akira-kataoka",
   "license": "MIT",
   "engines": {
@@ -205,6 +205,16 @@
         "command": "teamflow.sourcePull",
         "title": "TeamFlow: Orgから変更を取り込み (pull)",
         "icon": "$(arrow-down)"
+      },
+      {
+        "command": "teamflow.runTests",
+        "title": "TeamFlow: Apexテストを実行",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "teamflow.pushAndTest",
+        "title": "TeamFlow: Orgへ反映してテスト",
+        "icon": "$(debug-rerun)"
       },
       {
         "command": "teamflow.guidedSetup",

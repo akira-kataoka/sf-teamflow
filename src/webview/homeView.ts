@@ -318,17 +318,19 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       { c: 'teamflow.retrieveMetadata', em: '📥', label: 'メタデータ取得', need: 'org' },
       { c: 'teamflow.sourcePull', em: '⬇️', label: 'Orgから取込', need: 'org' },
       { c: 'teamflow.sourcePush', em: '⬆️', label: 'Orgへ反映', need: 'org' },
+      { c: 'teamflow.pushAndTest', em: '🔁', label: '反映してテスト', need: 'org' },
     ]},
     { no: '2', title: '保存する', hint: 'バックアップ', tiles: [
       { c: 'teamflow.gitCommitPush', em: '💾', label: '保存してバックアップ', need: 'repo', badge: 'changes' },
       { c: 'teamflow.gitSync', em: '🔄', label: 'GitHubと同期', need: 'remote', badge: 'ahead' },
     ]},
-    { no: '3', title: 'リリースする', hint: 'デプロイ', tiles: [
+    { no: '3', title: 'テスト・リリース', hint: '品質確認', three: true, tiles: [
+      { c: 'teamflow.runTests', em: '🧪', label: 'テスト実行', need: 'org' },
       { c: 'teamflow.validateDiff', em: '✅', label: '検証（お試し）', need: 'repo', badge: 'deploy' },
       { c: 'teamflow.deployDiff', em: '🚀', label: 'デプロイ', need: 'repo', badge: 'deploy' },
     ]},
     { no: '⋯', title: 'その他', hint: '', three: true, tiles: [
-      { c: 'teamflow.createScratchOrg', em: '🧪', label: 'スクラッチ作成' },
+      { c: 'teamflow.createScratchOrg', em: '🌱', label: 'スクラッチ作成' },
       { c: 'teamflow.authorizeOrg', em: '🔌', label: 'Orgを追加' },
       { c: 'teamflow.openWorkflowGuide', em: '📘', label: 'ガイド' },
     ]},

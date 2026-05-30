@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   buildProjectGenerateArgs,
   buildRetrieveArgs,
+  buildRunTestsArgs,
   buildScratchCreateArgs,
   buildScratchDeleteArgs,
   buildSourcePullArgs,
@@ -86,6 +87,19 @@ test("scratch create/delete builders", () => {
     "u@e.com",
     "--no-prompt",
   ]);
+});
+
+test("buildRunTestsArgs uses test level by default and code coverage", () => {
+  const a = buildRunTestsArgs({ orgUsername: "u@e.com" });
+  assert.ok(a.includes("apex") && a.includes("run") && a.includes("test"));
+  assert.ok(a.includes("--test-level") && a.includes("RunLocalTests"));
+  assert.ok(a.includes("--code-coverage") && a.includes("--result-format") && a.includes("human"));
+});
+
+test("buildRunTestsArgs runs specified classes when given", () => {
+  const a = buildRunTestsArgs({ orgUsername: "u", classNames: ["FooTest", "BarTest"] });
+  assert.ok(a.includes("--class-names") && a.includes("FooTest") && a.includes("BarTest"));
+  assert.ok(!a.includes("--test-level"), "class run should not pass test-level");
 });
 
 test("buildScratchCreateArgs rejects empty alias", () => {
