@@ -1,4 +1,5 @@
 import type { OrgInfo } from "./orgManager/orgService.js";
+import type { ActivityStatus } from "./activityLog.js";
 
 /** Shared services passed to the per-area command registrars. */
 export interface CommandContext {
@@ -10,4 +11,6 @@ export interface CommandContext {
   refreshAll(): void;
   /** Orgs currently known to the org tree (may be empty before first load). */
   knownOrgs(): OrgInfo[];
+  /** Record a recent action for the home "最近の操作" list. */
+  recordActivity(label: string, status: ActivityStatus): void;
 }

@@ -36,12 +36,19 @@ import type { CommandContext } from "./commandContext.js";
 import { TEAM_WORKFLOW_GUIDE } from "./docs/workflowGuide.js";
 import { HomeViewProvider } from "./webview/homeView.js";
 import { SetupWizard } from "./webview/setupWizard.js";
+import { ActivityLog, type ActivityStatus } from "./activityLog.js";
 
 let orgTree: OrgTreeProvider;
 let statusBar: StatusBar;
 let homeView: HomeViewProvider;
 let setupWizard: SetupWizard;
+let activity: ActivityLog;
 let deployTerminal: vscode.Terminal | undefined;
+
+function recordActivity(label: string, status: ActivityStatus): void {
+  activity?.record(label, status, Date.now());
+  void homeView?.postState();
+}
 
 function workspaceRoot(): string | undefined {
   return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -79,12 +86,14 @@ export function activate(context: vscode.ExtensionContext): void {
   orgTree = new OrgTreeProvider(cliPath, workspaceRoot);
   statusBar = new StatusBar();
   context.subscriptions.push(statusBar);
+  activity = new ActivityLog(context.globalState);
   homeView = new HomeViewProvider(
     context.extensionUri,
     orgTree,
     workspaceRoot,
     cliPath,
-    refreshAll
+    refreshAll,
+    () => activity.recent(3)
   );
   setupWizard = new SetupWizard(context.extensionUri, orgTree, workspaceRoot, refreshAll);
 
@@ -135,6 +144,7 @@ export function activate(context: vscode.ExtensionContext): void {
     runInTerminal,
     refreshAll,
     knownOrgs: () => orgTree.knownOrgs,
+    recordActivity,
   };
   registerGitCommands(context, ctx);
   registerProjectCommands(context, ctx);
@@ -559,6 +569,7 @@ async function executeDeploy(ctx: DeployContext, validateOnly: boolean): Promise
   const command = renderCommand(cliPath(), args);
   logger.info(`実行: ${command}`);
   runInTerminal(command);
+  recordActivity(`${verb}: ${ctx.orgAlias}${ctx.isProduction ? " ⚠️本番" : ""}`, "run");
 }
 
 /* ------------------------------ project commands -------------------------- */

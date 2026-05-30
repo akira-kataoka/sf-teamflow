@@ -103,10 +103,12 @@ export function registerGitCommands(
               "✅ ローカルに保存しました。GitHubに公開するには「GitHubに公開」を実行してください。"
             );
           }
+          ctx.recordActivity("保存してバックアップ", "ok");
         } catch (err) {
           logger.error("commit/push 失敗", err);
           vscode.window.showErrorMessage(`保存に失敗: ${String(err)}`);
           logger.show();
+          ctx.recordActivity("保存してバックアップ", "error");
         } finally {
           ctx.refreshAll();
         }
@@ -134,12 +136,14 @@ export function registerGitCommands(
           const branch = await currentBranch(root);
           await push(root, true, branch);
           vscode.window.showInformationMessage("✅ GitHubと同期しました。");
+          ctx.recordActivity("GitHubと同期", "ok");
         } catch (err) {
           logger.error("sync 失敗", err);
           vscode.window.showErrorMessage(
             `同期に失敗しました。コンフリクトの可能性があります: ${String(err)}`
           );
           logger.show();
+          ctx.recordActivity("GitHubと同期", "error");
         } finally {
           ctx.refreshAll();
         }

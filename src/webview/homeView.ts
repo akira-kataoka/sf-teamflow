@@ -13,6 +13,7 @@ import { configExists, loadConfig, readSfdxPackageDirs } from "../config/configS
 import { baseRefFor, resolveEnvironment } from "../config/teamflowConfig.js";
 import { runSf } from "../util/cli.js";
 import { logger } from "../util/logger.js";
+import { relativeTime, type ActivityEntry } from "../activityLog.js";
 
 interface HomeOrg {
   username: string;
@@ -54,6 +55,8 @@ interface HomeState {
   files: { path: string; label: string }[];
   /** Metadata files that a Git-diff deploy would push (vs base ref). */
   deployCount: number;
+  /** Recent actions (newest first) for the "最近の操作" list. */
+  activity: { label: string; status: string; rel: string }[];
 }
 
 /**
@@ -72,7 +75,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     private readonly orgTree: OrgTreeProvider,
     private readonly getRoot: () => string | undefined,
     private readonly getCliPath: () => string,
-    private readonly requestRefresh: () => void
+    private readonly requestRefresh: () => void,
+    private readonly getActivity: () => ActivityEntry[] = () => []
   ) {}
 
   resolveWebviewView(view: vscode.WebviewView): void {
@@ -239,6 +243,11 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       behind,
       files,
       deployCount,
+      activity: this.getActivity().map((a) => ({
+        label: a.label,
+        status: a.status,
+        rel: relativeTime(a.time, Date.now()),
+      })),
     };
   }
 
@@ -270,6 +279,12 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .hero .go { font-size: 18px; opacity: .85; }
   .hero.calm { background: var(--vscode-button-secondaryBackground, #3a3d41); color: var(--vscode-button-secondaryForeground, #fff); cursor: default; }
   .situation { font-size: 11.5px; opacity: .72; margin: -4px 2px 12px; line-height: 1.45; }
+  .activity { font-size: 11px; margin: -6px 2px 12px; }
+  .activity .alabel { opacity: .55; margin-bottom: 2px; }
+  .activity .ai { display: flex; gap: 6px; padding: 1px 0; opacity: .85; }
+  .activity .ai .rel { opacity: .55; margin-left: auto; }
+  .activity .ai.error { color: #e66; }
+  .activity .ai.ok { color: #3fb950; }
 
   /* sections */
   section { border: 1px solid var(--vscode-panel-border, #8884); border-radius: 10px; padding: 8px 8px 10px; margin-bottom: 10px; }
@@ -329,6 +344,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   <div id="status" class="chips"></div>
   <div id="hero"></div>
   <div id="situation" class="situation"></div>
+  <div id="activity" class="activity"></div>
   <div id="setup"></div>
   <div id="changedbox"></div>
   <div id="sections"></div>
@@ -425,6 +441,16 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       $('situation').innerHTML = 'いま '+where+' で作業中。'+parts.join('・')+'。'+org+'。';
     } else {
       $('situation').innerHTML = '';
+    }
+
+    // recent activity (newest first)
+    if (s.activity && s.activity.length>0) {
+      const ic = { ok:'✓', error:'✗', run:'▶' };
+      $('activity').innerHTML = '<div class="alabel">最近の操作</div>'+
+        s.activity.map(a => '<div class="ai '+escapeAttr(a.status)+'">'+(ic[a.status]||'•')+' '+
+          escapeHtml(a.label)+'<span class="rel">'+escapeHtml(a.rel)+'</span></div>').join('');
+    } else {
+      $('activity').innerHTML = '';
     }
 
     // setup progress strip (non-clickable) — the hero above is the single CTA,

@@ -238,6 +238,7 @@ export function registerProjectCommands(
     ctx.runInTerminal(
       renderCommand(ctx.cliPath(), buildRunTestsArgs({ orgUsername: org.username, classNames, level }))
     );
+    ctx.recordActivity(`テスト実行: ${org.displayName}`, "run");
   });
 
   // 反映してテスト: スクラッチ/Sandbox に push してから即テスト（高速ループ）.
@@ -258,6 +259,7 @@ export function registerProjectCommands(
     );
     // Run sequentially in the terminal; tests only run if the deploy succeeds.
     ctx.runInTerminal(`${push} && ${test}`);
+    ctx.recordActivity(`反映してテスト: ${org.displayName}`, "run");
   });
 
   // 環境(Org)にローカルソースを反映 — 全部 or 資材を選んで.
@@ -283,6 +285,7 @@ export function registerProjectCommands(
     if (scope.mode === "all") {
       const dirs = await readSfdxPackageDirs(root);
       ctx.runInTerminal(renderCommand(ctx.cliPath(), buildSourcePushArgs(org.username, dirs)));
+      ctx.recordActivity(`環境へ反映(全部): ${org.displayName}`, "run");
       return;
     }
     const metadata = await pickMetadataTypes(`「${org.displayName}」へ反映する資材を選択`);
@@ -290,6 +293,7 @@ export function registerProjectCommands(
       return;
     }
     ctx.runInTerminal(renderCommand(ctx.cliPath(), buildDeployMetadataArgs(org.username, metadata)));
+    ctx.recordActivity(`環境へ反映(${metadata.length}件): ${org.displayName}`, "run");
   });
 
   // 環境(Org) の変更をローカルに取り込む (pull).
@@ -300,6 +304,7 @@ export function registerProjectCommands(
     }
     const args = buildSourcePullArgs(org.username);
     ctx.runInTerminal(renderCommand(ctx.cliPath(), args));
+    ctx.recordActivity(`環境から取込: ${org.displayName}`, "run");
   });
 
   // スクラッチOrgを作成 (definition file 自動判定).
