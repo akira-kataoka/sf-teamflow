@@ -251,6 +251,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .hero .t2 { font-size: 14px; font-weight: 600; margin-top: 2px; }
   .hero .go { font-size: 18px; opacity: .85; }
   .hero.calm { background: var(--vscode-button-secondaryBackground, #3a3d41); color: var(--vscode-button-secondaryForeground, #fff); cursor: default; }
+  .situation { font-size: 11.5px; opacity: .72; margin: -4px 2px 12px; line-height: 1.45; }
 
   /* sections */
   section { border: 1px solid var(--vscode-panel-border, #8884); border-radius: 10px; padding: 8px 8px 10px; margin-bottom: 10px; }
@@ -309,6 +310,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
 <body>
   <div id="status" class="chips"></div>
   <div id="hero"></div>
+  <div id="situation" class="situation"></div>
   <div id="setup"></div>
   <div id="changedbox"></div>
   <div id="sections"></div>
@@ -389,6 +391,18 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     $('hero').innerHTML = '<div class="hero '+(na.calm?'calm':'')+'" '+heroAttr+'>'+
       '<span class="em">'+na.em+'</span><span class="tx"><div class="t1">'+na.t1+'</div>'+
       '<div class="t2">'+escapeHtml(na.t2)+'</div></span>'+((na.c||na.reconnect)?'<span class="go">▶</span>':'')+'</div>';
+
+    // plain-language one-liner: where you are and what is pending
+    if (s.hasRepo) {
+      const where = '「'+escapeHtml(s.branch||'(ブランチなし)')+'」'+(s.env?'（'+escapeHtml(s.env.name)+'環境）':'');
+      const parts = [];
+      parts.push(s.changes>0 ? '変更'+s.changes+'件が未保存' : '変更なし');
+      if (s.ahead>0) parts.push('未バックアップ'+s.ahead+'件');
+      const org = s.defaultOrg ? '反映先=「'+escapeHtml(s.defaultOrg.displayName)+'」'+(s.defaultOrg.isProduction?'⚠️本番':'') : '反映先Org未選択';
+      $('situation').innerHTML = 'いま '+where+' で作業中。'+parts.join('・')+'。'+org+'。';
+    } else {
+      $('situation').innerHTML = '';
+    }
 
     // setup progress strip (non-clickable) — the hero above is the single CTA,
     // so there is no duplicate "始める" button to confuse. Shows where you are
