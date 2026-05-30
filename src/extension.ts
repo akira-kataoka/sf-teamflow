@@ -587,12 +587,20 @@ async function executeDeploy(ctx: DeployContext, validateOnly: boolean): Promise
     .getConfiguration("teamflow")
     .get<boolean>("confirmProductionDeploy", true);
   if (!validateOnly && ctx.isProduction && confirmProd) {
+    // Safety: offer to dry-run (validate) first before touching production.
+    const VALIDATE = "先に検証する（おすすめ）";
+    const DEPLOY = "本番にデプロイする";
     const ok = await vscode.window.showWarningMessage(
-      `🛑 本番環境「${ctx.orgAlias}」へデプロイします。内容をよく確認してください。`,
+      `🛑 本番環境「${ctx.orgAlias}」へデプロイします。まず検証(お試し)で安全確認するのがおすすめです。`,
       { modal: true, detail: detailLines.join("\n") },
-      "本番にデプロイする"
+      VALIDATE,
+      DEPLOY
     );
-    if (ok !== "本番にデプロイする") {
+    if (ok === VALIDATE) {
+      launchDeploy(ctx, true, cs.toDeploy);
+      return;
+    }
+    if (ok !== DEPLOY) {
       return;
     }
   } else {
@@ -606,8 +614,13 @@ async function executeDeploy(ctx: DeployContext, validateOnly: boolean): Promise
     }
   }
 
+  launchDeploy(ctx, validateOnly, cs.toDeploy);
+}
+
+/** Build + run the sf deploy/validate command and record the activity. */
+function launchDeploy(ctx: DeployContext, validateOnly: boolean, files: string[]): void {
   const args = buildDeployArgs({
-    files: cs.toDeploy,
+    files,
     orgAlias: ctx.orgUsername,
     testLevel: ctx.testLevel,
     validateOnly,
@@ -615,7 +628,10 @@ async function executeDeploy(ctx: DeployContext, validateOnly: boolean): Promise
   const command = renderCommand(cliPath(), args);
   logger.info(`実行: ${command}`);
   runInTerminal(command);
-  recordActivity(`${verb}: ${ctx.orgAlias}${ctx.isProduction ? " ⚠️本番" : ""}`, "run");
+  recordActivity(
+    `${validateOnly ? "検証" : "デプロイ"}: ${ctx.orgAlias}${ctx.isProduction ? " ⚠️本番" : ""}`,
+    "run"
+  );
 }
 
 /* ------------------------------ project commands -------------------------- */
