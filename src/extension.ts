@@ -136,6 +136,7 @@ export function activate(context: vscode.ExtensionContext): void {
   register("teamflow.openConfig", () => openConfig());
   register("teamflow.openWorkflowGuide", () => openWorkflowGuide());
   register("teamflow.setupWizard", () => setupWizard.open());
+  register("teamflow.quickSettings", () => quickSettings());
 
   // Git and project/metadata commands live in their own modules.
   const ctx: CommandContext = {
@@ -160,6 +161,51 @@ export function activate(context: vscode.ExtensionContext): void {
 
 export function deactivate(): void {
   logger.dispose();
+}
+
+/** Quick toggles for the most-used settings, from the home title gear. */
+async function quickSettings(): Promise<void> {
+  const cfg = vscode.workspace.getConfiguration("teamflow");
+  const target = vscode.workspace.workspaceFolders
+    ? vscode.ConfigurationTarget.Workspace
+    : vscode.ConfigurationTarget.Global;
+  const level = cfg.get<string>("deploy.testLevel", "RunLocalTests");
+  const confirmProd = cfg.get<boolean>("confirmProductionDeploy", true);
+
+  const pick = await vscode.window.showQuickPick(
+    [
+      { label: `🧪 デプロイ時のテストレベル`, description: level, action: "level" },
+      {
+        label: `🛑 本番デプロイ前の確認`,
+        description: confirmProd ? "ON（推奨）" : "OFF",
+        action: "confirm",
+      },
+    ],
+    { title: "Salesforce Dev Manager 設定" }
+  );
+  if (!pick) {
+    return;
+  }
+  if (pick.action === "level") {
+    const lv = await vscode.window.showQuickPick(
+      [
+        { label: "RunLocalTests", description: "自organizationのローカルテスト（推奨）" },
+        { label: "NoTestRun", description: "テストを実行しない（速いが本番不可）" },
+        { label: "RunAllTestsInOrg", description: "全テスト（時間がかかる）" },
+      ],
+      { title: "デプロイ時のテストレベル" }
+    );
+    if (lv) {
+      await cfg.update("deploy.testLevel", lv.label, target);
+      vscode.window.showInformationMessage(`テストレベルを ${lv.label} にしました。`);
+    }
+  } else {
+    await cfg.update("confirmProductionDeploy", !confirmProd, target);
+    vscode.window.showInformationMessage(
+      `本番デプロイ前の確認を ${!confirmProd ? "ON" : "OFF"} にしました。`
+    );
+  }
+  refreshAll();
 }
 
 async function openWorkflowGuide(): Promise<void> {

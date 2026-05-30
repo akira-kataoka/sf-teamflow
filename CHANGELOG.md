@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.23.0] - 2026-05-31
+
+- ⚙️ **ホームの設定(ギア)**: ホーム/Org詳細のタイトルに⚙️を追加。クリックで「デプロイ時のテストレベル」「本番デプロイ前の確認 ON/OFF」をQuickPickで変更(workspace設定)。
+
 ## [0.22.0] - 2026-05-31
 
 - ⌨️ **ホームのキーボード操作/アクセシビリティ**: ヒーロー・Orgカードを role=button/tabindex/aria-label でフォーカス可能にし、Enter/Spaceで実行。フォーカスリング表示。タイルは従来通り<button>。

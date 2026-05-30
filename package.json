@@ -2,7 +2,7 @@
   "name": "sf-teamflow",
   "displayName": "Salesforce Dev Manager",
   "description": "これ1つでSalesforce開発サイクルを完結。Org/環境管理・各環境への簡単デプロイ(開発→ステージング→本番)・Git/GitHub・テスト・CI/CDを、初心者でもクリック操作で。",
-  "version": "0.22.0",
+  "version": "0.23.0",
   "publisher": "akira-kataoka",
   "license": "MIT",
   "engines": {
@@ -236,6 +236,11 @@
         "icon": "$(book)"
       },
       {
+        "command": "teamflow.quickSettings",
+        "title": "SFDevManager: 設定（テストレベル/本番確認）",
+        "icon": "$(gear)"
+      },
+      {
         "command": "teamflow.gitCommitPush",
         "title": "SFDevManager: 保存してバックアップ (commit & push)",
         "icon": "$(cloud-upload)"
@@ -273,6 +278,16 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "teamflow.quickSettings",
+          "when": "view == teamflow.home",
+          "group": "navigation@1"
+        },
+        {
+          "command": "teamflow.refreshOrgs",
+          "when": "view == teamflow.home",
+          "group": "navigation@2"
+        },
         {
           "command": "teamflow.refreshOrgs",
           "when": "view == teamflow.orgs",
