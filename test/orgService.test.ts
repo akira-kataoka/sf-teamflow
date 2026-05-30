@@ -63,3 +63,26 @@ test("parseOrgList flattens, de-dupes by username, and sorts by category", () =>
   assert.equal(scr.category, "Scratch");
   assert.equal(scr.connected, true);
 });
+
+test("parseOrgList handles empty result and skips records without username", () => {
+  assert.deepEqual(parseOrgList({}), []);
+  const orgs = parseOrgList({ nonScratchOrgs: [{ alias: "x" } as RawOrg, { username: "u@e.com" }] });
+  assert.equal(orgs.length, 1);
+  assert.equal(orgs[0].username, "u@e.com");
+});
+
+test("toOrgInfo: connected derives from status/connectedStatus/scratch", () => {
+  const orgs = parseOrgList({
+    nonScratchOrgs: [
+      { username: "a", status: "Connected" },
+      { username: "b", connectedStatus: "Active" },
+      { username: "c", connectedStatus: "Disconnected" },
+      { username: "d", isScratchOrg: true },
+    ],
+  });
+  const by = (u: string) => orgs.find((o) => o.username === u)!;
+  assert.equal(by("a").connected, true);
+  assert.equal(by("b").connected, true);
+  assert.equal(by("c").connected, false);
+  assert.equal(by("d").connected, true);
+});

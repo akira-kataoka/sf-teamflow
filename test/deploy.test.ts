@@ -53,3 +53,20 @@ test("renderCommand joins a copy-pasteable line", () => {
   const line = renderCommand("sf", ["project", "deploy", "start", "-d", "a b/c.cls"]);
   assert.equal(line, 'sf project deploy start -d "a b/c.cls"');
 });
+
+test("buildDeployArgs RunSpecifiedTests without tests omits -t but keeps level", () => {
+  const a = buildDeployArgs({
+    files: ["force-app/A.cls"],
+    orgAlias: "o",
+    testLevel: "RunSpecifiedTests",
+    validateOnly: false,
+  });
+  assert.ok(a.includes("-l") && a.includes("RunSpecifiedTests"));
+  assert.ok(!a.includes("-t"));
+});
+
+test("quoteArg escapes a backtick by prefixing a backslash", () => {
+  const bt = String.fromCharCode(96); // `
+  const bs = String.fromCharCode(92); // \
+  assert.equal(quoteArg("a" + bt + "b"), '"a' + bs + bt + 'b"');
+});

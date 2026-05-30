@@ -57,3 +57,24 @@ test("classifyChanges: a path both deployed and deleted only deploys", () => {
   assert.deepEqual(cs.toDeploy, ["force-app/X.cls"]);
   assert.deepEqual(cs.toDelete, []);
 });
+
+test("classifyChanges with no entries returns all-empty", () => {
+  const cs = classifyChanges([], ["force-app"]);
+  assert.deepEqual(cs, { toDeploy: [], toDelete: [], ignored: [] });
+});
+
+test("classifyChanges keeps both source and -meta.xml companions", () => {
+  const cs = classifyChanges(
+    [
+      { path: "force-app/main/default/classes/A.cls", status: "M" },
+      { path: "force-app/main/default/classes/A.cls-meta.xml", status: "M" },
+    ],
+    ["force-app"]
+  );
+  assert.equal(cs.toDeploy.length, 2);
+});
+
+test("isUnderPackageDirs handles multiple dirs and trailing slash", () => {
+  assert.equal(isUnderPackageDirs("shared/x.cls", ["force-app/", "shared/"]), true);
+  assert.equal(isUnderPackageDirs("force-app", ["force-app"]), true);
+});
