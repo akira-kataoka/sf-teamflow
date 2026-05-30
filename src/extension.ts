@@ -36,11 +36,13 @@ import { registerProjectCommands } from "./sfProject/projectCommands.js";
 import { StatusBar } from "./statusBar.js";
 import type { CommandContext } from "./commandContext.js";
 import { TEAM_WORKFLOW_GUIDE } from "./docs/workflowGuide.js";
+import { HomeViewProvider } from "./webview/homeView.js";
 
 let orgTree: OrgTreeProvider;
 let envTree: EnvironmentsTreeProvider;
 let gitTree: GitTreeProvider;
 let statusBar: StatusBar;
+let homeView: HomeViewProvider;
 let deployTerminal: vscode.Terminal | undefined;
 
 function workspaceRoot(): string | undefined {
@@ -72,6 +74,7 @@ function refreshAll(): void {
   envTree.refresh();
   gitTree.refresh();
   void statusBar.update(workspaceRoot(), orgTree.knownOrgs);
+  void homeView?.postState();
 }
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -82,8 +85,16 @@ export function activate(context: vscode.ExtensionContext): void {
   gitTree = new GitTreeProvider(workspaceRoot);
   statusBar = new StatusBar();
   context.subscriptions.push(statusBar);
+  homeView = new HomeViewProvider(
+    context.extensionUri,
+    orgTree,
+    workspaceRoot,
+    cliPath,
+    refreshAll
+  );
 
   context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(HomeViewProvider.viewType, homeView),
     vscode.window.registerTreeDataProvider("teamflow.orgs", orgTree),
     vscode.window.registerTreeDataProvider("teamflow.environments", envTree),
     vscode.window.registerTreeDataProvider("teamflow.git", gitTree)
@@ -105,6 +116,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   register("teamflow.setDefaultOrg", (node?: TreeNode) => setDefaultOrg(node));
   register("teamflow.openOrg", (node?: TreeNode) => openOrg(node));
+  register("teamflow.openOrgByName", (username?: string) => openOrgByUsername(username));
   register("teamflow.logoutOrg", (node?: TreeNode) => logoutOrg(node));
   register("teamflow.copyOrgId", (node?: TreeNode) => copyOrgId(node));
 
@@ -205,6 +217,20 @@ async function openOrg(node?: TreeNode): Promise<void> {
   if (res.code !== 0) {
     logger.error(`org open 失敗: ${res.stderr || res.stdout}`);
     vscode.window.showErrorMessage(`Orgを開けませんでした: ${org.displayName}`);
+  }
+}
+
+async function openOrgByUsername(username?: string): Promise<void> {
+  if (!username) {
+    return;
+  }
+  const res = await run(cliPath(), ["org", "open", "--target-org", username], {
+    cwd: workspaceRoot(),
+    timeout: 30_000,
+  });
+  if (res.code !== 0) {
+    logger.error(`org open 失敗: ${res.stderr || res.stdout}`);
+    vscode.window.showErrorMessage("Orgを開けませんでした。");
   }
 }
 

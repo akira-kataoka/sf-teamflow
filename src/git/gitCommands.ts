@@ -60,10 +60,16 @@ export function registerGitCommands(
       vscode.window.showInformationMessage("変更はありません。保存するものがありません。");
       return;
     }
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const defaultMsg = `作業を保存 ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
+      now.getDate()
+    )} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
     const message = await vscode.window.showInputBox({
       title: "変更を保存 (コミット)",
-      prompt: `${s.changed}件の変更を保存します。何をしたか短く書いてください。`,
-      placeHolder: "例: 取引先一覧画面に検索ボタンを追加",
+      prompt: `${s.changed}件の変更を保存します。このままEnterでもOK（必要なら書き換え）。`,
+      value: defaultMsg,
+      valueSelection: [0, defaultMsg.length],
       validateInput: (v) => (v.trim() ? undefined : "メッセージを入力してください"),
     });
     if (!message) {

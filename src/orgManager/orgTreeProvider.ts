@@ -55,6 +55,15 @@ export class OrgTreeProvider implements vscode.TreeDataProvider<TreeNode> {
     return this.orgs;
   }
 
+  /** Force/ensure orgs are loaded and return them (used by the home webview). */
+  async ensureOrgsLoaded(force = false): Promise<OrgInfo[]> {
+    if (force) {
+      this.loaded = false;
+    }
+    await this.ensureLoaded();
+    return this.orgs;
+  }
+
   private async ensureLoaded(): Promise<void> {
     if (this.loaded) {
       return;
