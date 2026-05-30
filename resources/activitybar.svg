@@ -1,0 +1,10 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Single-colour glyph; VSCode tints it via currentColor. A branch/flow:
+       one source node fanning out to three environment nodes. -->
+  <circle cx="5" cy="12" r="2.4" fill="currentColor"/>
+  <circle cx="19" cy="5" r="2.1" fill="currentColor"/>
+  <circle cx="19" cy="12" r="2.1" fill="currentColor"/>
+  <circle cx="19" cy="19" r="2.1" fill="currentColor"/>
+  <path d="M7 12 H13 M13 12 C16 12 15 6 17.2 5.4 M13 12 H16.8 M13 12 C16 12 15 18 17.2 18.6"
+        stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+</svg>
