@@ -12,6 +12,9 @@ import {
   buildSourcePushArgs,
   buildRunTestsArgs,
   buildDeployMetadataArgs,
+  buildGenerateComponentArgs,
+  componentOutputDir,
+  type ComponentKind,
   COMMON_METADATA_TYPES,
 } from "./projectService.js";
 
@@ -109,6 +112,52 @@ export function registerProjectCommands(
     vscode.window.showInformationMessage(
       `プロジェクト「${name.trim()}」を作成中です。完了後 File > Open でそのフォルダを開いてください。`
     );
+  });
+
+  // 新しいコンポーネントを作成 (Apexクラス/トリガ/LWC/Aura).
+  reg("teamflow.createComponent", async () => {
+    const root = ctx.workspaceRoot();
+    if (!root) {
+      vscode.window.showErrorMessage("フォルダを開いてください。");
+      return;
+    }
+    const kindPick = await vscode.window.showQuickPick(
+      [
+        { label: "$(symbol-class) Apexクラス", detail: "ビジネスロジック", ckind: "apexClass" as ComponentKind },
+        { label: "$(zap) Apexトリガ", detail: "レコード操作時の処理", ckind: "apexTrigger" as ComponentKind },
+        { label: "$(symbol-method) Lightning Web Component", detail: "画面部品(LWC)", ckind: "lwc" as ComponentKind },
+        { label: "$(symbol-namespace) Auraコンポーネント", detail: "画面部品(Aura)", ckind: "aura" as ComponentKind },
+      ],
+      { title: "新しいコンポーネントを作成", placeHolder: "種類を選択" }
+    );
+    if (!kindPick) {
+      return;
+    }
+    const isLwc = kindPick.ckind === "lwc" || kindPick.ckind === "aura";
+    const name = await vscode.window.showInputBox({
+      title: `${kindPick.label.replace(/^\$\([a-z-]+\)\s*/, "")} の名前`,
+      prompt: isLwc ? "小文字始まり (例: accountSearch)" : "大文字始まり (例: AccountService)",
+      validateInput: (v) =>
+        /^[A-Za-z][A-Za-z0-9_]*$/.test(v.trim()) ? undefined : "英字始まりの英数字で入力してください",
+    });
+    if (!name) {
+      return;
+    }
+    let sobject: string | undefined;
+    if (kindPick.ckind === "apexTrigger") {
+      sobject = await vscode.window.showInputBox({
+        title: "対象オブジェクト (任意)",
+        prompt: "例: Account（空でもOK）",
+      });
+      if (sobject === undefined) {
+        return;
+      }
+    }
+    const dirs = await readSfdxPackageDirs(root);
+    const outputDir = componentOutputDir(dirs[0] || "force-app", kindPick.ckind);
+    const args = buildGenerateComponentArgs(kindPick.ckind, name.trim(), outputDir, sobject || undefined);
+    ctx.runInTerminal(renderCommand(ctx.cliPath(), args));
+    vscode.window.showInformationMessage(`${name.trim()} を ${outputDir} に作成します。`);
   });
 
   // メタデータを取得 (種類を選んで sf project retrieve).

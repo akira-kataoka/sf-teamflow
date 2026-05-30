@@ -2,6 +2,15 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.15.0] - 2026-05-31
+
+開発サイクルの「作る」と「レビュー依頼」を補完し、これ1つで一周できるように。
+
+### Added
+- ✨ **新規コンポーネント作成** (`teamflow.createComponent`): Apexクラス / Apexトリガ / LWC / Auraコンポーネントをひな形生成（種類選択→名前入力、出力先は自動）。ホーム①「開発する」に追加。
+- 🔀 **Pull Request作成** (`teamflow.createPullRequest`): 現在ブランチをpushし、マージ先(develop等)を選んで `gh pr create`。ホーム④「バージョン管理」に追加。
+
+
 ## [0.14.0] - 2026-05-31
 
 Org接続切れ（セッション失効）を見える化し、ワンクリックで再接続。

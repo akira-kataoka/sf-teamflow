@@ -9,6 +9,9 @@ import {
   buildSourcePullArgs,
   buildSourcePushArgs,
   buildDeployMetadataArgs,
+  buildGenerateComponentArgs,
+  componentOutputDir,
+  buildPullRequestArgs,
   COMMON_METADATA_TYPES,
 } from "../src/sfProject/projectService.js";
 
@@ -120,6 +123,33 @@ test("COMMON_METADATA_TYPES is a rich, de-duplicated list", () => {
   for (const t of ["ApexClass", "Flow", "PermissionSet", "FlexiPage", "ValidationRule"]) {
     assert.ok(types.includes(t), "missing " + t);
   }
+});
+
+test("componentOutputDir maps kinds to source subdirs", () => {
+  assert.equal(componentOutputDir("force-app", "apexClass"), "force-app/main/default/classes");
+  assert.equal(componentOutputDir("force-app/", "lwc"), "force-app/main/default/lwc");
+  assert.equal(componentOutputDir("pkg", "apexTrigger"), "pkg/main/default/triggers");
+  assert.equal(componentOutputDir("pkg", "aura"), "pkg/main/default/aura");
+});
+
+test("buildGenerateComponentArgs builds apex/lwc/trigger commands", () => {
+  assert.deepEqual(buildGenerateComponentArgs("apexClass", "AccountService", "d"), [
+    "apex", "generate", "class", "--name", "AccountService", "--output-dir", "d",
+  ]);
+  const lwc = buildGenerateComponentArgs("lwc", "accountCard", "d");
+  assert.ok(lwc.includes("lightning") && lwc.includes("--type") && lwc.includes("lwc"));
+  const trg = buildGenerateComponentArgs("apexTrigger", "AccTrg", "d", "Account");
+  assert.ok(trg.includes("--sobject") && trg.includes("Account"));
+  assert.throws(() => buildGenerateComponentArgs("apexClass", " ", "d"), /名前/);
+});
+
+test("buildPullRequestArgs targets a base branch with --fill", () => {
+  assert.deepEqual(buildPullRequestArgs({ baseBranch: "develop", web: true }), [
+    "pr", "create", "--base", "develop", "--fill", "--web",
+  ]);
+  assert.deepEqual(buildPullRequestArgs({ baseBranch: "main" }), [
+    "pr", "create", "--base", "main", "--fill",
+  ]);
 });
 
 test("buildScratchCreateArgs rejects empty alias", () => {

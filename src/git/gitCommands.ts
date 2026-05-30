@@ -21,6 +21,8 @@ import {
   switchBranch,
 } from "../deploy/gitService.js";
 import { suggestNextTag } from "./tagUtils.js";
+import { buildPullRequestArgs } from "../sfProject/projectService.js";
+import { renderCommand } from "../deploy/deployService.js";
 
 /**
  * Beginner-friendly git: each command is a small, named, end-to-end action
@@ -348,6 +350,40 @@ export function registerGitCommands(
     } finally {
       ctx.refreshAll();
     }
+  });
+
+  // Pull Request を作成 (gh pr create) — レビュー依頼の導線.
+  reg("teamflow.createPullRequest", async () => {
+    const root = await ensureRepo();
+    if (!root) {
+      return;
+    }
+    if (!(await hasRemote(root))) {
+      vscode.window.showInformationMessage("先に「GitHubに公開」してください。");
+      return;
+    }
+    const current = await currentBranch(root).catch(() => "");
+    // Suggest sensible base branches; default to develop if it exists.
+    const branches = (await listBranches(root)).filter((b) => b !== current);
+    const candidates = ["develop", "main", ...branches.filter((b) => b !== "develop" && b !== "main")];
+    const uniq = [...new Set(candidates)];
+    const base = await vscode.window.showQuickPick(uniq, {
+      title: `Pull Request: ${current} を取り込む先`,
+      placeHolder: "マージ先（レビュー後にここへ統合）ブランチを選択",
+    });
+    if (!base) {
+      return;
+    }
+    // First push the current branch so the PR has commits, then open the form.
+    try {
+      await push(root, true, current);
+    } catch {
+      /* may already be pushed */
+    }
+    ctx.runInTerminal(renderCommand("gh", buildPullRequestArgs({ baseBranch: base, web: true })));
+    vscode.window.showInformationMessage(
+      `${current} → ${base} の Pull Request を作成します（ブラウザで内容を確認）。`
+    );
   });
 
   // GitHubに公開 (gh repo create) — falls back to instructions if gh missing.

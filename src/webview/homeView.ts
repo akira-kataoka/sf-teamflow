@@ -329,7 +329,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
 
   // Grouped, numbered workflow — the core of the "structured, not a wall of buttons" design.
   const SECTIONS = [
-    { no: '1', title: '開発する', hint: '環境と同期', tier: 'core', tiles: [
+    { no: '1', title: '開発する', hint: '作成・環境と同期', tier: 'core', three: true, tiles: [
+      { c: 'teamflow.createComponent', em: '✨', label: '新規作成', desc: 'Apexクラス/トリガ/LWC/Aura を作成' },
       { c: 'teamflow.sourcePull', em: '⬇️', label: '環境から取込', need: 'org', desc: '環境(Org)側の変更をローカルに取り込みます' },
       { c: 'teamflow.sourcePush', em: '⬆️', label: '環境へ反映', need: 'org', desc: 'ローカルの変更を環境(Org)に反映（全部/資材選択）' },
     ]},
@@ -342,8 +343,9 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       { c: 'teamflow.validateDiff', em: '✅', label: '検証（お試し）', need: 'repo', badge: 'deploy', desc: 'デプロイせず差分を検証' },
       { c: 'teamflow.deployToEnvironment', em: '🚀', label: '環境へデプロイ', need: 'repo', badge: 'deploy', desc: '開発/ステージング/本番を選んでデプロイ' },
     ]},
-    { no: '4', title: 'バージョン管理', hint: 'ブランチ/タグ', tier: 'more', tiles: [
+    { no: '4', title: 'バージョン管理', hint: 'ブランチ/PR/タグ', tier: 'more', three: true, tiles: [
       { c: 'teamflow.manageBranches', em: '🌿', label: 'ブランチ管理', need: 'repo', desc: '切替/作成/削除' },
+      { c: 'teamflow.createPullRequest', em: '🔀', label: 'PR作成', need: 'repo', desc: 'レビュー依頼(develop等へ)' },
       { c: 'teamflow.manageTags', em: '🏷️', label: 'タグ管理', need: 'repo', desc: 'リリースの目印' },
     ]},
     { no: '⋯', title: 'その他', hint: '', tier: 'more', three: true, tiles: [

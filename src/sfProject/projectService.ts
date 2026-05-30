@@ -156,6 +156,66 @@ export function buildDeployMetadataArgs(orgUsername: string, metadata: string[])
   return args;
 }
 
+export type ComponentKind = "apexClass" | "apexTrigger" | "lwc" | "aura";
+
+/** Where each component kind is scaffolded, relative to a package directory. */
+export function componentOutputDir(packageDir: string, kind: ComponentKind): string {
+  const sub =
+    kind === "apexClass"
+      ? "classes"
+      : kind === "apexTrigger"
+      ? "triggers"
+      : kind === "lwc"
+      ? "lwc"
+      : "aura";
+  return `${packageDir.replace(/\/$/, "")}/main/default/${sub}`;
+}
+
+/**
+ * Build `sf` argv to scaffold a new component (Apex class/trigger, LWC, Aura).
+ * Pure & unit-tested.
+ */
+export function buildGenerateComponentArgs(
+  kind: ComponentKind,
+  name: string,
+  outputDir: string,
+  sobject?: string
+): string[] {
+  if (!name.trim()) {
+    throw new Error("名前を入力してください。");
+  }
+  switch (kind) {
+    case "apexClass":
+      return ["apex", "generate", "class", "--name", name, "--output-dir", outputDir];
+    case "apexTrigger": {
+      const args = ["apex", "generate", "trigger", "--name", name, "--output-dir", outputDir];
+      if (sobject) {
+        args.push("--sobject", sobject);
+      }
+      return args;
+    }
+    case "lwc":
+      return ["lightning", "generate", "component", "--name", name, "--type", "lwc", "--output-dir", outputDir];
+    case "aura":
+      return ["lightning", "generate", "component", "--name", name, "--type", "aura", "--output-dir", outputDir];
+  }
+}
+
+export interface PullRequestOptions {
+  baseBranch: string;
+  /** Open the PR form in the browser (true) or create non-interactively. */
+  web?: boolean;
+}
+
+/** Build `gh pr create` argv. `--fill` pre-populates title/body from commits. */
+export function buildPullRequestArgs(opts: PullRequestOptions): string[] {
+  const args = ["pr", "create", "--base", opts.baseBranch, "--fill"];
+  if (opts.web) {
+    args.push("--web");
+  }
+  return args;
+}
+
 /** Curated metadata types shown in the retrieve / deploy pickers. */
 export const COMMON_METADATA_TYPES: { label: string; type: string; detail: string }[] = [
   // --- コード ---
