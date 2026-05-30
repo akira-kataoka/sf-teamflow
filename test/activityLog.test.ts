@@ -39,3 +39,34 @@ test("relativeTime formats minutes/hours/days", () => {
   assert.equal(relativeTime(now - 3 * 3_600_000, now), "3時間前");
   assert.equal(relativeTime(now - 2 * 86_400_000, now), "2日前");
 });
+
+test("relativeTime: future timestamps clamp to たった今", () => {
+  const now = 1_000_000_000;
+  assert.equal(relativeTime(now + 99_999, now), "たった今");
+});
+
+test("relativeTime: boundaries (59min, 60min->1時間, 23h, 24h->1日)", () => {
+  const now = 1_000_000_000;
+  assert.equal(relativeTime(now - 59 * 60_000, now), "59分前");
+  assert.equal(relativeTime(now - 60 * 60_000, now), "1時間前");
+  assert.equal(relativeTime(now - 23 * 3_600_000, now), "23時間前");
+  assert.equal(relativeTime(now - 24 * 3_600_000, now), "1日前");
+});
+
+test("ActivityLog: recent(n) on empty store is [] and respects n", () => {
+  const log = new ActivityLog(fakeStore());
+  assert.deepEqual(log.recent(3), []);
+  log.record("a", "ok", 1);
+  log.record("b", "ok", 2);
+  assert.equal(log.recent(1).length, 1);
+  assert.equal(log.recent(1)[0].label, "b");
+  assert.equal(log.recent(99).length, 2);
+});
+
+test("ActivityLog: get returns default array independently each call", () => {
+  const store = fakeStore();
+  const log = new ActivityLog(store);
+  assert.deepEqual(log.all(), []);
+  log.record("x", "run", 5);
+  assert.equal(log.all().length, 1);
+});
