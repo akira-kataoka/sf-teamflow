@@ -279,7 +279,9 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .hero .t2 { font-size: 14px; font-weight: 600; margin-top: 2px; }
   .hero .go { font-size: 18px; opacity: .85; }
   .hero.calm { background: var(--vscode-button-secondaryBackground, #3a3d41); color: var(--vscode-button-secondaryForeground, #fff); cursor: default; }
-  .situation { font-size: 11.5px; opacity: .72; margin: -4px 2px 12px; line-height: 1.45; }
+  .situation { font-size: 11.5px; opacity: .72; margin: -4px 2px 12px; line-height: 1.6; }
+  .situation .link { cursor: pointer; color: var(--vscode-textLink-foreground, #4daafc); margin-left: 4px; white-space: nowrap; }
+  .situation .link:hover { text-decoration: underline; }
   .activity { font-size: 11px; margin: -6px 2px 12px; }
   .activity .alabel { opacity: .55; margin-bottom: 2px; }
   .activity .ai { display: flex; gap: 6px; padding: 1px 0; opacity: .85; }
@@ -435,14 +437,19 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       '<span class="em">'+na.em+'</span><span class="tx"><div class="t1">'+na.t1+'</div>'+
       '<div class="t2">'+escapeHtml(na.t2)+'</div></span>'+((na.c||na.reconnect)?'<span class="go">▶</span>':'')+'</div>';
 
-    // plain-language one-liner: where you are and what is pending
-    if (s.hasRepo) {
+    // plain-language one-liner: where you are and what is pending.
+    // In the empty/onboarding state, show a friendly welcome + guide link.
+    if (s.hasRepo && (s.orgs.length>0 || s.configured)) {
       const where = '「'+escapeHtml(s.branch||'(ブランチなし)')+'」'+(s.env?'（'+escapeHtml(s.env.name)+'環境）':'');
       const parts = [];
       parts.push(s.changes>0 ? '変更'+s.changes+'件が未保存' : '変更なし');
       if (s.ahead>0) parts.push('未バックアップ'+s.ahead+'件');
       const org = s.defaultOrg ? '反映先=「'+escapeHtml(s.defaultOrg.displayName)+'」'+(s.defaultOrg.isProduction?'⚠️本番':'') : '反映先Org未選択';
       $('situation').innerHTML = 'いま '+where+' で作業中。'+parts.join('・')+'。'+org+'。';
+    } else if (s.orgs.length===0 || !s.configured) {
+      $('situation').innerHTML = '👋 はじめまして！<b>このツール1つで Salesforce 開発が回せます</b>。'+
+        '上の「次にやること」を順に押すだけでOK。'+
+        '<span class="link" data-cmd="teamflow.openWorkflowGuide" role="button" tabindex="0">📘 使い方ガイドを見る</span>';
     } else {
       $('situation').innerHTML = '';
     }
