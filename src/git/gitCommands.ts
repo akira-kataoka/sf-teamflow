@@ -253,8 +253,8 @@ export function registerGitCommands(
     }
     const action = await vscode.window.showQuickPick(
       [
-        { label: "$(arrow-right) このブランチに切り替える", act: "switch" },
-        { label: "$(trash) このブランチを削除する", act: "delete" },
+        { label: "$(arrow-right) このブランチに切り替える", description: "作業対象を切替", act: "switch" },
+        { label: "$(trash) このブランチを削除する", description: "未マージ変更があると失敗(安全)", act: "delete" },
       ],
       { title: `ブランチ: ${name}` }
     );
@@ -347,8 +347,8 @@ export function registerGitCommands(
     const name = pick.replace(/^\$\(tag\)\s*/, "");
     const action = await vscode.window.showQuickPick(
       [
-        { label: "$(cloud-upload) GitHubへプッシュ", act: "push" },
-        { label: "$(trash) 削除（ローカル＋GitHub）", act: "delete" },
+        { label: "$(cloud-upload) GitHubへプッシュ", description: "このタグを共有", act: "push" },
+        { label: "$(trash) 削除（ローカル＋GitHub）", description: "取り消し不可", act: "delete" },
       ],
       { title: `タグ: ${name}` }
     );
@@ -396,10 +396,21 @@ export function registerGitCommands(
     const branches = (await listBranches(root)).filter((b) => b !== current);
     const candidates = ["develop", "main", ...branches.filter((b) => b !== "develop" && b !== "main")];
     const uniq = [...new Set(candidates)];
-    const base = await vscode.window.showQuickPick(uniq, {
-      title: `Pull Request: ${current} を取り込む先`,
-      placeHolder: "マージ先（レビュー後にここへ統合）ブランチを選択",
-    });
+    const desc: Record<string, string> = {
+      develop: "開発の合流先（おすすめ）",
+      main: "本番リリース用（通常は release から）",
+    };
+    const basePick = await vscode.window.showQuickPick(
+      uniq.map((b) => ({
+        label: b,
+        description: desc[b] || (b.startsWith("release") ? "リリース準備用" : ""),
+      })),
+      {
+        title: `Pull Request: ${current} を取り込む先`,
+        placeHolder: "マージ先（レビュー後にここへ統合）ブランチを選択",
+      }
+    );
+    const base = basePick?.label;
     if (!base) {
       return;
     }
