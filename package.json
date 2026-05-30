@@ -2,7 +2,7 @@
   "name": "sf-teamflow",
   "displayName": "SF TeamFlow — Salesforce Team Dev Orchestrator",
   "description": "Salesforce チーム開発を「環境 / Git / CI/CD」で体系化する VSCode 拡張。Org 環境マネージャ・Git 差分デプロイ・GitHub Actions スキャフォルドをワンストップで提供します。",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publisher": "akira-kataoka",
   "license": "MIT",
   "engines": {
@@ -250,6 +250,21 @@
         "command": "teamflow.gitPublish",
         "title": "TeamFlow: GitHubに公開",
         "icon": "$(github)"
+      },
+      {
+        "command": "teamflow.manageBranches",
+        "title": "TeamFlow: ブランチを管理（切替/作成/削除）",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "teamflow.createTag",
+        "title": "TeamFlow: リリースタグを作成",
+        "icon": "$(tag)"
+      },
+      {
+        "command": "teamflow.manageTags",
+        "title": "TeamFlow: タグを管理（作成/プッシュ/削除）",
+        "icon": "$(tag)"
       }
     ],
     "menus": {
@@ -300,14 +315,19 @@
           "group": "navigation@2"
         },
         {
-          "command": "teamflow.gitNewBranch",
+          "command": "teamflow.manageBranches",
           "when": "view == teamflow.git",
           "group": "navigation@3"
         },
         {
-          "command": "teamflow.refreshOrgs",
+          "command": "teamflow.manageTags",
           "when": "view == teamflow.git",
           "group": "navigation@4"
+        },
+        {
+          "command": "teamflow.refreshOrgs",
+          "when": "view == teamflow.git",
+          "group": "navigation@5"
         }
       ],
       "view/item/context": [

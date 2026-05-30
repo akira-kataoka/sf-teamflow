@@ -323,6 +323,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     { no: '2', title: '保存する', hint: 'バックアップ', tiles: [
       { c: 'teamflow.gitCommitPush', em: '💾', label: '保存してバックアップ', need: 'repo', badge: 'changes' },
       { c: 'teamflow.gitSync', em: '🔄', label: 'GitHubと同期', need: 'remote', badge: 'ahead' },
+      { c: 'teamflow.manageBranches', em: '🌿', label: 'ブランチ管理', need: 'repo' },
+      { c: 'teamflow.manageTags', em: '🏷️', label: 'タグ管理（リリース）', need: 'repo' },
     ]},
     { no: '3', title: 'テスト・リリース', hint: '品質確認', three: true, tiles: [
       { c: 'teamflow.runTests', em: '🧪', label: 'テスト実行', need: 'org' },

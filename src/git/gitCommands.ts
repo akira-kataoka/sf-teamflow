@@ -4,16 +4,23 @@ import { logger } from "../util/logger.js";
 import {
   commit,
   createBranch,
+  createTag,
   currentBranch,
+  deleteBranch,
+  deleteTag,
   hasRemote,
   isGitRepo,
   listBranches,
+  listTags,
   pull,
   push,
+  pushDeleteTag,
+  pushTag,
   stageAll,
   status,
   switchBranch,
 } from "../deploy/gitService.js";
+import { suggestNextTag } from "./tagUtils.js";
 
 /**
  * Beginner-friendly git: each command is a small, named, end-to-end action
@@ -183,6 +190,161 @@ export function registerGitCommands(
       vscode.window.showErrorMessage(
         `ブランチ操作に失敗しました（未保存の変更があるかもしれません）: ${String(err)}`
       );
+    } finally {
+      ctx.refreshAll();
+    }
+  });
+
+  // ブランチ管理: 切り替え / 新規作成 / 削除（クリック中心）.
+  reg("teamflow.manageBranches", async () => {
+    const root = await ensureRepo();
+    if (!root) {
+      return;
+    }
+    const NEW = "$(add) 新しい作業ブランチを作成…";
+    const current = await currentBranch(root).catch(() => "");
+    const branches = await listBranches(root);
+    const pick = await vscode.window.showQuickPick(
+      [NEW, ...branches.map((b) => (b === current ? `$(check) ${b}（現在）` : `$(git-branch) ${b}`))],
+      { title: "ブランチ管理", placeHolder: "操作するブランチを選択" }
+    );
+    if (!pick) {
+      return;
+    }
+    if (pick === NEW) {
+      await vscode.commands.executeCommand("teamflow.gitNewBranch");
+      return;
+    }
+    const name = pick.replace(/^\$\([a-z-]+\)\s*/, "").replace(/（現在）$/, "");
+    if (name === current) {
+      vscode.window.showInformationMessage(`「${name}」は現在のブランチです。`);
+      return;
+    }
+    const action = await vscode.window.showQuickPick(
+      [
+        { label: "$(arrow-right) このブランチに切り替える", act: "switch" },
+        { label: "$(trash) このブランチを削除する", act: "delete" },
+      ],
+      { title: `ブランチ: ${name}` }
+    );
+    if (!action) {
+      return;
+    }
+    try {
+      if (action.act === "switch") {
+        await switchBranch(name, root);
+        vscode.window.showInformationMessage(`✅ ${name} に切り替えました。`);
+      } else {
+        const ok = await vscode.window.showWarningMessage(
+          `ブランチ「${name}」を削除しますか？`,
+          { modal: true, detail: "未マージの変更がある場合は失敗します（安全のため）。" },
+          "削除する"
+        );
+        if (ok !== "削除する") {
+          return;
+        }
+        await deleteBranch(name, root, false);
+        vscode.window.showInformationMessage(`✅ ブランチ ${name} を削除しました。`);
+      }
+    } catch (err) {
+      vscode.window.showErrorMessage(`ブランチ操作に失敗: ${String(err)}`);
+    } finally {
+      ctx.refreshAll();
+    }
+  });
+
+  // タグ作成（リリースの目印）→ GitHubへプッシュ.
+  reg("teamflow.createTag", async () => {
+    const root = await ensureRepo();
+    if (!root) {
+      return;
+    }
+    const existing = await listTags(root).catch(() => []);
+    const suggested = suggestNextTag(existing);
+    const name = await vscode.window.showInputBox({
+      title: "リリースタグを作成",
+      prompt: "バージョンの目印（例: v1.0.0）。このままEnterでもOK。",
+      value: suggested,
+      validateInput: (v) =>
+        /^[\w.\/-]+$/.test(v.trim()) ? undefined : "英数字・.・-・/ で入力してください",
+    });
+    if (!name) {
+      return;
+    }
+    const message = await vscode.window.showInputBox({
+      title: "タグの説明（任意）",
+      prompt: "このリリースの内容（空でもOK）",
+      value: `Release ${name.trim()}`,
+    });
+    if (message === undefined) {
+      return;
+    }
+    try {
+      await createTag(name.trim(), message, root);
+      if (await hasRemote(root)) {
+        await pushTag(name.trim(), root);
+        vscode.window.showInformationMessage(`✅ タグ ${name.trim()} を作成しGitHubへプッシュしました。`);
+      } else {
+        vscode.window.showInformationMessage(`✅ タグ ${name.trim()} を作成しました（ローカル）。`);
+      }
+    } catch (err) {
+      vscode.window.showErrorMessage(`タグ作成に失敗: ${String(err)}`);
+    } finally {
+      ctx.refreshAll();
+    }
+  });
+
+  // タグ管理: 一覧 → プッシュ / 削除.
+  reg("teamflow.manageTags", async () => {
+    const root = await ensureRepo();
+    if (!root) {
+      return;
+    }
+    const NEW = "$(add) 新しいリリースタグを作成…";
+    const tags = await listTags(root);
+    const pick = await vscode.window.showQuickPick(
+      [NEW, ...tags.map((t) => `$(tag) ${t}`)],
+      { title: "タグ管理", placeHolder: tags.length ? "操作するタグを選択" : "まだタグがありません" }
+    );
+    if (!pick) {
+      return;
+    }
+    if (pick === NEW) {
+      await vscode.commands.executeCommand("teamflow.createTag");
+      return;
+    }
+    const name = pick.replace(/^\$\(tag\)\s*/, "");
+    const action = await vscode.window.showQuickPick(
+      [
+        { label: "$(cloud-upload) GitHubへプッシュ", act: "push" },
+        { label: "$(trash) 削除（ローカル＋GitHub）", act: "delete" },
+      ],
+      { title: `タグ: ${name}` }
+    );
+    if (!action) {
+      return;
+    }
+    try {
+      if (action.act === "push") {
+        await pushTag(name, root);
+        vscode.window.showInformationMessage(`✅ タグ ${name} をGitHubへプッシュしました。`);
+      } else {
+        const ok = await vscode.window.showWarningMessage(
+          `タグ「${name}」を削除しますか？`,
+          { modal: true },
+          "削除する"
+        );
+        if (ok !== "削除する") {
+          return;
+        }
+        await deleteTag(name, root);
+        if (await hasRemote(root)) {
+          await pushDeleteTag(name, root).catch(() => undefined);
+        }
+        vscode.window.showInformationMessage(`✅ タグ ${name} を削除しました。`);
+      }
+    } catch (err) {
+      vscode.window.showErrorMessage(`タグ操作に失敗: ${String(err)}`);
     } finally {
       ctx.refreshAll();
     }

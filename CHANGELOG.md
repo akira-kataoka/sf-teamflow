@@ -2,6 +2,17 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.8.0] - 2026-05-31
+
+GitHub のブランチとタグ（リリース）をクリックで管理できるように。
+
+### Added
+- 🌿 **ブランチ管理** (`teamflow.manageBranches`): 一覧から切り替え / 新規作成 / 削除をクリックで。
+- 🏷️ **タグ管理 / リリースタグ** (`teamflow.manageTags`, `teamflow.createTag`): 次のバージョン番号を自動提案(v1.0.0→v1.0.1)、作成と同時にGitHubへプッシュ、一覧からプッシュ/削除(ローカル+リモート)。
+- ホーム②「保存する」にブランチ管理・タグ管理タイルを追加、バックアップ(Git)ビューのタイトルにもボタン。
+- suggestNextTag 純粋関数+テスト3件(計43件pass)。
+
+
 ## [0.7.0] - 2026-05-31
 
 テストを回す操作を追加。初心者でも「反映→テスト→デプロイ」を高速で回せます。

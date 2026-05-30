@@ -266,6 +266,15 @@ export async function listBranches(cwd: string): Promise<string[]> {
     .filter(Boolean);
 }
 
+/** Local tags, newest first (by creation). */
+export async function listTags(cwd: string): Promise<string[]> {
+  const out = await git(["tag", "--sort=-creatordate"], cwd);
+  return out
+    .split("\n")
+    .map((l) => l.replace(/\r$/, "").trim())
+    .filter(Boolean);
+}
+
 /* ------------------------------- git mutations ---------------------------- */
 /* These wrap git and THROW on failure so command handlers can surface errors. */
 
@@ -295,4 +304,25 @@ export async function createBranch(name: string, cwd: string): Promise<void> {
 
 export async function switchBranch(name: string, cwd: string): Promise<void> {
   await git(["switch", name], cwd);
+}
+
+export async function deleteBranch(name: string, cwd: string, force: boolean): Promise<void> {
+  await git(["branch", force ? "-D" : "-d", name], cwd);
+}
+
+/** Create an annotated tag (used for release tagging). */
+export async function createTag(name: string, message: string, cwd: string): Promise<void> {
+  await git(["tag", "-a", name, "-m", message || name], cwd);
+}
+
+export async function deleteTag(name: string, cwd: string): Promise<void> {
+  await git(["tag", "-d", name], cwd);
+}
+
+export async function pushTag(name: string, cwd: string): Promise<string> {
+  return git(["push", "origin", name], cwd);
+}
+
+export async function pushDeleteTag(name: string, cwd: string): Promise<string> {
+  return git(["push", "origin", "--delete", name], cwd);
 }
