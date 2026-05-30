@@ -27,16 +27,23 @@ export class StatusBar {
 
   async update(root: string | undefined, orgs: OrgInfo[]): Promise<void> {
     const def = orgs.find((o) => o.isDefaultUsername);
-    if (def) {
+    if (def && !def.connected) {
+      // Default org is disconnected — surface it prominently for re-connect.
+      this.orgItem.text = `$(debug-disconnect) ${def.displayName} 未接続`;
+      this.orgItem.tooltip = `既定Org「${def.username}」に接続できません。\nクリックでホームから再接続できます。`;
+      this.orgItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+      this.orgItem.show();
+    } else if (def) {
       this.orgItem.text = `$(cloud) ${def.isProduction ? "⚠️ " : ""}${def.displayName}`;
-      this.orgItem.tooltip = `既定Org: ${def.username}\nクリックで切替`;
+      this.orgItem.tooltip = `既定Org: ${def.username}${def.isProduction ? "（⚠️本番）" : ""}\nクリックで切替`;
       this.orgItem.backgroundColor = def.isProduction
         ? new vscode.ThemeColor("statusBarItem.warningBackground")
         : undefined;
       this.orgItem.show();
     } else {
       this.orgItem.text = "$(cloud) Org未設定";
-      this.orgItem.tooltip = "既定Orgを設定";
+      this.orgItem.tooltip = "既定Orgが未設定です。クリックで選択。";
+      this.orgItem.backgroundColor = undefined;
       this.orgItem.show();
     }
 
@@ -52,9 +59,17 @@ export class StatusBar {
           /* config optional */
         }
         const dirty = s.changed > 0 ? `$(pencil)${s.changed} ` : "";
-        const sync = s.ahead > 0 ? `$(arrow-up)${s.ahead} ` : "";
-        this.gitItem.text = `$(git-branch) ${s.branch}${envLabel} ${sync}${dirty}`.trim();
-        this.gitItem.tooltip = "クリックで変更を保存してGitHubにバックアップ";
+        const up = s.ahead > 0 ? `$(arrow-up)${s.ahead} ` : "";
+        const down = s.behind > 0 ? `$(arrow-down)${s.behind} ` : "";
+        this.gitItem.text = `$(git-branch) ${s.branch}${envLabel} ${up}${down}${dirty}`.trim();
+        const tip = [
+          `ブランチ: ${s.branch}${envLabel ? envLabel.replace(" → ", " → 環境 ") : "（環境未割当）"}`,
+          s.changed > 0 ? `未保存の変更: ${s.changed}件` : "変更なし",
+          s.ahead > 0 ? `未バックアップ: ${s.ahead}件` : undefined,
+          s.behind > 0 ? `取り込み待ち: ${s.behind}件` : undefined,
+          "クリックで保存してGitHubにバックアップ",
+        ].filter(Boolean);
+        this.gitItem.tooltip = tip.join("\n");
         this.gitItem.show();
       } catch {
         this.gitItem.hide();
