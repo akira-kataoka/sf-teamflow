@@ -269,6 +269,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .chip.dim { opacity: .6; }
   .chip.clickable { cursor: pointer; }
   .chip.clickable:hover { filter: brightness(1.2); }
+  [tabindex="0"]:focus-visible, button:focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 1px; }
 
   /* next-action hero */
   .hero { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 10px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); cursor: pointer; margin-bottom: 12px; }
@@ -427,7 +428,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     // next-action hero
     const na = nextAction(s);
     const heroAttr = na.reconnect ? 'data-reconnect="'+escapeAttr(na.reconnect)+'"' : (na.c?'data-cmd="'+na.c+'"':'');
-    $('hero').innerHTML = '<div class="hero '+(na.calm?'calm':'')+'" '+heroAttr+'>'+
+    const heroA11y = (na.c||na.reconnect) ? ' role="button" tabindex="0" aria-label="'+escapeAttr(na.t1+' '+na.t2)+'"' : '';
+    $('hero').innerHTML = '<div class="hero '+(na.calm?'calm':'')+'" '+heroAttr+heroA11y+'>'+
       '<span class="em">'+na.em+'</span><span class="tx"><div class="t1">'+na.t1+'</div>'+
       '<div class="t2">'+escapeHtml(na.t2)+'</div></span>'+((na.c||na.reconnect)?'<span class="go">▶</span>':'')+'</div>';
 
@@ -532,7 +534,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
         const action = o.connected
           ? '<button class="open" data-open="'+escapeAttr(o.username)+'">開く</button>'
           : '<button class="open reconnect" data-reconnect="'+escapeAttr(o.username)+'">再接続</button>';
-        return '<div class="card '+(o.isDefault?'active':'')+(o.connected?'':' disc')+'" data-org="'+escapeAttr(o.username)+'">'+
+        return '<div class="card '+(o.isDefault?'active':'')+(o.connected?'':' disc')+'" data-org="'+escapeAttr(o.username)+'" role="button" tabindex="0" aria-label="'+escapeAttr(o.displayName+' を既定に設定')+'">'+
           '<span class="dot" style="background:'+(colors[o.category]||'#888')+'"></span>'+
           '<span class="name">'+(o.isDefault?'★ ':'')+escapeHtml(o.displayName)+
             (o.isProduction?' ⚠️':'')+(o.connected?'':' 🔌未接続')+
@@ -546,15 +548,25 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   function escapeHtml(s){ return String(s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
   function escapeAttr(s){ return String(s).replace(/"/g,'&quot;'); }
 
-  document.addEventListener('click', (e)=>{
-    const rc = e.target.closest('[data-reconnect]');
-    if (rc) { e.stopPropagation(); send('reconnect', { username: rc.getAttribute('data-reconnect') }); return; }
-    const tile = e.target.closest('[data-cmd]');
-    if (tile && !tile.disabled) { cmd(tile.getAttribute('data-cmd')); return; }
-    const open = e.target.closest('[data-open]');
-    if (open) { e.stopPropagation(); send('openOrg', { username: open.getAttribute('data-open') }); return; }
-    const card = e.target.closest('[data-org]');
-    if (card) { send('setOrg', { username: card.getAttribute('data-org') }); return; }
+  // Shared activation so mouse click and keyboard (Enter/Space) behave the same.
+  function activateFrom(target) {
+    const rc = target.closest('[data-reconnect]');
+    if (rc) { send('reconnect', { username: rc.getAttribute('data-reconnect') }); return true; }
+    const open = target.closest('[data-open]');
+    if (open) { send('openOrg', { username: open.getAttribute('data-open') }); return true; }
+    const tile = target.closest('[data-cmd]');
+    if (tile && !tile.disabled) { cmd(tile.getAttribute('data-cmd')); return true; }
+    const card = target.closest('[data-org]');
+    if (card) { send('setOrg', { username: card.getAttribute('data-org') }); return true; }
+    return false;
+  }
+  document.addEventListener('click', (e)=>{ activateFrom(e.target); });
+  document.addEventListener('keydown', (e)=>{
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    // Native <button>/<select> already handle their own keys.
+    const t = e.target;
+    if (t && (t.tagName === 'BUTTON' || t.tagName === 'SELECT')) return;
+    if (activateFrom(t)) { e.preventDefault(); }
   });
 
   window.addEventListener('message', (e)=>{ if (e.data?.type==='state') render(e.data.payload); });

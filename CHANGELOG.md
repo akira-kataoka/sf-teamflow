@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.22.0] - 2026-05-31
+
+- ⌨️ **ホームのキーボード操作/アクセシビリティ**: ヒーロー・Orgカードを role=button/tabindex/aria-label でフォーカス可能にし、Enter/Spaceで実行。フォーカスリング表示。タイルは従来通り<button>。
+
 ## [0.21.0] - 2026-05-31
 
 - 🕘 **最近の操作をホームに表示**: 保存/同期/デプロイ/テスト/反映/取込の実行を記録し、ホームに「最近の操作」として ✓/✗/▶ と相対時刻(〜分前)で表示。globalStateに永続化。
