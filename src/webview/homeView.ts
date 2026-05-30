@@ -339,6 +339,9 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   details.more > summary::-webkit-details-marker { display: none; }
   details.more[open] > summary { opacity: 1; margin-bottom: 8px; }
   .addorg { margin-bottom: 8px; }
+  .footer { display: flex; gap: 14px; justify-content: center; margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--vscode-panel-border, #8884); }
+  .footer .fitem { cursor: pointer; font-size: 12px; opacity: .75; }
+  .footer .fitem:hover { opacity: 1; text-decoration: underline; }
   .setupbar { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 8px 10px; margin-bottom: 12px; border: 1px solid var(--vscode-panel-border, #8884); border-radius: 8px; opacity: .9; }
   .setupbar .done { color: #3fb950; }
   .setupbar .now { font-weight: 700; }
@@ -361,6 +364,12 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     <div class="sechead"><span class="stepno">☁️</span><span class="sectitle">接続中の Org</span><span class="sechint">クリックで切替</span></div>
     <div id="orgs"></div>
   </section>
+
+  <div class="footer">
+    <span class="fitem" data-cmd="teamflow.openWorkflowGuide" role="button" tabindex="0">📘 ガイド</span>
+    <span class="fitem" data-cmd="teamflow.quickSettings" role="button" tabindex="0">⚙️ 設定</span>
+    <span class="fitem" data-cmd="teamflow.refreshOrgs" role="button" tabindex="0">🔄 更新</span>
+  </div>
 
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
