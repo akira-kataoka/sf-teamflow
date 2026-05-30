@@ -258,6 +258,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 13px; font-size: 11.5px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); }
   .chip.prod { background: var(--vscode-inputValidation-errorBackground, #5a1d1d); outline: 1px solid #e55; }
   .chip.dim { opacity: .6; }
+  .chip.clickable { cursor: pointer; }
+  .chip.clickable:hover { filter: brightness(1.2); }
 
   /* next-action hero */
   .hero { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 10px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); cursor: pointer; margin-bottom: 12px; }
@@ -389,8 +391,13 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     // status chips
     const chips = [];
     if (s.defaultOrg) {
-      chips.push('<span class="chip ' + (s.defaultOrg.isProduction?'prod':'') + '">☁️ ' +
-        (s.defaultOrg.isProduction?'⚠️ ':'') + escapeHtml(s.defaultOrg.displayName) + '</span>');
+      // Clickable when connected → opens the org in the browser.
+      const clickable = s.defaultOrg.connected
+        ? ' clickable" data-open="'+escapeAttr(s.defaultOrg.username)+'" title="クリックでブラウザで開く'
+        : '';
+      chips.push('<span class="chip ' + (s.defaultOrg.isProduction?'prod':'') + clickable + '">☁️ ' +
+        (s.defaultOrg.isProduction?'⚠️ ':'') + escapeHtml(s.defaultOrg.displayName) +
+        (s.defaultOrg.connected?' 🔗':'') + '</span>');
     } else {
       chips.push('<span class="chip dim">☁️ Org未選択</span>');
     }
