@@ -295,6 +295,10 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   details.more > summary::-webkit-details-marker { display: none; }
   details.more[open] > summary { opacity: 1; margin-bottom: 8px; }
   .addorg { margin-bottom: 8px; }
+  .setupbar { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 8px 10px; margin-bottom: 12px; border: 1px solid var(--vscode-panel-border, #8884); border-radius: 8px; opacity: .9; }
+  .setupbar .done { color: #3fb950; }
+  .setupbar .now { font-weight: 700; }
+  .setupbar .sep { opacity: .5; }
 </style>
 </head>
 <body>
@@ -345,9 +349,11 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   ];
 
   function nextAction(s) {
-    if (!s.hasRepo) return { em:'🧭', t1:'まず最初に', t2:'セットアップを始める', c:'teamflow.guidedSetup' };
-    if (s.orgs.length === 0) return { em:'🔌', t1:'次にやること', t2:'Orgを認証する', c:'teamflow.authorizeOrg' };
-    if (!s.configured) return { em:'⚙️', t1:'次にやること', t2:'環境を設定する（開発/ステージング/本番）', c:'teamflow.setupWizard' };
+    // Single, unambiguous "what to do next". Setup is one ordered flow:
+    //   ① Orgを認証 → ② 環境を設定。git は「保存」時に自動で開始するので
+    // ここでは別アクションとして出さない（重複ラベルの混乱を避ける）。
+    if (s.orgs.length === 0) return { em:'🔌', t1:'はじめに（1/2）', t2:'Orgを認証する', c:'teamflow.authorizeOrg' };
+    if (!s.configured) return { em:'🧭', t1:'はじめに（2/2）', t2:'環境を設定する（開発/ステージング/本番）', c:'teamflow.setupWizard' };
     if (s.changes > 0) return { em:'💾', t1:'次にやること', t2:'変更 '+s.changes+'件を保存してバックアップ', c:'teamflow.gitCommitPush' };
     if (s.ahead > 0) return { em:'🔄', t1:'次にやること', t2:'未バックアップ '+s.ahead+'件をGitHubへ', c:'teamflow.gitSync' };
     return { em:'✅', t1:'準備OK', t2:'変更を加えたら自動でここに表示されます', calm:true };
@@ -375,14 +381,18 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       '<span class="em">'+na.em+'</span><span class="tx"><div class="t1">'+na.t1+'</div>'+
       '<div class="t2">'+escapeHtml(na.t2)+'</div></span>'+(na.c?'<span class="go">▶</span>':'')+'</div>';
 
-    // setup checklist (only when something is missing)
-    const setup = [];
-    if (!s.hasRepo) setup.push({ label:'バージョン管理を始める', c:'teamflow.guidedSetup' });
-    if (s.orgs.length===0) setup.push({ label:'Orgを認証する', c:'teamflow.authorizeOrg' });
-    if (!s.configured) setup.push({ label:'環境を設定する（開発/ステージング/本番）', c:'teamflow.setupWizard' });
-    $('setup').innerHTML = setup.length>0
-      ? setup.map(st => '<div class="step" data-cmd="'+st.c+'"><span class="mk">⭕</span><span>'+st.label+'</span></div>').join('')
-      : '';
+    // setup progress strip (non-clickable) — the hero above is the single CTA,
+    // so there is no duplicate "始める" button to confuse. Shows where you are
+    // in the 2-step setup. Git is NOT a step here; it starts automatically the
+    // first time you press 保存してバックアップ.
+    if (s.orgs.length===0 || !s.configured) {
+      const d1 = s.orgs.length>0, d2 = s.configured;
+      $('setup').innerHTML = '<div class="setupbar"><span class="'+(d1?'done':'now')+'">'+
+        (d1?'✓':'①')+' Org認証</span><span class="sep">→</span><span class="'+(d2?'done':(d1?'now':''))+'">'+
+        (d2?'✓':'②')+' 環境設定</span></div>';
+    } else {
+      $('setup').innerHTML = '';
+    }
 
     // changed-files preview (what "保存してバックアップ" will save) — collapsed by default
     if (s.hasRepo && s.files && s.files.length>0) {
@@ -419,7 +429,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
         '<span class="sectitle">'+sec.title+'</span>'+hint+'</div>'+
         '<div class="grid '+(sec.three?'three':'')+'">'+tiles+'</div></section>';
     }
-    const fresh = !s.hasRepo && s.orgs.length===0 && !s.configured;
+    const fresh = s.orgs.length===0 && !s.configured;
     if (fresh) {
       $('sections').innerHTML = '';
     } else {
