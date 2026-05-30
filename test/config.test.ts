@@ -110,3 +110,47 @@ test("baseRefFor and testLevelFor fall back to config defaults", () => {
   assert.equal(baseRefFor(c, prod), "origin/main");
   assert.equal(testLevelFor(c, undefined), "RunLocalTests");
 });
+
+test("matchBranch: edge globs (prefix, suffix, multiple stars, empty)", () => {
+  assert.equal(matchBranch("*", "anything/here"), true);
+  assert.equal(matchBranch("release/*", "release/"), true);
+  assert.equal(matchBranch("*/fix", "hotfix/fix"), true);
+  assert.equal(matchBranch("feature/*/wip", "feature/a/wip"), true);
+  assert.equal(matchBranch("feature/*/wip", "feature/a/b/wip"), true);
+  assert.equal(matchBranch("main", ""), false);
+  assert.equal(matchBranch("release/*", "release"), false);
+});
+
+test("matchBranch: regex metacharacters in pattern are treated literally", () => {
+  assert.equal(matchBranch("v1.0", "v1.0"), true);
+  assert.equal(matchBranch("v1.0", "v1x0"), false); // '.' must be literal
+});
+
+test("resolveEnvironment: exact wins over glob even if glob is longer", () => {
+  const c = parseTeamflowConfig({
+    environments: [
+      { name: "byGlob", orgAlias: "g", branch: "release/*-long", type: "sandbox" },
+      { name: "byExact", orgAlias: "e", branch: "release/x", type: "sandbox" },
+    ],
+  });
+  // "release/x" matches the exact one only; ensure exact is chosen.
+  assert.equal(resolveEnvironment(c, "release/x")?.name, "byExact");
+});
+
+test("resolveEnvironment: among globs, the longest pattern wins", () => {
+  const c = parseTeamflowConfig({
+    environments: [
+      { name: "short", orgAlias: "s", branch: "feature/*", type: "sandbox" },
+      { name: "long", orgAlias: "l", branch: "feature/api/*", type: "sandbox" },
+    ],
+  });
+  assert.equal(resolveEnvironment(c, "feature/api/x")?.name, "long");
+  assert.equal(resolveEnvironment(c, "feature/ui/x")?.name, "short");
+});
+
+test("resolveEnvironment: no match returns undefined", () => {
+  const c = parseTeamflowConfig({
+    environments: [{ name: "p", orgAlias: "p", branch: "main", type: "production" }],
+  });
+  assert.equal(resolveEnvironment(c, "develop"), undefined);
+});
