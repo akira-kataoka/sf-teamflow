@@ -113,7 +113,7 @@ export function activate(context: vscode.ExtensionContext): void {
   register("teamflow.setDefaultOrg", (node?: TreeNode) => setDefaultOrg(node));
   register("teamflow.openOrg", (node?: TreeNode) => openOrg(node));
   register("teamflow.openOrgByName", (username?: string) => openOrgByUsername(username));
-  register("teamflow.reconnectOrg", (username?: string) => reconnectOrg(username));
+  register("teamflow.reconnectOrg", (arg?: string | TreeNode) => reconnectOrg(arg));
   register("teamflow.logoutOrg", (node?: TreeNode) => logoutOrg(node));
   register("teamflow.copyOrgId", (node?: TreeNode) => copyOrgId(node));
 
@@ -219,10 +219,16 @@ async function openOrg(node?: TreeNode): Promise<void> {
   }
 }
 
-async function reconnectOrg(username?: string): Promise<void> {
-  const org = username
-    ? orgTree.knownOrgs.find((o) => o.username === username)
-    : await resolveOrgFromNode();
+async function reconnectOrg(arg?: string | TreeNode): Promise<void> {
+  // Invoked from the webview (username string) or the tree menu (TreeNode).
+  let org: OrgInfo | undefined;
+  if (typeof arg === "string") {
+    org = orgTree.knownOrgs.find((o) => o.username === arg);
+  } else if (arg && typeof arg === "object" && "org" in arg && arg.org) {
+    org = arg.org;
+  } else {
+    org = await resolveOrgFromNode();
+  }
   if (!org) {
     return;
   }
