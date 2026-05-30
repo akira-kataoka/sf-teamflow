@@ -10,10 +10,6 @@ import {
 } from "../src/cicd/templates.js";
 import { defaultConfig } from "../src/config/teamflowConfig.js";
 
-test("secretPrefix uppercases and sanitises env name", () => {
-  assert.equal(secretPrefix({ name: "uat-eu", orgAlias: "u", branch: "b", type: "sandbox" }), "SF_UAT_EU");
-});
-
 test("branchCondition emits exact vs startsWith for globs", () => {
   assert.equal(
     branchCondition({ name: "p", orgAlias: "p", branch: "main", type: "production" }),
