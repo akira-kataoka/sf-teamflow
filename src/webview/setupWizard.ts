@@ -1,4 +1,6 @@
 import * as vscode from "vscode";
+import { promises as fs } from "node:fs";
+import * as path from "node:path";
 import { OrgTreeProvider } from "../orgManager/orgTreeProvider.js";
 import { isGitRepo } from "../deploy/gitService.js";
 import {
@@ -71,6 +73,13 @@ export class SetupWizard {
         await this.orgTree.ensureOrgsLoaded(true);
         await this.sendInit();
         return;
+      case "command":
+        if (typeof msg.command === "string") {
+          await vscode.commands.executeCommand(msg.command);
+          // Project/org/repo state may have changed — re-check after a beat.
+          setTimeout(() => void this.sendInit(), 800);
+        }
+        return;
       case "create":
         await this.create(msg.environments as WizardEnvInput[], Boolean(msg.generateCI));
         return;
@@ -83,8 +92,16 @@ export class SetupWizard {
     }
     const root = this.getRoot();
     const orgs = await this.orgTree.ensureOrgsLoaded().catch(() => []);
+    let hasProject = false;
+    if (root) {
+      hasProject = await fs
+        .access(path.join(root, "sfdx-project.json"))
+        .then(() => true)
+        .catch(() => false);
+    }
     const payload = {
       hasRoot: Boolean(root),
+      hasProject,
       hasRepo: root ? await isGitRepo(root) : false,
       alreadyConfigured: root ? await configExists(root) : false,
       orgs: orgs.map((o) => ({
@@ -210,6 +227,10 @@ export class SetupWizard {
   .ok { color: #3fb950; }
   label.chk { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-top: 10px; cursor: pointer; }
   .toggle { width: 16px; height: 16px; }
+  .nextstep { display: flex; align-items: flex-start; gap: 10px; padding: 10px; border: 1px solid var(--vscode-panel-border, #8884); border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
+  .nextstep:hover { background: var(--vscode-list-hoverBackground); }
+  .nextstep > span { width: 22px; height: 22px; flex: 0 0 auto; border-radius: 50%; background: var(--vscode-button-background); color: var(--vscode-button-foreground); display: flex; align-items: center; justify-content: center; font-size: 12px; }
+  .nextstep b { font-size: 13.5px; }
 </style>
 </head>
 <body>
@@ -307,15 +328,19 @@ export class SetupWizard {
   }
 
   function renderChecks(s) {
+    // btn: { act } posts {type:act}; { cmd } posts {type:'command', command}.
     const line = (ok, okTxt, ngTxt, btn) =>
       '<div class="check"><span class="ic">'+(ok?'✅':'⭕')+'</span><span>'+(ok?okTxt:ngTxt)+'</span>'+
-      (ok||!btn?'':' <button class="secondary" style="margin-left:auto" data-act="'+btn.act+'">'+btn.label+'</button>')+'</div>';
+      (ok||!btn?'':' <button class="secondary" style="margin-left:auto" '+
+        (btn.cmd?('data-cmd="'+btn.cmd+'"'):('data-act="'+btn.act+'"'))+'>'+btn.label+'</button>')+'</div>';
     $('#checks').innerHTML =
-      line(s.hasRoot, 'プロジェクトフォルダを開いています', 'フォルダが開かれていません', null) +
+      line(s.hasProject, 'Salesforceプロジェクトが準備できています', 'プロジェクト(sfdx-project.json)がありません',
+        { cmd:'teamflow.createProject', label:'プロジェクトを作成' }) +
       line(s.hasRepo, 'バージョン管理(Git)が有効です', 'Gitはまだ無効です（後で開始できます）', null) +
       line(s.orgs.length>0, s.orgs.length+'個のOrgを認証済み', 'Orgが未認証です', {act:'authorize', label:'Orgを認証'}) +
       (s.alreadyConfigured ? '<div class="check"><span class="ic warn">⚠️</span><span class="warn">既に設定済み — 作成すると上書きされます</span></div>' : '');
     $$('#checks [data-act]').forEach(b => b.addEventListener('click', ()=> vscode.postMessage({type:b.dataset.act})));
+    $$('#checks [data-cmd]').forEach(b => b.addEventListener('click', ()=> vscode.postMessage({type:'command', command:b.dataset.cmd})));
   }
 
   function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -333,7 +358,18 @@ export class SetupWizard {
     const m = e.data;
     if (m.type==='init') { ORGS = m.payload.orgs || []; renderChecks(m.payload); if ($('.page[data-page="2"]').classList.contains('show')) renderEnvs(); }
     else if (m.type==='error') { $('#err').textContent = '⚠️ ' + m.message; }
-    else if (m.type==='done') { $('#result').innerHTML = '<div class="check"><span class="ic ok">✅</span><span class="ok">'+esc(m.message)+'</span></div><p class="hint">このタブは閉じてOKです。ホーム画面に環境が表示されます。</p>'; $('#create').disabled = true; }
+    else if (m.type==='done') {
+      $('#create').disabled = true;
+      $('#result').innerHTML =
+        '<div class="check"><span class="ic ok">✅</span><span class="ok">'+esc(m.message)+'</span></div>'+
+        '<div class="panel" style="margin-top:14px"><div style="font-weight:600;margin-bottom:8px">🚀 チーム開発を始める</div>'+
+        '<div class="hint" style="margin:0 0 10px">チームのメンバーが同じ環境で開発できるよう、次の3つを行いましょう。</div>'+
+        '<div class="nextstep" data-cmd="teamflow.gitPublish"><span>1</span><div><b>GitHubに公開</b><div class="hint">コードを共有リポジトリに置く（gh 連携）</div></div></div>'+
+        '<div class="nextstep" data-cmd="teamflow.scaffoldCICD"><span>2</span><div><b>CI/CDを生成・シークレット設定</b><div class="hint">PR検証/自動デプロイ。SF_&lt;ENV&gt;_CLIENT_ID 等をGitHubに登録</div></div></div>'+
+        '<div class="nextstep" data-cmd="teamflow.openWorkflowGuide"><span>3</span><div><b>チーム開発ガイドを開く</b><div class="hint">ブランチ運用・メンバー招待・Branch protection</div></div></div>'+
+        '</div>';
+      $$('#result .nextstep').forEach(b => b.addEventListener('click', ()=> vscode.postMessage({type:'command', command:b.dataset.cmd})));
+    }
   });
 
   vscode.postMessage({ type:'ready' });
