@@ -156,6 +156,15 @@ export function buildDeployMetadataArgs(orgUsername: string, metadata: string[])
   return args;
 }
 
+/**
+ * Build `sf apex tail log` argv to stream debug logs (System.debug output) from
+ * an org in real time — the "動かして確認する" step of the dev loop. Pure &
+ * unit-tested.
+ */
+export function buildTailLogArgs(orgUsername: string): string[] {
+  return ["apex", "tail", "log", "--target-org", orgUsername, "--color"];
+}
+
 export type ComponentKind = "apexClass" | "apexTrigger" | "lwc" | "aura";
 
 /** Where each component kind is scaffolded, relative to a package directory. */

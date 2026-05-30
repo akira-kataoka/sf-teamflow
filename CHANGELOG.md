@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.37.0] - 2026-05-31
+
+- 📜 **デバッグログ確認(リアルタイム)**: System.debug 出力を sf apex tail log でストリーム表示。開発サイクルに不足していた「Orgで動かして確認する」工程を追加。ホーム「テスト・リリース」に📜ログ確認タイル。コマンド teamflow.tailLog。
+
 ## [0.36.0] - 2026-05-31
 
 - 🔢 **Org詳細の見出しを可読化**: カテゴリ見出しの件数に「件」単位を付与し、ツールチップ追加（例: 「🧪 Sandbox: 2 件のOrg」）。

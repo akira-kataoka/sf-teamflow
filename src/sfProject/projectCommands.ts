@@ -14,6 +14,7 @@ import {
   buildDeployMetadataArgs,
   buildGenerateComponentArgs,
   componentOutputDir,
+  buildTailLogArgs,
   type ComponentKind,
   COMMON_METADATA_TYPES,
 } from "./projectService.js";
@@ -243,6 +244,16 @@ export function registerProjectCommands(
       renderCommand(ctx.cliPath(), buildRunTestsArgs({ orgUsername: org.username, classNames, level }))
     );
     ctx.recordActivity(`テスト実行: ${org.displayName}`, "run");
+  });
+
+  // デバッグログを確認（System.debug出力をリアルタイム表示）.
+  reg("teamflow.tailLog", async () => {
+    const org = await pickOrg("ログを確認するOrgを選択");
+    if (!org) {
+      return;
+    }
+    ctx.runInTerminal(renderCommand(ctx.cliPath(), buildTailLogArgs(org.username)));
+    ctx.recordActivity(`ログ確認: ${org.displayName}`, "run");
   });
 
   // 反映してテスト: スクラッチ/Sandbox に push してから即テスト（高速ループ）.

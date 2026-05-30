@@ -10,6 +10,7 @@ import {
   buildSourcePushArgs,
   buildDeployMetadataArgs,
   buildGenerateComponentArgs,
+  buildTailLogArgs,
   componentOutputDir,
   buildPullRequestArgs,
   COMMON_METADATA_TYPES,
@@ -157,4 +158,10 @@ test("buildScratchCreateArgs rejects empty alias", () => {
     () => buildScratchCreateArgs({ alias: "", definitionFile: "x", durationDays: 1 }),
     /エイリアス/
   );
+});
+
+test("buildTailLogArgs streams debug logs from the target org", () => {
+  assert.deepEqual(buildTailLogArgs("u@e.com"), [
+    "apex", "tail", "log", "--target-org", "u@e.com", "--color",
+  ]);
 });
