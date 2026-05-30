@@ -504,13 +504,21 @@ async function executeDeploy(ctx: DeployContext, validateOnly: boolean): Promise
 
   const verb = validateOnly ? "検証" : "デプロイ";
   const detailLines = [
-    `対象Org: ${ctx.orgAlias}${ctx.isProduction ? " ⚠️ 本番" : ""}`,
+    `対象Org: ${ctx.orgAlias}${ctx.isProduction ? " ⚠️ 本番環境" : ""}`,
     `ブランチ: ${ctx.branch} (基準 ${ctx.baseRef})`,
     `テストレベル: ${ctx.testLevel}`,
-    `ファイル ${cs.toDeploy.length}件`,
   ];
   if (cs.toDelete.length) {
     detailLines.push(`※ ${cs.toDelete.length}件の削除はこの操作に含まれません`);
+  }
+  // Show exactly which files will be sent so the user can confirm before acting.
+  const MAX_LIST = 25;
+  detailLines.push("", `── 対象ファイル ${cs.toDeploy.length}件 ──`);
+  for (const f of cs.toDeploy.slice(0, MAX_LIST)) {
+    detailLines.push(`• ${f}`);
+  }
+  if (cs.toDeploy.length > MAX_LIST) {
+    detailLines.push(`…他 ${cs.toDeploy.length - MAX_LIST} 件`);
   }
 
   const confirmProd = vscode.workspace
@@ -518,7 +526,7 @@ async function executeDeploy(ctx: DeployContext, validateOnly: boolean): Promise
     .get<boolean>("confirmProductionDeploy", true);
   if (!validateOnly && ctx.isProduction && confirmProd) {
     const ok = await vscode.window.showWarningMessage(
-      `⚠️ 本番Org「${ctx.orgAlias}」へデプロイしようとしています。`,
+      `🛑 本番環境「${ctx.orgAlias}」へデプロイします。内容をよく確認してください。`,
       { modal: true, detail: detailLines.join("\n") },
       "本番にデプロイする"
     );
