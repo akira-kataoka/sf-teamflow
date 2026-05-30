@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.28.0] - 2026-05-31
+
+- ⚠️ **チーム設定の簡易検証＋ホーム注意表示**: sf-teamflow.json の未認証Org・ブランチ重複・本番環境欠落・空定義を検出し、ホームに注意バナー表示（クリックで設定を開く）。lintTeamflowConfig 純粋関数＋テスト追加。
+
 ## [0.27.0] - 2026-05-31
 
 - 🧭 **ホーム最下部に常設フッタ**: 「📘 ガイド / ⚙️ 設定 / 🔄 更新」をいつでもワンクリック（キーボード操作対応）。

@@ -4,6 +4,7 @@ import {
   baseRefFor,
   ConfigError,
   defaultConfig,
+  lintTeamflowConfig,
   matchBranch,
   parseTeamflowConfig,
   resolveEnvironment,
@@ -67,6 +68,40 @@ test("resolveEnvironment prefers exact then longest glob", () => {
   assert.equal(resolveEnvironment(c, "release/1.0")?.name, "rel");
   assert.equal(resolveEnvironment(c, "release/hotfix-9")?.name, "relhot"); // longest wins
   assert.equal(resolveEnvironment(c, "feature/x"), undefined);
+});
+
+test("lintTeamflowConfig: healthy config (defaultConfig with all orgs known)", () => {
+  const c = defaultConfig();
+  const aliases = c.environments.map((e) => e.orgAlias);
+  assert.deepEqual(lintTeamflowConfig(c, aliases), []);
+});
+
+test("lintTeamflowConfig flags empty environments", () => {
+  const c = parseTeamflowConfig({ environments: [] });
+  const w = lintTeamflowConfig(c, []);
+  assert.equal(w.length, 1);
+  assert.match(w[0], /環境が未定義/);
+});
+
+test("lintTeamflowConfig flags duplicate branch, unknown org, no production", () => {
+  const c = parseTeamflowConfig({
+    environments: [
+      { name: "dev", orgAlias: "d", branch: "develop", type: "sandbox" },
+      { name: "dev2", orgAlias: "x", branch: "develop", type: "sandbox" },
+    ],
+  });
+  const w = lintTeamflowConfig(c, ["d"]);
+  assert.ok(w.some((m) => /重複/.test(m)), "duplicate branch");
+  assert.ok(w.some((m) => /「x」が未認証/.test(m)), "unknown org x");
+  assert.ok(!w.some((m) => /「d」が未認証/.test(m)), "d is known");
+  assert.ok(w.some((m) => /本番.*定義されていません/.test(m)), "no production");
+});
+
+test("lintTeamflowConfig skips org check when no known aliases", () => {
+  const c = parseTeamflowConfig({
+    environments: [{ name: "prod", orgAlias: "p", branch: "main", type: "production" }],
+  });
+  assert.deepEqual(lintTeamflowConfig(c, []), []);
 });
 
 test("baseRefFor and testLevelFor fall back to config defaults", () => {

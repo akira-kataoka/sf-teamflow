@@ -167,6 +167,41 @@ export function testLevelFor(config: TeamflowConfig, env?: TeamEnvironment): Tes
   return env?.testLevel || config.testLevel;
 }
 
+/**
+ * Lint a team config for common mistakes, returning human-readable warnings
+ * (empty = healthy). `knownAliases` are the currently-authorised org aliases;
+ * pass [] to skip the unauthorised-org check (e.g. before orgs have loaded).
+ * Pure & unit-tested.
+ */
+export function lintTeamflowConfig(config: TeamflowConfig, knownAliases: string[]): string[] {
+  const warnings: string[] = [];
+  if (config.environments.length === 0) {
+    warnings.push("環境が未定義です。セットアップウィザードで設定してください。");
+    return warnings;
+  }
+  const counts = new Map<string, number>();
+  for (const e of config.environments) {
+    counts.set(e.branch, (counts.get(e.branch) ?? 0) + 1);
+  }
+  for (const [branch, n] of counts) {
+    if (n > 1) {
+      warnings.push(`ブランチ「${branch}」が${n}個の環境に重複して割り当てられています。`);
+    }
+  }
+  if (knownAliases.length > 0) {
+    const set = new Set(knownAliases);
+    for (const e of config.environments) {
+      if (!set.has(e.orgAlias)) {
+        warnings.push(`環境「${e.name}」のOrg「${e.orgAlias}」が未認証です。`);
+      }
+    }
+  }
+  if (!config.environments.some((e) => e.type === "production")) {
+    warnings.push("本番(production)環境が定義されていません。");
+  }
+  return warnings;
+}
+
 /** Default config written by the init command. */
 export function defaultConfig(packageDirectories: string[] = ["force-app"]): TeamflowConfig {
   return {

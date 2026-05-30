@@ -10,7 +10,7 @@ import {
   classifyChanges,
 } from "../deploy/gitService.js";
 import { configExists, loadConfig, readSfdxPackageDirs } from "../config/configStore.js";
-import { baseRefFor, resolveEnvironment } from "../config/teamflowConfig.js";
+import { baseRefFor, lintTeamflowConfig, resolveEnvironment } from "../config/teamflowConfig.js";
 import { runSf } from "../util/cli.js";
 import { logger } from "../util/logger.js";
 import { relativeTime, type ActivityEntry } from "../activityLog.js";
@@ -57,6 +57,8 @@ interface HomeState {
   deployCount: number;
   /** Recent actions (newest first) for the "最近の操作" list. */
   activity: { label: string; status: string; rel: string }[];
+  /** Config lint warnings (empty = healthy). */
+  warnings: string[];
 }
 
 /**
@@ -229,6 +231,22 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       }
     }
 
+    // Lint the team config (independent of git) and warn about common mistakes.
+    let warnings: string[] = [];
+    if (root && configured) {
+      try {
+        const cfg2 = await loadConfig(root);
+        if (cfg2) {
+          warnings = lintTeamflowConfig(
+            cfg2,
+            orgsRaw.map((o) => o.alias || o.username)
+          );
+        }
+      } catch {
+        /* invalid config — surfaced elsewhere */
+      }
+    }
+
     return {
       configured,
       hasRepo,
@@ -248,6 +266,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
         status: a.status,
         rel: relativeTime(a.time, Date.now()),
       })),
+      warnings,
     };
   }
 
@@ -282,6 +301,9 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .situation { font-size: 11.5px; opacity: .72; margin: -4px 2px 12px; line-height: 1.6; }
   .situation .link { cursor: pointer; color: var(--vscode-textLink-foreground, #4daafc); margin-left: 4px; white-space: nowrap; }
   .situation .link:hover { text-decoration: underline; }
+  .warnbox { border: 1px solid var(--vscode-inputValidation-warningBorder, #c80); background: var(--vscode-inputValidation-warningBackground, #5a4a1d); border-radius: 8px; padding: 8px 10px; margin: 0 2px 12px; font-size: 11.5px; cursor: pointer; }
+  .warnbox .wh { font-weight: 600; margin-bottom: 4px; }
+  .warnbox .wi { padding: 1px 0; opacity: .9; }
   .activity { font-size: 11px; margin: -6px 2px 12px; }
   .activity .alabel { opacity: .55; margin-bottom: 2px; }
   .activity .ai { display: flex; gap: 6px; padding: 1px 0; opacity: .85; }
@@ -352,6 +374,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   <div id="status" class="chips"></div>
   <div id="hero"></div>
   <div id="situation" class="situation"></div>
+  <div id="warnings"></div>
   <div id="activity" class="activity"></div>
   <div id="setup"></div>
   <div id="changedbox"></div>
@@ -461,6 +484,15 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
         '<span class="link" data-cmd="teamflow.openWorkflowGuide" role="button" tabindex="0">📘 使い方ガイドを見る</span>';
     } else {
       $('situation').innerHTML = '';
+    }
+
+    // config lint warnings (click → open sf-teamflow.json)
+    if (s.warnings && s.warnings.length>0) {
+      $('warnings').innerHTML = '<div class="warnbox" data-cmd="teamflow.openConfig" role="button" tabindex="0">'+
+        '<div class="wh">⚠️ チーム設定の確認（クリックで開く）</div>'+
+        s.warnings.map(w => '<div class="wi">• '+escapeHtml(w)+'</div>').join('')+'</div>';
+    } else {
+      $('warnings').innerHTML = '';
     }
 
     // recent activity (newest first) + always-available "出力ログを開く"
