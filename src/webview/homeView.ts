@@ -6,9 +6,11 @@ import {
   hasRemote,
   listBranches,
   switchBranch,
+  changedFiles,
+  classifyChanges,
 } from "../deploy/gitService.js";
-import { configExists, loadConfig } from "../config/configStore.js";
-import { resolveEnvironment } from "../config/teamflowConfig.js";
+import { configExists, loadConfig, readSfdxPackageDirs } from "../config/configStore.js";
+import { baseRefFor, resolveEnvironment } from "../config/teamflowConfig.js";
 import { runSf } from "../util/cli.js";
 import { logger } from "../util/logger.js";
 
@@ -33,6 +35,10 @@ interface HomeState {
   changes: number;
   ahead: number;
   behind: number;
+  /** Working-tree changed files, for the "保存される変更" preview. */
+  files: { path: string; label: string }[];
+  /** Metadata files that a Git-diff deploy would push (vs base ref). */
+  deployCount: number;
 }
 
 /**
@@ -160,6 +166,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     let changes = 0;
     let ahead = 0;
     let behind = 0;
+    let files: { path: string; label: string }[] = [];
+    let deployCount = 0;
 
     if (root) {
       configured = await configExists(root);
@@ -171,21 +179,29 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
           changes = s.changed;
           ahead = s.ahead;
           behind = s.behind;
+          files = s.files.slice(0, 40).map((f) => ({ path: f.path, label: f.label }));
         } catch {
           /* ignore */
         }
         remote = await hasRemote(root).catch(() => false);
         branches = await listBranches(root).catch(() => []);
-        if (configured && branch) {
-          try {
-            const cfg = await loadConfig(root);
-            const e = cfg ? resolveEnvironment(cfg, branch) : undefined;
-            if (e) {
-              env = { name: e.name, type: e.type };
-            }
-          } catch {
-            /* config optional */
+        const cfg = configured ? await loadConfig(root).catch(() => undefined) : undefined;
+        if (cfg && branch) {
+          const e = resolveEnvironment(cfg, branch);
+          if (e) {
+            env = { name: e.name, type: e.type };
           }
+        }
+        // Count metadata files a diff-deploy would push (best-effort; the base
+        // ref may not exist locally, in which case we just show no badge).
+        try {
+          const e = cfg && branch ? resolveEnvironment(cfg, branch) : undefined;
+          const baseRef = cfg ? baseRefFor(cfg, e) : "origin/main";
+          const pkgDirs = cfg?.packageDirectories ?? (await readSfdxPackageDirs(root));
+          const entries = await changedFiles(baseRef, root);
+          deployCount = classifyChanges(entries, pkgDirs).toDeploy.length;
+        } catch {
+          deployCount = 0;
         }
       }
     }
@@ -202,6 +218,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       changes,
       ahead,
       behind,
+      files,
+      deployCount,
     };
   }
 
@@ -261,12 +279,23 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .step { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 8px; cursor: pointer; border: 1px dashed var(--vscode-panel-border, #8884); margin-bottom: 6px; }
   .step:hover { background: var(--vscode-list-hoverBackground); }
   .step .mk { font-size: 15px; }
+
+  details.changed { border: 1px solid var(--vscode-panel-border, #8884); border-radius: 9px; padding: 6px 10px; margin-bottom: 12px; }
+  details.changed > summary { cursor: pointer; font-size: 12px; list-style: none; display: flex; align-items: center; gap: 6px; }
+  details.changed > summary::-webkit-details-marker { display: none; }
+  details.changed > summary .caret { transition: transform .15s; opacity: .6; }
+  details.changed[open] > summary .caret { transform: rotate(90deg); }
+  .filelist { margin-top: 6px; max-height: 180px; overflow: auto; }
+  .fileitem { display: flex; align-items: center; gap: 7px; padding: 3px 2px; font-size: 11.5px; }
+  .filetag { font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); flex: 0 0 auto; }
+  .filepath { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .85; direction: rtl; text-align: left; }
 </style>
 </head>
 <body>
   <div id="status" class="chips"></div>
   <div id="hero"></div>
   <div id="setup"></div>
+  <div id="changedbox"></div>
   <div id="sections"></div>
   <section>
     <div class="sechead"><span class="stepno">🌿</span><span class="sectitle">作業ブランチ</span></div>
@@ -295,8 +324,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       { c: 'teamflow.gitSync', em: '🔄', label: 'GitHubと同期', need: 'remote', badge: 'ahead' },
     ]},
     { no: '3', title: 'リリースする', hint: 'デプロイ', tiles: [
-      { c: 'teamflow.validateDiff', em: '✅', label: '検証（お試し）', need: 'repo' },
-      { c: 'teamflow.deployDiff', em: '🚀', label: 'デプロイ', need: 'repo' },
+      { c: 'teamflow.validateDiff', em: '✅', label: '検証（お試し）', need: 'repo', badge: 'deploy' },
+      { c: 'teamflow.deployDiff', em: '🚀', label: 'デプロイ', need: 'repo', badge: 'deploy' },
     ]},
     { no: '⋯', title: 'その他', hint: '', three: true, tiles: [
       { c: 'teamflow.createScratchOrg', em: '🧪', label: 'スクラッチ作成' },
@@ -345,6 +374,17 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       ? setup.map(st => '<div class="step" data-cmd="'+st.c+'"><span class="mk">⭕</span><span>'+st.label+'</span></div>').join('')
       : '';
 
+    // changed-files preview (what "保存してバックアップ" will save) — collapsed by default
+    if (s.hasRepo && s.files && s.files.length>0) {
+      const rows = s.files.map(f =>
+        '<div class="fileitem"><span class="filetag">'+escapeHtml(f.label)+'</span>'+
+        '<span class="filepath">'+escapeHtml(f.path)+'</span></div>').join('');
+      $('changedbox').innerHTML = '<details class="changed"><summary><span class="caret">▶</span>'+
+        '📝 保存される変更 '+s.files.length+'件</summary><div class="filelist">'+rows+'</div></details>';
+    } else {
+      $('changedbox').innerHTML = '';
+    }
+
     // grouped action sections
     $('sections').innerHTML = SECTIONS.map(sec => {
       const tiles = sec.tiles.map(t => {
@@ -355,6 +395,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
         let badge = '';
         if (t.badge==='changes' && s.changes>0) badge = '<span class="badge">'+s.changes+'</span>';
         if (t.badge==='ahead' && s.ahead>0) badge = '<span class="badge">'+s.ahead+'</span>';
+        if (t.badge==='deploy' && s.deployCount>0) badge = '<span class="badge">'+s.deployCount+'</span>';
         return '<button class="tile '+(na.c===t.c?'primary':'')+'" data-cmd="'+t.c+'" '+(disabled?'disabled':'')+'>'+
           badge+'<span class="em">'+t.em+'</span><span>'+escapeHtml(t.label)+'</span></button>';
       }).join('');

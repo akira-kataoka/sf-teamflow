@@ -57,11 +57,20 @@
   .row { display: flex; gap: 6px; align-items: center; }
   select { flex: 1; padding: 6px; background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground); border: 1px solid var(--vscode-dropdown-border); border-radius: 6px; }
   .iconbtn { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--vscode-panel-border); background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); cursor: pointer; white-space: nowrap; }
+  details.changed { border: 1px solid var(--vscode-panel-border); border-radius: 9px; padding: 6px 10px; margin-bottom: 12px; }
+  details.changed > summary { cursor: pointer; font-size: 12px; list-style: none; display: flex; align-items: center; gap: 6px; }
+  details.changed > summary .caret { transition: transform .15s; opacity: .6; }
+  details.changed[open] > summary .caret { transform: rotate(90deg); }
+  .filelist { margin-top: 6px; }
+  .fileitem { display: flex; align-items: center; gap: 7px; padding: 3px 2px; font-size: 11.5px; }
+  .filetag { font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); flex: 0 0 auto; }
+  .filepath { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .85; }
 </style>
 </head>
 <body>
   <div id="status" class="chips"></div>
   <div id="hero"></div>
+  <div id="changedbox"></div>
   <div id="sections"></div>
   <section><div class="sechead"><span class="stepno">🌿</span><span class="sectitle">作業ブランチ</span></div><div id="branchbox"></div></section>
   <section><div class="sechead"><span class="stepno">☁️</span><span class="sectitle">接続中の Org</span><span class="sechint">クリックで切替</span></div><div id="orgs"></div></section>
@@ -73,7 +82,7 @@
     { no:'2', title:'保存する', hint:'バックアップ', tiles:[
       {c:'d',em:'💾',label:'保存してバックアップ',need:'repo',badge:'changes'},{c:'e',em:'🔄',label:'GitHubと同期',need:'remote',badge:'ahead'} ]},
     { no:'3', title:'リリースする', hint:'デプロイ', tiles:[
-      {c:'f',em:'✅',label:'検証（お試し）',need:'repo'},{c:'g',em:'🚀',label:'デプロイ',need:'repo'} ]},
+      {c:'f',em:'✅',label:'検証（お試し）',need:'repo',badge:'deploy'},{c:'g',em:'🚀',label:'デプロイ',need:'repo',badge:'deploy'} ]},
     { no:'⋯', title:'その他', hint:'', three:true, tiles:[
       {c:'h',em:'🧪',label:'スクラッチ作成'},{c:'i',em:'🔌',label:'Orgを追加'},{c:'j',em:'📘',label:'ガイド'} ]},
   ];
@@ -89,9 +98,10 @@
     $('status').innerHTML=chips.join('');
     const na=nextAction(s);
     $('hero').innerHTML='<div class="hero'+(na.calm?' calm':'')+'"><span class="em">'+na.em+'</span><span class="tx"><div class="t1">'+na.t1+'</div><div class="t2">'+escapeHtml(na.t2)+'</div></span>'+(na.c?'<span class="go">▶</span>':'')+'</div>';
+    if(s.files&&s.files.length>0){ const rows=s.files.map(f=>'<div class="fileitem"><span class="filetag">'+escapeHtml(f.label)+'</span><span class="filepath">'+escapeHtml(f.path)+'</span></div>').join(''); $('changedbox').innerHTML='<details class="changed" open><summary><span class="caret">▶</span>📝 保存される変更 '+s.files.length+'件</summary><div class="filelist">'+rows+'</div></details>'; } else { $('changedbox').innerHTML=''; }
     $('sections').innerHTML=SECTIONS.map(sec=>{
       const tiles=sec.tiles.map(t=>{ let dis=false; if(t.need==='repo'&&!s.hasRepo)dis=true; if(t.need==='remote'&&!s.hasRemote)dis=true; if(t.need==='org'&&s.orgs.length===0)dis=true;
-        let badge=''; if(t.badge==='changes'&&s.changes>0)badge='<span class="badge">'+s.changes+'</span>'; if(t.badge==='ahead'&&s.ahead>0)badge='<span class="badge">'+s.ahead+'</span>';
+        let badge=''; if(t.badge==='changes'&&s.changes>0)badge='<span class="badge">'+s.changes+'</span>'; if(t.badge==='ahead'&&s.ahead>0)badge='<span class="badge">'+s.ahead+'</span>'; if(t.badge==='deploy'&&s.deployCount>0)badge='<span class="badge">'+s.deployCount+'</span>';
         return '<button class="tile '+(na.c===t.c?'primary':'')+'" '+(dis?'disabled':'')+'>'+badge+'<span class="em">'+t.em+'</span><span>'+escapeHtml(t.label)+'</span></button>'; }).join('');
       const hint=sec.hint?'<span class="sechint">'+sec.hint+'</span>':'';
       return '<section><div class="sechead"><span class="stepno">'+sec.no+'</span><span class="sectitle">'+sec.title+'</span>'+hint+'</div><div class="grid '+(sec.three?'three':'')+'">'+tiles+'</div></section>';
@@ -102,7 +112,12 @@
     $('orgs').innerHTML=s.orgs.map(o=>'<div class="card '+(o.isDefault?'active':'')+'"><span class="dot" style="background:'+(colors[o.category]||'#888')+'"></span><span class="name">'+(o.isDefault?'★ ':'')+escapeHtml(o.displayName)+(o.isProduction?' ⚠️':'')+'<div class="cat">'+o.category+'</div></span><button class="open">開く</button></div>').join('');
   }
   render({
-    configured:true, hasRepo:true, hasRemote:true, changes:3, ahead:2, behind:0,
+    configured:true, hasRepo:true, hasRemote:true, changes:3, ahead:2, behind:0, deployCount:5,
+    files:[
+      {label:'変更', path:'force-app/main/default/classes/AccountController.cls'},
+      {label:'新規', path:'force-app/main/default/lwc/accountSearch/accountSearch.js'},
+      {label:'削除', path:'force-app/main/default/classes/OldHelper.cls'},
+    ],
     branch:'feature/取引先検索', env:{name:'integration',type:'sandbox'},
     defaultOrg:{displayName:'dev-scratch', isProduction:false},
     branches:['main','develop','release/1.2','feature/取引先検索'],
