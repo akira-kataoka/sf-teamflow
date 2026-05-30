@@ -56,9 +56,12 @@ test("cicdFiles returns the three expected paths", () => {
   ]);
 });
 
-test("secretPrefix sanitises hyphen/space/multibyte into underscores", () => {
+test("secretPrefix uppercases and replaces non-alphanumerics with underscores", () => {
+  assert.equal(secretPrefix({ name: "uat-eu", orgAlias: "u", branch: "b", type: "sandbox" }), "SF_UAT_EU");
+  // A run of non-[A-Z0-9] collapses to a single underscore.
   assert.equal(secretPrefix({ name: "ua t-eu", orgAlias: "u", branch: "b", type: "sandbox" }), "SF_UA_T_EU");
-  assert.equal(secretPrefix({ name: "本番", orgAlias: "p", branch: "main", type: "production" }), "SF_");
+  // ASCII alphanumerics survive; everything else (incl. multibyte) → "_".
+  assert.equal(secretPrefix({ name: "v2-本番", orgAlias: "p", branch: "main", type: "production" }), "SF_V2_");
 });
 
 test("branchCondition glob uses startsWith with the literal prefix", () => {
