@@ -324,9 +324,9 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
 
   // Grouped, numbered workflow — the core of the "structured, not a wall of buttons" design.
   const SECTIONS = [
-    { no: '1', title: '開発する', hint: 'Orgと同期', tier: 'core', tiles: [
-      { c: 'teamflow.sourcePull', em: '⬇️', label: 'Orgから取込', need: 'org', desc: 'Org側の変更をローカルに取り込みます' },
-      { c: 'teamflow.sourcePush', em: '⬆️', label: 'Orgへ反映', need: 'org', desc: 'ローカルの変更をOrgに反映します' },
+    { no: '1', title: '開発する', hint: '環境と同期', tier: 'core', tiles: [
+      { c: 'teamflow.sourcePull', em: '⬇️', label: '環境から取込', need: 'org', desc: '環境(Org)側の変更をローカルに取り込みます' },
+      { c: 'teamflow.sourcePush', em: '⬆️', label: '環境へ反映', need: 'org', desc: 'ローカルの変更を環境(Org)に反映（全部/資材選択）' },
     ]},
     { no: '2', title: '保存する', hint: 'バックアップ', tier: 'core', tiles: [
       { c: 'teamflow.gitCommitPush', em: '💾', label: '保存してバックアップ', need: 'repo', badge: 'changes', desc: '変更を保存してGitHubに送ります' },

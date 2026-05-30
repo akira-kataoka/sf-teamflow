@@ -140,20 +140,68 @@ export function buildRunTestsArgs(opts: RunTestsOptions): string[] {
   return args;
 }
 
-/** Curated metadata types shown in the retrieve picker (label + sf type name). */
+/**
+ * Build `sf project deploy start` argv that pushes specific metadata TYPES
+ * (rather than whole source dirs) — used when the user picks which assets to
+ * deploy. Pure & unit-tested.
+ */
+export function buildDeployMetadataArgs(orgUsername: string, metadata: string[]): string[] {
+  if (!metadata || metadata.length === 0) {
+    throw new Error("反映する資材を1つ以上選択してください。");
+  }
+  const args = ["project", "deploy", "start", "--target-org", orgUsername];
+  for (const m of metadata) {
+    args.push("--metadata", m);
+  }
+  return args;
+}
+
+/** Curated metadata types shown in the retrieve / deploy pickers. */
 export const COMMON_METADATA_TYPES: { label: string; type: string; detail: string }[] = [
-  { label: "Apexクラス", type: "ApexClass", detail: "ApexClass" },
-  { label: "Apexトリガ", type: "ApexTrigger", detail: "ApexTrigger" },
-  { label: "Lightning Web Component", type: "LightningComponentBundle", detail: "LWC" },
-  { label: "Auraコンポーネント", type: "AuraDefinitionBundle", detail: "Aura" },
-  { label: "カスタムオブジェクト", type: "CustomObject", detail: "項目・オブジェクト" },
-  { label: "フロー", type: "Flow", detail: "Flow" },
-  { label: "権限セット", type: "PermissionSet", detail: "PermissionSet" },
-  { label: "プロファイル", type: "Profile", detail: "Profile" },
-  { label: "カスタム表示ラベル", type: "CustomLabels", detail: "CustomLabels" },
-  { label: "静的リソース", type: "StaticResource", detail: "StaticResource" },
-  { label: "ページレイアウト", type: "Layout", detail: "Layout" },
-  { label: "カスタムタブ", type: "CustomTab", detail: "CustomTab" },
-  { label: "カスタムアプリケーション", type: "CustomApplication", detail: "CustomApplication" },
-  { label: "メールテンプレート", type: "EmailTemplate", detail: "EmailTemplate" },
+  // --- コード ---
+  { label: "Apexクラス", type: "ApexClass", detail: "コード" },
+  { label: "Apexトリガ", type: "ApexTrigger", detail: "コード" },
+  { label: "Lightning Web Component", type: "LightningComponentBundle", detail: "コード(LWC)" },
+  { label: "Auraコンポーネント", type: "AuraDefinitionBundle", detail: "コード(Aura)" },
+  { label: "Visualforceページ", type: "ApexPage", detail: "コード(VF)" },
+  { label: "Visualforceコンポーネント", type: "ApexComponent", detail: "コード(VF)" },
+  { label: "静的リソース", type: "StaticResource", detail: "コード" },
+  // --- データモデル ---
+  { label: "カスタムオブジェクト/項目", type: "CustomObject", detail: "データモデル" },
+  { label: "カスタムメタデータ型", type: "CustomMetadata", detail: "データモデル" },
+  { label: "カスタム設定", type: "CustomSetting__c", detail: "データモデル" },
+  { label: "レコードタイプ", type: "RecordType", detail: "データモデル" },
+  { label: "入力規則", type: "ValidationRule", detail: "データモデル" },
+  { label: "数式/項目セット", type: "FieldSet", detail: "データモデル" },
+  { label: "グローバル選択リスト", type: "GlobalValueSet", detail: "データモデル" },
+  // --- 自動化 ---
+  { label: "フロー", type: "Flow", detail: "自動化" },
+  { label: "フロー定義", type: "FlowDefinition", detail: "自動化" },
+  { label: "ワークフロー", type: "Workflow", detail: "自動化" },
+  { label: "承認プロセス", type: "ApprovalProcess", detail: "自動化" },
+  { label: "アサインメントルール", type: "AssignmentRules", detail: "自動化" },
+  // --- UI ---
+  { label: "ページレイアウト", type: "Layout", detail: "UI" },
+  { label: "Lightningページ", type: "FlexiPage", detail: "UI" },
+  { label: "カスタムタブ", type: "CustomTab", detail: "UI" },
+  { label: "カスタムアプリケーション", type: "CustomApplication", detail: "UI" },
+  { label: "クイックアクション", type: "QuickAction", detail: "UI" },
+  { label: "リストビュー", type: "ListView", detail: "UI" },
+  { label: "ホームページコンポーネント", type: "HomePageComponent", detail: "UI" },
+  // --- セキュリティ ---
+  { label: "権限セット", type: "PermissionSet", detail: "セキュリティ" },
+  { label: "権限セットグループ", type: "PermissionSetGroup", detail: "セキュリティ" },
+  { label: "プロファイル", type: "Profile", detail: "セキュリティ" },
+  { label: "ロール", type: "Role", detail: "セキュリティ" },
+  { label: "共有ルール", type: "SharingRules", detail: "セキュリティ" },
+  // --- その他 ---
+  { label: "カスタム表示ラベル", type: "CustomLabels", detail: "その他" },
+  { label: "メールテンプレート", type: "EmailTemplate", detail: "その他" },
+  { label: "レポート", type: "Report", detail: "その他" },
+  { label: "ダッシュボード", type: "Dashboard", detail: "その他" },
+  { label: "リモートサイト設定", type: "RemoteSiteSetting", detail: "その他" },
+  { label: "名前付き資格情報", type: "NamedCredential", detail: "その他" },
+  { label: "接続アプリケーション", type: "ConnectedApp", detail: "その他" },
+  { label: "カスタム通知タイプ", type: "CustomNotificationType", detail: "その他" },
+  { label: "翻訳", type: "Translations", detail: "その他" },
 ];

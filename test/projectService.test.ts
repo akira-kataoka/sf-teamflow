@@ -8,6 +8,8 @@ import {
   buildScratchDeleteArgs,
   buildSourcePullArgs,
   buildSourcePushArgs,
+  buildDeployMetadataArgs,
+  COMMON_METADATA_TYPES,
 } from "../src/sfProject/projectService.js";
 
 test("buildProjectGenerateArgs sets name, template, package dir and manifest", () => {
@@ -100,6 +102,24 @@ test("buildRunTestsArgs runs specified classes when given", () => {
   const a = buildRunTestsArgs({ orgUsername: "u", classNames: ["FooTest", "BarTest"] });
   assert.ok(a.includes("--class-names") && a.includes("FooTest") && a.includes("BarTest"));
   assert.ok(!a.includes("--test-level"), "class run should not pass test-level");
+});
+
+test("buildDeployMetadataArgs deploys selected metadata types", () => {
+  const a = buildDeployMetadataArgs("u@e.com", ["ApexClass", "Flow"]);
+  assert.deepEqual(a, [
+    "project", "deploy", "start", "--target-org", "u@e.com",
+    "--metadata", "ApexClass", "--metadata", "Flow",
+  ]);
+  assert.throws(() => buildDeployMetadataArgs("u", []), /資材を1つ以上/);
+});
+
+test("COMMON_METADATA_TYPES is a rich, de-duplicated list", () => {
+  assert.ok(COMMON_METADATA_TYPES.length >= 30, "should offer many types");
+  const types = COMMON_METADATA_TYPES.map((m) => m.type);
+  assert.equal(new Set(types).size, types.length, "no duplicate types");
+  for (const t of ["ApexClass", "Flow", "PermissionSet", "FlexiPage", "ValidationRule"]) {
+    assert.ok(types.includes(t), "missing " + t);
+  }
 });
 
 test("buildScratchCreateArgs rejects empty alias", () => {

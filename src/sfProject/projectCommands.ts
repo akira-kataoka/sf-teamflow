@@ -11,6 +11,7 @@ import {
   buildSourcePullArgs,
   buildSourcePushArgs,
   buildRunTestsArgs,
+  buildDeployMetadataArgs,
   COMMON_METADATA_TYPES,
 } from "./projectService.js";
 
@@ -38,6 +39,42 @@ export function registerProjectCommands(
       { placeHolder: def ? `${placeHolder} (既定: ${def.displayName})` : placeHolder }
     );
     return pick?.org;
+  }
+
+  /** Multi-select metadata types (with a free-text "other" entry). Shared by 取得/反映. */
+  async function pickMetadataTypes(title: string): Promise<string[] | undefined> {
+    const CUSTOM = "$(edit) その他のメタデータ名を入力…";
+    const picks = await vscode.window.showQuickPick(
+      [
+        ...COMMON_METADATA_TYPES.map((m) => ({
+          label: m.label,
+          description: m.type,
+          detail: m.detail,
+          type: m.type,
+        })),
+        { label: CUSTOM, description: "", detail: "例: Flow, CustomObject:Account", type: CUSTOM },
+      ],
+      { title, placeHolder: "種類を選択（複数可・絞り込み入力できます）", canPickMany: true }
+    );
+    if (!picks || picks.length === 0) {
+      return undefined;
+    }
+    const metadata: string[] = [];
+    for (const p of picks) {
+      if (p.type === CUSTOM) {
+        const custom = await vscode.window.showInputBox({
+          title: "メタデータ名",
+          prompt: "カンマ区切りで複数指定できます",
+          placeHolder: "ApexClass, CustomObject:Account",
+        });
+        if (custom) {
+          metadata.push(...custom.split(",").map((s) => s.trim()).filter(Boolean));
+        }
+      } else {
+        metadata.push(p.type);
+      }
+    }
+    return metadata;
   }
 
   // 新しいプロジェクトを作成 (sf project generate).
@@ -80,42 +117,8 @@ export function registerProjectCommands(
     if (!org) {
       return;
     }
-    const CUSTOM = "$(edit) その他のメタデータ名を入力…";
-    const picks = await vscode.window.showQuickPick(
-      [
-        ...COMMON_METADATA_TYPES.map((m) => ({
-          label: m.label,
-          description: m.type,
-          detail: m.detail,
-          type: m.type,
-        })),
-        { label: CUSTOM, description: "", detail: "例: Flow, CustomObject:Account", type: CUSTOM },
-      ],
-      {
-        title: `「${org.displayName}」からメタデータを取得`,
-        placeHolder: "取得する種類を選択 (複数可)",
-        canPickMany: true,
-      }
-    );
-    if (!picks || picks.length === 0) {
-      return;
-    }
-    const metadata: string[] = [];
-    for (const p of picks) {
-      if (p.type === CUSTOM) {
-        const custom = await vscode.window.showInputBox({
-          title: "メタデータ名",
-          prompt: "カンマ区切りで複数指定できます",
-          placeHolder: "ApexClass, CustomObject:Account",
-        });
-        if (custom) {
-          metadata.push(...custom.split(",").map((s) => s.trim()).filter(Boolean));
-        }
-      } else {
-        metadata.push(p.type);
-      }
-    }
-    if (metadata.length === 0) {
+    const metadata = await pickMetadataTypes(`「${org.displayName}」から取得する種類を選択`);
+    if (!metadata || metadata.length === 0) {
       return;
     }
     const args = buildRetrieveArgs({ orgUsername: org.username, metadata });
@@ -208,24 +211,41 @@ export function registerProjectCommands(
     ctx.runInTerminal(`${push} && ${test}`);
   });
 
-  // スクラッチ/Sandbox にローカルソースを反映 (push).
+  // 環境(Org)にローカルソースを反映 — 全部 or 資材を選んで.
   reg("teamflow.sourcePush", async () => {
     const root = ctx.workspaceRoot();
     if (!root) {
       return;
     }
-    const org = await pickOrg("反映先のOrgを選択 (スクラッチ/Sandbox)");
+    const org = await pickOrg("反映先の環境(Org)を選択");
     if (!org) {
       return;
     }
-    const dirs = await readSfdxPackageDirs(root);
-    const args = buildSourcePushArgs(org.username, dirs);
-    ctx.runInTerminal(renderCommand(ctx.cliPath(), args));
+    const scope = await vscode.window.showQuickPick(
+      [
+        { label: "$(check-all) すべて反映する", detail: "ローカルのソース全体", mode: "all" },
+        { label: "$(list-selection) 資材を選んで反映する", detail: "メタデータ種別を選択", mode: "pick" },
+      ],
+      { title: `「${org.displayName}」へ反映` }
+    );
+    if (!scope) {
+      return;
+    }
+    if (scope.mode === "all") {
+      const dirs = await readSfdxPackageDirs(root);
+      ctx.runInTerminal(renderCommand(ctx.cliPath(), buildSourcePushArgs(org.username, dirs)));
+      return;
+    }
+    const metadata = await pickMetadataTypes(`「${org.displayName}」へ反映する資材を選択`);
+    if (!metadata || metadata.length === 0) {
+      return;
+    }
+    ctx.runInTerminal(renderCommand(ctx.cliPath(), buildDeployMetadataArgs(org.username, metadata)));
   });
 
-  // Org の変更をローカルに取り込む (pull).
+  // 環境(Org) の変更をローカルに取り込む (pull).
   reg("teamflow.sourcePull", async () => {
-    const org = await pickOrg("取り込み元のOrgを選択");
+    const org = await pickOrg("取り込み元の環境(Org)を選択");
     if (!org) {
       return;
     }
