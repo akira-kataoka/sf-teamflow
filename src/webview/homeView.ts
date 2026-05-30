@@ -286,6 +286,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .activity .ai .rel { opacity: .55; margin-left: auto; }
   .activity .ai.error { color: #e66; }
   .activity .ai.ok { color: #3fb950; }
+  .activity .ai.loglink { cursor: pointer; opacity: .7; margin-top: 4px; }
+  .activity .ai.loglink:hover { opacity: 1; text-decoration: underline; }
 
   /* sections */
   section { border: 1px solid var(--vscode-panel-border, #8884); border-radius: 10px; padding: 8px 8px 10px; margin-bottom: 10px; }
@@ -445,15 +447,18 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       $('situation').innerHTML = '';
     }
 
-    // recent activity (newest first)
+    // recent activity (newest first) + always-available "出力ログを開く"
+    let actHtml = '';
     if (s.activity && s.activity.length>0) {
       const ic = { ok:'✓', error:'✗', run:'▶' };
-      $('activity').innerHTML = '<div class="alabel">最近の操作</div>'+
+      actHtml += '<div class="alabel">最近の操作</div>'+
         s.activity.map(a => '<div class="ai '+escapeAttr(a.status)+'">'+(ic[a.status]||'•')+' '+
           escapeHtml(a.label)+'<span class="rel">'+escapeHtml(a.rel)+'</span></div>').join('');
-    } else {
-      $('activity').innerHTML = '';
     }
+    if (s.hasRepo || (s.activity && s.activity.length>0)) {
+      actHtml += '<div class="ai loglink" data-cmd="teamflow.showLog" role="button" tabindex="0" aria-label="出力ログを開く">📋 出力ログを開く（詳細・エラー）</div>';
+    }
+    $('activity').innerHTML = actHtml;
 
     // setup progress strip (non-clickable) — the hero above is the single CTA,
     // so there is no duplicate "始める" button to confuse. Shows where you are
