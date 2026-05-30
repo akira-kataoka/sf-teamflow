@@ -337,7 +337,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   function nextAction(s) {
     if (!s.hasRepo) return { em:'🧭', t1:'まず最初に', t2:'セットアップを始める', c:'teamflow.guidedSetup' };
     if (s.orgs.length === 0) return { em:'🔌', t1:'次にやること', t2:'Orgを認証する', c:'teamflow.authorizeOrg' };
-    if (!s.configured) return { em:'⚙️', t1:'次にやること', t2:'チーム設定を作る', c:'teamflow.initTeamProject' };
+    if (!s.configured) return { em:'⚙️', t1:'次にやること', t2:'環境を設定する（開発/ステージング/本番）', c:'teamflow.setupWizard' };
     if (s.changes > 0) return { em:'💾', t1:'次にやること', t2:'変更 '+s.changes+'件を保存してバックアップ', c:'teamflow.gitCommitPush' };
     if (s.ahead > 0) return { em:'🔄', t1:'次にやること', t2:'未バックアップ '+s.ahead+'件をGitHubへ', c:'teamflow.gitSync' };
     return { em:'✅', t1:'準備OK', t2:'変更を加えたら自動でここに表示されます', calm:true };
@@ -369,7 +369,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     const setup = [];
     if (!s.hasRepo) setup.push({ label:'バージョン管理を始める', c:'teamflow.guidedSetup' });
     if (s.orgs.length===0) setup.push({ label:'Orgを認証する', c:'teamflow.authorizeOrg' });
-    if (!s.configured) setup.push({ label:'チーム設定を作る', c:'teamflow.initTeamProject' });
+    if (!s.configured) setup.push({ label:'環境を設定する（開発/ステージング/本番）', c:'teamflow.setupWizard' });
     $('setup').innerHTML = setup.length>0
       ? setup.map(st => '<div class="step" data-cmd="'+st.c+'"><span class="mk">⭕</span><span>'+st.label+'</span></div>').join('')
       : '';

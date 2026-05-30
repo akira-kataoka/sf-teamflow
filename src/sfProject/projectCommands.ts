@@ -263,9 +263,9 @@ export function registerProjectCommands(
         action: () => vscode.commands.executeCommand("teamflow.authorizeOrg"),
       },
       {
-        label: "$(settings-gear) 3. チーム設定を作成",
-        detail: "環境⇔ブランチ⇔Orgを定義 (sf-teamflow.json)",
-        action: () => vscode.commands.executeCommand("teamflow.initTeamProject"),
+        label: "$(settings-gear) 3. 環境を設定（開発/ステージング/本番）",
+        detail: "ウィザードで環境⇔ブランチ⇔Orgを定義 (sf-teamflow.json)",
+        action: () => vscode.commands.executeCommand("teamflow.setupWizard"),
       },
       {
         label: "$(rocket) 4. CI/CDを生成",

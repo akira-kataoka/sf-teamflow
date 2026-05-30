@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<!-- Standalone preview of the SF TeamFlow setup wizard (step 2). Mock data. -->
+<html lang="ja"><head><meta charset="UTF-8"><style>
+  :root{ --vscode-font-family:"Segoe UI",system-ui,sans-serif; --vscode-foreground:#ccc; --vscode-badge-background:#4d4d4d; --vscode-badge-foreground:#fff; --vscode-button-background:#0e639c; --vscode-button-foreground:#fff; --vscode-button-secondaryBackground:#3a3d41; --vscode-button-secondaryForeground:#fff; --vscode-panel-border:#5a5a5a55; --vscode-dropdown-background:#3c3c3c; --vscode-dropdown-foreground:#f0f0f0; --vscode-dropdown-border:#5a5a5a55; }
+  body{ font-family:var(--vscode-font-family); color:var(--vscode-foreground); max-width:760px; margin:0 auto; padding:24px 20px; background:#1e1e1e; }
+  h1{ font-size:20px; margin:0 0 4px; } .sub{ opacity:.7; font-size:13px; margin-bottom:20px; }
+  .steps{ display:flex; gap:8px; margin-bottom:22px; align-items:center; }
+  .stepdot{ display:flex; align-items:center; gap:7px; font-size:12.5px; opacity:.5; } .stepdot.active{ opacity:1; font-weight:600; }
+  .stepdot .n{ width:22px;height:22px;border-radius:50%;background:var(--vscode-badge-background);color:var(--vscode-badge-foreground);display:flex;align-items:center;justify-content:center;font-size:12px; }
+  .stepdot.active .n{ background:var(--vscode-button-background);color:var(--vscode-button-foreground); } .arrow{ opacity:.4; }
+  .hint{ font-size:12px; opacity:.7; margin:0 0 14px; }
+  .envcard{ border:1px solid var(--vscode-panel-border); border-radius:10px; padding:14px; margin-bottom:12px; } .envcard.off{ opacity:.55; }
+  .envhead{ display:flex; align-items:center; gap:10px; margin-bottom:10px; } .envhead .emoji{ font-size:20px; }
+  .envhead .title{ font-size:15px; font-weight:600; } .envhead .desc{ font-size:12px; opacity:.65; }
+  .envhead label{ margin-left:auto; font-size:12px; display:flex; align-items:center; gap:6px; }
+  .field{ display:flex; align-items:center; gap:10px; margin:8px 0; } .field>.lbl{ width:92px; font-size:12.5px; opacity:.8; }
+  select{ flex:1; padding:7px 8px; background:var(--vscode-dropdown-background); color:var(--vscode-dropdown-foreground); border:1px solid var(--vscode-dropdown-border); border-radius:6px; font-size:13px; }
+  .row{ display:flex; justify-content:space-between; gap:10px; margin-top:18px; }
+  button{ padding:9px 18px; border-radius:7px; border:none; cursor:pointer; font-size:13.5px; }
+  button.primary{ background:var(--vscode-button-background); color:var(--vscode-button-foreground); } button.secondary{ background:var(--vscode-button-secondaryBackground); color:#fff; }
+</style></head><body>
+  <h1>🧭 チーム開発セットアップ</h1>
+  <div class="sub">3ステップで、開発 / ステージング / 本番 の環境を分けたチーム開発を設定します。</div>
+  <div class="steps">
+    <div class="stepdot"><span class="n">1</span>準備の確認</div><span class="arrow">›</span>
+    <div class="stepdot active"><span class="n">2</span>環境を分ける</div><span class="arrow">›</span>
+    <div class="stepdot"><span class="n">3</span>確認して作成</div>
+  </div>
+  <p class="hint">それぞれの環境に、使う Org とブランチを選びます。使わない環境はオフにできます。</p>
+  <div id="envs"></div>
+  <div class="row"><button class="secondary">‹ 戻る</button><button class="primary">次へ ›</button></div>
+<script>
+  const ORGS=[{value:'dev',label:'dev-sandbox',category:'Sandbox',isProduction:false},{value:'uat',label:'uat-sandbox',category:'Sandbox',isProduction:false},{value:'prod',label:'本番組織',category:'Production',isProduction:true}];
+  const ENV=[{emoji:'🛠️',title:'開発 (Development)',desc:'各開発者が日々使う環境',org:'dev',branch:'develop',on:true},
+    {emoji:'🧪',title:'ステージング (Staging)',desc:'本番前の受入テスト',org:'uat',branch:'release/*',on:true},
+    {emoji:'🛡️',title:'本番 (Production)',desc:'お客様が使う環境',org:'prod',branch:'main',on:true}];
+  const BR=['develop','release/*','main','feature/*','hotfix/*'];
+  function oo(sel){ return '<option value="">（未設定 / 後で）</option>'+ORGS.map(o=>'<option '+(o.value===sel?'selected':'')+'>'+o.label+' — '+o.category+(o.isProduction?' ⚠️本番':'')+'</option>').join(''); }
+  function bo(sel){ return BR.map(b=>'<option '+(b===sel?'selected':'')+'>'+b+'</option>').join(''); }
+  document.getElementById('envs').innerHTML=ENV.map(e=>'<div class="envcard '+(e.on?'':'off')+'"><div class="envhead"><span class="emoji">'+e.emoji+'</span><span><div class="title">'+e.title+'</div><div class="desc">'+e.desc+'</div></span><label><input type="checkbox" '+(e.on?'checked':'')+'> 使う</label></div><div class="field"><span class="lbl">Org</span><select>'+oo(e.org)+'</select></div><div class="field"><span class="lbl">ブランチ</span><select>'+bo(e.branch)+'</select></div></div>').join('');
+</script>
+</body></html>

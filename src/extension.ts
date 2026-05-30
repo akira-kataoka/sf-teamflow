@@ -37,12 +37,14 @@ import { StatusBar } from "./statusBar.js";
 import type { CommandContext } from "./commandContext.js";
 import { TEAM_WORKFLOW_GUIDE } from "./docs/workflowGuide.js";
 import { HomeViewProvider } from "./webview/homeView.js";
+import { SetupWizard } from "./webview/setupWizard.js";
 
 let orgTree: OrgTreeProvider;
 let envTree: EnvironmentsTreeProvider;
 let gitTree: GitTreeProvider;
 let statusBar: StatusBar;
 let homeView: HomeViewProvider;
+let setupWizard: SetupWizard;
 let deployTerminal: vscode.Terminal | undefined;
 
 function workspaceRoot(): string | undefined {
@@ -92,6 +94,7 @@ export function activate(context: vscode.ExtensionContext): void {
     cliPath,
     refreshAll
   );
+  setupWizard = new SetupWizard(context.extensionUri, orgTree, workspaceRoot, refreshAll);
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(HomeViewProvider.viewType, homeView),
@@ -128,6 +131,7 @@ export function activate(context: vscode.ExtensionContext): void {
   register("teamflow.initTeamProject", () => initTeamProject());
   register("teamflow.openConfig", () => openConfig());
   register("teamflow.openWorkflowGuide", () => openWorkflowGuide());
+  register("teamflow.setupWizard", () => setupWizard.open());
 
   // Git and project/metadata commands live in their own modules.
   const ctx: CommandContext = {
