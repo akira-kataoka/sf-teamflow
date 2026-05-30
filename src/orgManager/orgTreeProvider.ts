@@ -118,7 +118,8 @@ export class OrgTreeProvider implements vscode.TreeDataProvider<TreeNode> {
           vscode.TreeItemCollapsibleState.Expanded,
           "category"
         );
-        node.description = `${count}`;
+        node.description = `${count} 件`;
+        node.tooltip = `${CATEGORY_LABEL[cat]}: ${count} 件のOrg`;
         node.iconPath = new vscode.ThemeIcon(CATEGORY_ICON[cat]);
         node.contextValue = "teamflow.category";
         node.id = `cat:${cat}`;

@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.36.0] - 2026-05-31
+
+- 🔢 **Org詳細の見出しを可読化**: カテゴリ見出しの件数に「件」単位を付与し、ツールチップ追加（例: 「🧪 Sandbox: 2 件のOrg」）。
+
 ## [0.35.0] - 2026-05-31
 
 - 🆘 **チーム開発ガイドの「困ったとき」を拡充**: セッション切れ(INVALID_SESSION_ID)・デプロイ/検証失敗・コンフリクト・sf未検出・古いCLI・差分0件 などの原因と対処を追記。
