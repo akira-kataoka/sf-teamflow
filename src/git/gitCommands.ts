@@ -202,7 +202,9 @@ export function registerGitCommands(
           prompt: "機能ごとにブランチを分けるのが安全です。",
           value: "feature/",
           validateInput: (v) =>
-            /^[A-Za-z0-9._\/-]+$/.test(v.trim()) ? undefined : "英数字・/・-・_ で入力してください",
+            /^[A-Za-z0-9._\/-]+$/.test(v.trim())
+              ? undefined
+              : "ブランチ名を入力（例: feature/account-search）。英数字と / - _ . のみ、スペース・日本語は不可。",
         });
         if (!name) {
           return;
@@ -297,7 +299,9 @@ export function registerGitCommands(
       prompt: "バージョンの目印（例: v1.0.0）。このままEnterでもOK。",
       value: suggested,
       validateInput: (v) =>
-        /^[\w.\/-]+$/.test(v.trim()) ? undefined : "英数字・.・-・/ で入力してください",
+        /^[\w.\/-]+$/.test(v.trim())
+          ? undefined
+          : "バージョン名を入力（例: v1.0.0）。英数字と . - / が使えます。",
     });
     if (!name) {
       return;

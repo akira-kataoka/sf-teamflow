@@ -87,7 +87,9 @@ export function registerProjectCommands(
       prompt: "プロジェクト名 (フォルダ名になります)",
       placeHolder: "my-sf-project",
       validateInput: (v) =>
-        /^[A-Za-z0-9._-]+$/.test(v.trim()) ? undefined : "英数字・-・_・. で入力してください",
+        /^[A-Za-z0-9._-]+$/.test(v.trim())
+          ? undefined
+          : "英数字と - _ . のみ使えます（例: my-sf-project）。スペース・日本語は使えません。",
     });
     if (!name) {
       return;
@@ -138,7 +140,9 @@ export function registerProjectCommands(
       title: `${kindPick.label.replace(/^\$\([a-z-]+\)\s*/, "")} の名前`,
       prompt: isLwc ? "小文字始まり (例: accountSearch)" : "大文字始まり (例: AccountService)",
       validateInput: (v) =>
-        /^[A-Za-z][A-Za-z0-9_]*$/.test(v.trim()) ? undefined : "英字始まりの英数字で入力してください",
+        /^[A-Za-z][A-Za-z0-9_]*$/.test(v.trim())
+          ? undefined
+          : `英字で始まる英数字で入力してください（例: ${isLwc ? "accountSearch" : "AccountService"}）。記号・スペース・日本語は不可。`,
     });
     if (!name) {
       return;
@@ -318,7 +322,7 @@ export function registerProjectCommands(
       title: "スクラッチOrgを作成",
       prompt: "エイリアス (分かりやすい名前)",
       value: "scratch-dev",
-      validateInput: (v) => (v.trim() ? undefined : "エイリアスを入力してください"),
+      validateInput: (v) => (v.trim() ? undefined : "分かりやすい名前を入力してください（例: scratch-dev）。"),
     });
     if (!alias) {
       return;
@@ -329,7 +333,9 @@ export function registerProjectCommands(
       value: "7",
       validateInput: (v) => {
         const n = Number(v);
-        return Number.isInteger(n) && n >= 1 && n <= 30 ? undefined : "1〜30の整数";
+        return Number.isInteger(n) && n >= 1 && n <= 30
+          ? undefined
+          : "1〜30 の数字を入れてください（例: 7）。";
       },
     });
     if (!days) {
