@@ -48,3 +48,49 @@ test("parsePorcelainV2 handles empty output", () => {
   assert.equal(s.branch, "");
   assert.equal(s.changed, 0);
 });
+
+test("parsePorcelainV2: no upstream / no ab header keeps ahead=behind=0", () => {
+  const s = parsePorcelainV2("# branch.head feature/x\n");
+  assert.equal(s.branch, "feature/x");
+  assert.equal(s.upstream, undefined);
+  assert.equal(s.ahead, 0);
+  assert.equal(s.behind, 0);
+});
+
+test("parsePorcelainV2: staged+worktree (XY both set) treats it as staged", () => {
+  // "MM" = modified in index AND worktree; index status wins -> staged.
+  const s = parsePorcelainV2(
+    "# branch.head main\n1 MM N... 100644 100644 100644 aaa bbb force-app/A.cls\n"
+  );
+  const a = s.files.find((f) => f.path === "force-app/A.cls");
+  assert.ok(a);
+  assert.equal(a.staged, true);
+  assert.equal(a.label, "変更");
+});
+
+test("parsePorcelainV2: copy (status C) is parsed as modify of the new path", () => {
+  const s = parsePorcelainV2(
+    "# branch.head main\n2 C. N... 100644 100644 100644 aaa bbb C100 force-app/New.cls\tforce-app/Src.cls\n"
+  );
+  const f = s.files.find((x) => x.path === "force-app/New.cls");
+  assert.ok(f);
+  assert.equal(f.staged, true);
+});
+
+test("parsePorcelainV2: unmerged (u) line is a conflict and not staged", () => {
+  const s = parsePorcelainV2(
+    "# branch.head main\nu UU N... 100644 100644 100644 100644 h1 h2 h3 force-app/C.cls\n"
+  );
+  const f = s.files.find((x) => x.path === "force-app/C.cls");
+  assert.ok(f, "conflict file parsed");
+  assert.equal(f.label, "競合");
+  assert.equal(f.staged, false);
+});
+
+test("parsePorcelainV2: ignores unrelated comment headers, counts only files", () => {
+  const s = parsePorcelainV2(
+    "# branch.oid abc\n# branch.head main\n# branch.upstream origin/main\n? a.txt\n? b.txt\n"
+  );
+  assert.equal(s.changed, 2);
+  assert.equal(s.files.every((f) => f.label === "未追跡"), true);
+});
