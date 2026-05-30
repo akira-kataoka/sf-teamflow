@@ -339,7 +339,7 @@ export function registerProjectCommands(
     const pick = await vscode.window.showQuickPick(
       steps.map((s) => ({ label: s.label, detail: s.detail, action: s.action })),
       {
-        title: "SF TeamFlow ガイド付きセットアップ",
+        title: "Salesforce Dev Manager ガイド付きセットアップ",
         placeHolder: "上から順に実行するのがおすすめです",
       }
     );

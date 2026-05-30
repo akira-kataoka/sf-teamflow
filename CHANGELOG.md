@@ -2,6 +2,18 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.12.0] - 2026-05-31
+
+「Salesforce Dev Manager」へ改名。各環境へのデプロイを一発で。
+
+### Changed
+- 🏷️ **製品名を「Salesforce Dev Manager」に改名**（表示名・アクティビティバー・コマンド名 "SFDevManager:"・出力/ターミナル/ウィザード）。※設定ファイル名 sf-teamflow.json と内部IDは互換のため据え置き。
+
+### Added
+- 🚀 **環境へデプロイ（開発 → ステージング → 本番）**: `teamflow.deployToEnvironment`。環境を選ぶだけで、その環境のOrgへ差分デプロイ。本番は二重確認、未認証Orgは認証へ誘導。ホーム③のデプロイタイルがこれに。
+- これ1つで開発サイクル（作成→取得→同期→テスト→保存→各環境デプロイ→ブランチ/タグ）が完結。
+
+
 ## [0.11.0] - 2026-05-31
 
 「バージョン管理を始める」と「セットアップを始める」が紛らわしい問題を解消（ユーザー指摘）。

@@ -335,7 +335,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     { no: '3', title: 'テスト・リリース', hint: '品質確認', tier: 'more', three: true, tiles: [
       { c: 'teamflow.runTests', em: '🧪', label: 'テスト実行', need: 'org', desc: 'Apexテストを実行します' },
       { c: 'teamflow.validateDiff', em: '✅', label: '検証（お試し）', need: 'repo', badge: 'deploy', desc: 'デプロイせず差分を検証' },
-      { c: 'teamflow.deployDiff', em: '🚀', label: 'デプロイ', need: 'repo', badge: 'deploy', desc: '差分をOrgにデプロイ' },
+      { c: 'teamflow.deployToEnvironment', em: '🚀', label: '環境へデプロイ', need: 'repo', badge: 'deploy', desc: '開発/ステージング/本番を選んでデプロイ' },
     ]},
     { no: '4', title: 'バージョン管理', hint: 'ブランチ/タグ', tier: 'more', tiles: [
       { c: 'teamflow.manageBranches', em: '🌿', label: 'ブランチ管理', need: 'repo', desc: '切替/作成/削除' },

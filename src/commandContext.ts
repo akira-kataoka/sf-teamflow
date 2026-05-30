@@ -4,7 +4,7 @@ import type { OrgInfo } from "./orgManager/orgService.js";
 export interface CommandContext {
   cliPath(): string;
   workspaceRoot(): string | undefined;
-  /** Run a rendered command line in the shared SF TeamFlow terminal. */
+  /** Run a rendered command line in the shared Salesforce Dev Manager terminal. */
   runInTerminal(command: string): void;
   /** Refresh all trees + status bar. */
   refreshAll(): void;

@@ -3,7 +3,7 @@
  * command. Kept as a string constant (not a file read) so it works regardless
  * of how the extension is packaged. Mirrors docs/TEAM_WORKFLOW.md.
  */
-export const TEAM_WORKFLOW_GUIDE = `# Salesforce チーム開発ガイド (SF TeamFlow)
+export const TEAM_WORKFLOW_GUIDE = `# Salesforce チーム開発ガイド (Salesforce Dev Manager)
 
 複数人で Salesforce を安全に開発するための進め方です。**初めての方はこの順番で読めば大丈夫です。**
 
@@ -27,7 +27,7 @@ export const TEAM_WORKFLOW_GUIDE = `# Salesforce チーム開発ガイド (SF Te
 | **ステージング (staging)** | 本番同等で受入テスト | \`release/*\` | QA・リーダー |
 | **本番 (production)** | お客様が使う | \`main\` | リリース担当のみ |
 
-> この対応は \`sf-teamflow.json\` に書いて全員で共有します。SF TeamFlow が現在のブランチから
+> この対応は \`sf-teamflow.json\` に書いて全員で共有します。Salesforce Dev Manager が現在のブランチから
 > 自動で「どの環境・どのOrgか」を判断します。
 
 ## 日々の流れ (開発者)
@@ -50,7 +50,7 @@ export const TEAM_WORKFLOW_GUIDE = `# Salesforce チーム開発ガイド (SF Te
 - \`main\` / \`develop\` には**直接 push しない**（必ず PR 経由）。GitHub の Branch protection を設定。
 - PR は小さく・こまめに。レビューしやすく、コンフリクトも減ります。
 - コミットメッセージは「何をしたか」を日本語で具体的に。
-- 本番反映は**リリース担当者だけ**が \`main\` へマージ。SF TeamFlow は本番デプロイ前に必ず確認します。
+- 本番反映は**リリース担当者だけ**が \`main\` へマージ。Salesforce Dev Manager は本番デプロイ前に必ず確認します。
 
 ## スクラッチOrg の活用
 

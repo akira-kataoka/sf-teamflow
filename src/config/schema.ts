@@ -1,7 +1,7 @@
 /** JSON Schema written alongside sf-teamflow.json for editor autocomplete. */
 export const TEAMFLOW_SCHEMA = {
   $schema: "http://json-schema.org/draft-07/schema#",
-  title: "SF TeamFlow configuration",
+  title: "Salesforce Dev Manager configuration",
   type: "object",
   required: ["environments"],
   properties: {

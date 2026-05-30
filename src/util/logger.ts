@@ -4,7 +4,7 @@ let channel: vscode.OutputChannel | undefined;
 
 function out(): vscode.OutputChannel {
   if (!channel) {
-    channel = vscode.window.createOutputChannel("SF TeamFlow");
+    channel = vscode.window.createOutputChannel("Salesforce Dev Manager");
   }
   return channel;
 }

@@ -54,14 +54,14 @@ function cliPath(): string {
 function requireRoot(): string | undefined {
   const root = workspaceRoot();
   if (!root) {
-    vscode.window.showErrorMessage("SF TeamFlow: ワークスペース(フォルダ)を開いてください。");
+    vscode.window.showErrorMessage("Salesforce Dev Manager: ワークスペース(フォルダ)を開いてください。");
   }
   return root;
 }
 
 function runInTerminal(command: string): void {
   if (!deployTerminal || deployTerminal.exitStatus !== undefined) {
-    deployTerminal = vscode.window.createTerminal({ name: "SF TeamFlow", cwd: workspaceRoot() });
+    deployTerminal = vscode.window.createTerminal({ name: "Salesforce Dev Manager", cwd: workspaceRoot() });
   }
   deployTerminal.show(true);
   deployTerminal.sendText(command);
@@ -74,7 +74,7 @@ function refreshAll(): void {
 }
 
 export function activate(context: vscode.ExtensionContext): void {
-  logger.info(`SF TeamFlow activated (cli=${cliPath()})`);
+  logger.info(`Salesforce Dev Manager activated (cli=${cliPath()})`);
 
   orgTree = new OrgTreeProvider(cliPath, workspaceRoot);
   statusBar = new StatusBar();
@@ -119,6 +119,7 @@ export function activate(context: vscode.ExtensionContext): void {
   register("teamflow.deployDiff", () => deployOrValidate(false));
   register("teamflow.validateDiff", () => deployOrValidate(true));
   register("teamflow.previewDiff", () => previewDiff());
+  register("teamflow.deployToEnvironment", () => deployToEnvironment());
 
   register("teamflow.scaffoldCICD", () => scaffoldCICD());
   register("teamflow.initTeamProject", () => initTeamProject());
@@ -286,7 +287,7 @@ async function buildDeployContext(): Promise<DeployContext | undefined> {
     return undefined;
   }
   if (!(await isGitRepo(root))) {
-    vscode.window.showErrorMessage("SF TeamFlow: Gitリポジトリではありません。");
+    vscode.window.showErrorMessage("Salesforce Dev Manager: Gitリポジトリではありません。");
     return undefined;
   }
 
@@ -383,6 +384,95 @@ async function deployOrValidate(validateOnly: boolean): Promise<void> {
   if (!ctx) {
     return;
   }
+  await executeDeploy(ctx, validateOnly);
+}
+
+/**
+ * Deploy the Git diff to a chosen environment (development → staging →
+ * production). Lets a developer promote a change through environments from one
+ * place, instead of switching the default org by hand.
+ */
+async function deployToEnvironment(): Promise<void> {
+  const root = requireRoot();
+  if (!root) {
+    return;
+  }
+  if (!(await isGitRepo(root))) {
+    vscode.window.showErrorMessage("Gitリポジトリではありません。先に変更を保存してください。");
+    return;
+  }
+  let config: TeamflowConfig | undefined;
+  try {
+    config = await loadConfig(root);
+  } catch (err) {
+    vscode.window.showErrorMessage(`sf-teamflow.json が不正です: ${String(err)}`);
+    return;
+  }
+  if (!config || config.environments.length === 0) {
+    const go = await vscode.window.showInformationMessage(
+      "環境が未設定です。セットアップウィザードで開発/ステージング/本番を設定しますか？",
+      "設定する"
+    );
+    if (go === "設定する") {
+      await vscode.commands.executeCommand("teamflow.setupWizard");
+    }
+    return;
+  }
+
+  const orgs = orgTree.knownOrgs;
+  const TYPE_EMOJI: Record<string, string> = {
+    development: "🛠️",
+    staging: "🧪",
+    production: "🛡️",
+    sandbox: "🧪",
+    dev: "🛠️",
+  };
+  const pick = await vscode.window.showQuickPick(
+    config.environments.map((e) => {
+      const matched = orgs.find((o) => o.alias === e.orgAlias || o.username === e.orgAlias);
+      const emoji = TYPE_EMOJI[e.name.toLowerCase()] ?? TYPE_EMOJI[e.type] ?? "☁️";
+      return {
+        label: `${emoji} ${e.name}`,
+        description: `${e.orgAlias}${e.type === "production" ? " ⚠️本番" : ""}${
+          matched ? "" : " ❌未認証"
+        }`,
+        detail: `ブランチ ${e.branch}`,
+        env: e,
+      };
+    }),
+    { title: "どの環境へデプロイしますか？（開発 → ステージング → 本番）", placeHolder: "デプロイ先の環境を選択" }
+  );
+  if (!pick) {
+    return;
+  }
+  const env = pick.env;
+  const matched = orgs.find((o) => o.alias === env.orgAlias || o.username === env.orgAlias);
+  if (!matched) {
+    const go = await vscode.window.showWarningMessage(
+      `環境「${env.name}」のOrg「${env.orgAlias}」は未認証です。認証しますか？`,
+      "Orgを認証"
+    );
+    if (go === "Orgを認証") {
+      await vscode.commands.executeCommand("teamflow.authorizeOrg");
+    }
+    return;
+  }
+
+  const ctx: DeployContext = {
+    root,
+    config,
+    branch: `→ ${env.name}`,
+    baseRef: baseRefFor(config, env),
+    orgAlias: matched.displayName,
+    orgUsername: matched.username,
+    isProduction: matched.isProduction || env.type === "production",
+    testLevel: testLevelFor(config, env),
+    packageDirs: config.packageDirectories,
+  };
+  await executeDeploy(ctx, false);
+}
+
+async function executeDeploy(ctx: DeployContext, validateOnly: boolean): Promise<void> {
   const cs = await computeChangeSet(ctx);
   if (cs.toDeploy.length === 0) {
     vscode.window.showInformationMessage(

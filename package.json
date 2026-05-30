@@ -1,8 +1,8 @@
 {
   "name": "sf-teamflow",
-  "displayName": "SF TeamFlow — Salesforce Team Dev Orchestrator",
-  "description": "Salesforce チーム開発を「環境 / Git / CI/CD」で体系化する VSCode 拡張。Org 環境マネージャ・Git 差分デプロイ・GitHub Actions スキャフォルドをワンストップで提供します。",
-  "version": "0.11.0",
+  "displayName": "Salesforce Dev Manager",
+  "description": "これ1つでSalesforce開発サイクルを完結。Org/環境管理・各環境への簡単デプロイ(開発→ステージング→本番)・Git/GitHub・テスト・CI/CDを、初心者でもクリック操作で。",
+  "version": "0.12.0",
   "publisher": "akira-kataoka",
   "license": "MIT",
   "engines": {
@@ -36,7 +36,7 @@
       "activitybar": [
         {
           "id": "sf-teamflow",
-          "title": "SF TeamFlow",
+          "title": "Salesforce Dev Manager",
           "icon": "resources/activitybar.svg"
         }
       ]
@@ -59,7 +59,7 @@
     "walkthroughs": [
       {
         "id": "teamflow.gettingStarted",
-        "title": "SF TeamFlow ではじめる Salesforce チーム開発",
+        "title": "Salesforce Dev Manager ではじめるチーム開発",
         "description": "プロジェクト作成からOrg認証・環境設定・CI/CD・バックアップまで、順番に進めましょう。",
         "steps": [
           {
@@ -98,156 +98,161 @@
     "commands": [
       {
         "command": "teamflow.refreshOrgs",
-        "title": "TeamFlow: Org一覧を更新",
+        "title": "SFDevManager: Org一覧を更新",
         "icon": "$(refresh)"
       },
       {
         "command": "teamflow.authorizeOrg",
-        "title": "TeamFlow: 新しいOrgを認証",
+        "title": "SFDevManager: 新しいOrgを認証",
         "icon": "$(add)"
       },
       {
         "command": "teamflow.setDefaultOrg",
-        "title": "TeamFlow: このOrgを既定に設定",
+        "title": "SFDevManager: このOrgを既定に設定",
         "icon": "$(star)"
       },
       {
         "command": "teamflow.openOrg",
-        "title": "TeamFlow: ブラウザでOrgを開く",
+        "title": "SFDevManager: ブラウザでOrgを開く",
         "icon": "$(globe)"
       },
       {
         "command": "teamflow.logoutOrg",
-        "title": "TeamFlow: Orgの認証を解除",
+        "title": "SFDevManager: Orgの認証を解除",
         "icon": "$(sign-out)"
       },
       {
         "command": "teamflow.copyOrgId",
-        "title": "TeamFlow: Org IDをコピー"
+        "title": "SFDevManager: Org IDをコピー"
       },
       {
         "command": "teamflow.deployDiff",
-        "title": "TeamFlow: Git差分をデプロイ",
+        "title": "SFDevManager: Git差分をデプロイ",
         "icon": "$(cloud-upload)"
       },
       {
         "command": "teamflow.validateDiff",
-        "title": "TeamFlow: Git差分を検証 (デプロイなし)",
+        "title": "SFDevManager: Git差分を検証 (デプロイなし)",
         "icon": "$(verified)"
       },
       {
         "command": "teamflow.previewDiff",
-        "title": "TeamFlow: デプロイ対象の差分をプレビュー",
+        "title": "SFDevManager: デプロイ対象の差分をプレビュー",
         "icon": "$(diff)"
       },
       {
+        "command": "teamflow.deployToEnvironment",
+        "title": "SFDevManager: 環境を選んでデプロイ（開発/ステージング/本番）",
+        "icon": "$(cloud-upload)"
+      },
+      {
         "command": "teamflow.scaffoldCICD",
-        "title": "TeamFlow: CI/CD (GitHub Actions) を生成",
+        "title": "SFDevManager: CI/CD (GitHub Actions) を生成",
         "icon": "$(rocket)"
       },
       {
         "command": "teamflow.initTeamProject",
-        "title": "TeamFlow: チーム開発プロジェクトを初期化",
+        "title": "SFDevManager: チーム開発プロジェクトを初期化",
         "icon": "$(repo)"
       },
       {
         "command": "teamflow.openConfig",
-        "title": "TeamFlow: チーム設定 (sf-teamflow.json) を開く",
+        "title": "SFDevManager: チーム設定 (sf-teamflow.json) を開く",
         "icon": "$(settings-gear)"
       },
       {
         "command": "teamflow.createScratchOrg",
-        "title": "TeamFlow: スクラッチOrgを作成",
+        "title": "SFDevManager: スクラッチOrgを作成",
         "icon": "$(beaker)"
       },
       {
         "command": "teamflow.deleteScratchOrg",
-        "title": "TeamFlow: スクラッチOrgを削除",
+        "title": "SFDevManager: スクラッチOrgを削除",
         "icon": "$(trash)"
       },
       {
         "command": "teamflow.createProject",
-        "title": "TeamFlow: 新しいプロジェクトを作成",
+        "title": "SFDevManager: 新しいプロジェクトを作成",
         "icon": "$(repo-create)"
       },
       {
         "command": "teamflow.retrieveMetadata",
-        "title": "TeamFlow: メタデータを取得",
+        "title": "SFDevManager: メタデータを取得",
         "icon": "$(cloud-download)"
       },
       {
         "command": "teamflow.retrieveByManifest",
-        "title": "TeamFlow: manifest (package.xml) でメタデータを取得",
+        "title": "SFDevManager: manifest (package.xml) でメタデータを取得",
         "icon": "$(file-code)"
       },
       {
         "command": "teamflow.sourcePush",
-        "title": "TeamFlow: Orgにソースを反映 (push)",
+        "title": "SFDevManager: Orgにソースを反映 (push)",
         "icon": "$(arrow-up)"
       },
       {
         "command": "teamflow.sourcePull",
-        "title": "TeamFlow: Orgから変更を取り込み (pull)",
+        "title": "SFDevManager: Orgから変更を取り込み (pull)",
         "icon": "$(arrow-down)"
       },
       {
         "command": "teamflow.runTests",
-        "title": "TeamFlow: Apexテストを実行",
+        "title": "SFDevManager: Apexテストを実行",
         "icon": "$(beaker)"
       },
       {
         "command": "teamflow.pushAndTest",
-        "title": "TeamFlow: Orgへ反映してテスト",
+        "title": "SFDevManager: Orgへ反映してテスト",
         "icon": "$(debug-rerun)"
       },
       {
         "command": "teamflow.guidedSetup",
-        "title": "TeamFlow: ガイド付きセットアップ",
+        "title": "SFDevManager: ガイド付きセットアップ",
         "icon": "$(checklist)"
       },
       {
         "command": "teamflow.setupWizard",
-        "title": "TeamFlow: 環境セットアップウィザード（開発/ステージング/本番）",
+        "title": "SFDevManager: 環境セットアップウィザード（開発/ステージング/本番）",
         "icon": "$(server-environment)"
       },
       {
         "command": "teamflow.openWorkflowGuide",
-        "title": "TeamFlow: チーム開発ガイドを開く",
+        "title": "SFDevManager: チーム開発ガイドを開く",
         "icon": "$(book)"
       },
       {
         "command": "teamflow.gitCommitPush",
-        "title": "TeamFlow: 保存してバックアップ (commit & push)",
+        "title": "SFDevManager: 保存してバックアップ (commit & push)",
         "icon": "$(cloud-upload)"
       },
       {
         "command": "teamflow.gitSync",
-        "title": "TeamFlow: GitHubと同期 (pull & push)",
+        "title": "SFDevManager: GitHubと同期 (pull & push)",
         "icon": "$(sync)"
       },
       {
         "command": "teamflow.gitNewBranch",
-        "title": "TeamFlow: 作業ブランチを作成 / 切り替え",
+        "title": "SFDevManager: 作業ブランチを作成 / 切り替え",
         "icon": "$(git-branch)"
       },
       {
         "command": "teamflow.gitPublish",
-        "title": "TeamFlow: GitHubに公開",
+        "title": "SFDevManager: GitHubに公開",
         "icon": "$(github)"
       },
       {
         "command": "teamflow.manageBranches",
-        "title": "TeamFlow: ブランチを管理（切替/作成/削除）",
+        "title": "SFDevManager: ブランチを管理（切替/作成/削除）",
         "icon": "$(git-branch)"
       },
       {
         "command": "teamflow.createTag",
-        "title": "TeamFlow: リリースタグを作成",
+        "title": "SFDevManager: リリースタグを作成",
         "icon": "$(tag)"
       },
       {
         "command": "teamflow.manageTags",
-        "title": "TeamFlow: タグを管理（作成/プッシュ/削除）",
+        "title": "SFDevManager: タグを管理（作成/プッシュ/削除）",
         "icon": "$(tag)"
       }
     ],

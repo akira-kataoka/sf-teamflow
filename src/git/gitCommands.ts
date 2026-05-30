@@ -37,7 +37,7 @@ export function registerGitCommands(
   async function ensureRepo(): Promise<string | undefined> {
     const root = ctx.workspaceRoot();
     if (!root) {
-      vscode.window.showErrorMessage("SF TeamFlow: フォルダを開いてください。");
+      vscode.window.showErrorMessage("Salesforce Dev Manager: フォルダを開いてください。");
       return undefined;
     }
     if (!(await isGitRepo(root))) {

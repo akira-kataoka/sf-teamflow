@@ -52,7 +52,7 @@ export class SetupWizard {
     }
     this.panel = vscode.window.createWebviewPanel(
       "teamflow.setupWizard",
-      "SF TeamFlow セットアップ",
+      "Salesforce Dev Manager セットアップ",
       vscode.ViewColumn.Active,
       { enableScripts: true, localResourceRoots: [this.extensionUri], retainContextWhenHidden: true }
     );
