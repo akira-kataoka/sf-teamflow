@@ -21,6 +21,21 @@ interface HomeOrg {
   isProduction: boolean;
   isDefault: boolean;
   connected: boolean;
+  /** For scratch orgs: "残り5日" / "期限切れ" — undefined otherwise. */
+  expires?: string;
+}
+
+/** Scratch-org expiry as a short Japanese label, or undefined. */
+function scratchExpiryLabel(category: string, expirationDate?: string): string | undefined {
+  if (category !== "Scratch" || !expirationDate) {
+    return undefined;
+  }
+  const exp = new Date(expirationDate).getTime();
+  if (Number.isNaN(exp)) {
+    return undefined;
+  }
+  const days = Math.ceil((exp - Date.now()) / 86_400_000);
+  return days < 0 ? "期限切れ" : `残り${days}日`;
 }
 
 interface HomeState {
@@ -158,6 +173,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       isProduction: o.isProduction,
       isDefault: o.isDefaultUsername === true,
       connected: o.connected,
+      expires: scratchExpiryLabel(o.category, o.expirationDate),
     }));
 
     let configured = false;
@@ -487,7 +503,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
           '<span class="dot" style="background:'+(colors[o.category]||'#888')+'"></span>'+
           '<span class="name">'+(o.isDefault?'★ ':'')+escapeHtml(o.displayName)+
             (o.isProduction?' ⚠️':'')+(o.connected?'':' 🔌未接続')+
-            '<div class="cat">'+o.category+'</div></span>'+
+            '<div class="cat">'+o.category+(o.expires?' · ⏳'+escapeHtml(o.expires):'')+'</div></span>'+
           action+
         '</div>';
       }).join('');

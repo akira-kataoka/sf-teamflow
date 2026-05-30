@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.18.0] - 2026-05-31
+
+- ⏳ **スクラッチOrgの有効期限表示**: ホームのOrgカードに「⏳残りN日」/「期限切れ」を表示。使い捨てOrgの期限切れに気づける。
+
 ## [0.17.0] - 2026-05-31
 
 ホームに「今の状況」を平易な1文で表示。
