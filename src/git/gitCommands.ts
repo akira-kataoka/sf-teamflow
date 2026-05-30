@@ -74,15 +74,40 @@ export function registerGitCommands(
     const defaultMsg = `作業を保存 ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
       now.getDate()
     )} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-    const message = await vscode.window.showInputBox({
-      title: "変更を保存 (コミット)",
-      prompt: `${s.changed}件の変更を保存します。このままEnterでもOK（必要なら書き換え）。`,
-      value: defaultMsg,
-      valueSelection: [0, defaultMsg.length],
-      validateInput: (v) => (v.trim() ? undefined : "メッセージを入力してください"),
-    });
-    if (!message) {
+    // Pick an intent first (one click), then optionally add a one-line detail.
+    const ASIS = "__asis__";
+    const FREE = "__free__";
+    const kind = await vscode.window.showQuickPick(
+      [
+        { label: "$(add) 機能を追加した", prefix: "機能を追加: " },
+        { label: "$(bug) 不具合を直した", prefix: "不具合を修正: " },
+        { label: "$(paintcan) 画面・見た目を調整した", prefix: "画面を調整: " },
+        { label: "$(book) ドキュメントを更新した", prefix: "ドキュメントを更新: " },
+        { label: "$(history) コードを整理した", prefix: "コードを整理: " },
+        { label: "$(edit) 自分でメッセージを書く", prefix: FREE },
+        { label: "$(check) そのまま保存（日時のみ）", prefix: ASIS },
+      ],
+      { title: `変更 ${s.changed}件を保存`, placeHolder: "何をしたか選ぶ（クリックだけでもOK）" }
+    );
+    if (!kind) {
       return;
+    }
+    let message: string;
+    if (kind.prefix === ASIS) {
+      message = defaultMsg;
+    } else {
+      const base = kind.prefix === FREE ? "" : kind.prefix;
+      const input = await vscode.window.showInputBox({
+        title: "ひとことメモ（任意）",
+        prompt: "具体的に何をしたか。空でもOK（種別だけで保存します）。",
+        value: base,
+        valueSelection: [base.length, base.length],
+        placeHolder: "例: 取引先一覧に検索ボタンを追加",
+      });
+      if (input === undefined) {
+        return;
+      }
+      message = input.trim() || base.trim() || defaultMsg;
     }
     await vscode.window.withProgress(
       { location: vscode.ProgressLocation.Notification, title: "保存してバックアップ中…" },
