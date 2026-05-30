@@ -301,6 +301,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .situation { font-size: 11.5px; opacity: .72; margin: -4px 2px 12px; line-height: 1.6; }
   .situation .link { cursor: pointer; color: var(--vscode-textLink-foreground, #4daafc); margin-left: 4px; white-space: nowrap; }
   .situation .link:hover { text-decoration: underline; }
+  .situation .note { margin-top: 4px; opacity: .85; }
   .warnbox { border: 1px solid var(--vscode-inputValidation-warningBorder, #c80); background: var(--vscode-inputValidation-warningBackground, #5a4a1d); border-radius: 8px; padding: 8px 10px; margin: 0 2px 12px; font-size: 11.5px; cursor: pointer; }
   .warnbox .wh { font-weight: 600; margin-bottom: 4px; }
   .warnbox .wi { padding: 1px 0; opacity: .9; }
@@ -477,7 +478,11 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       parts.push(s.changes>0 ? '変更'+s.changes+'件が未保存' : '変更なし');
       if (s.ahead>0) parts.push('未バックアップ'+s.ahead+'件');
       const org = s.defaultOrg ? '反映先=「'+escapeHtml(s.defaultOrg.displayName)+'」'+(s.defaultOrg.isProduction?'⚠️本番':'') : '反映先Org未選択';
-      $('situation').innerHTML = 'いま '+where+' で作業中。'+parts.join('・')+'。'+org+'。';
+      let note = '';
+      if (s.configured && !s.env && s.branch) {
+        note = '<div class="note">ℹ️ このブランチは環境に未割当（作業用ブランチ）。デプロイ先は「環境へデプロイ」で選びます。</div>';
+      }
+      $('situation').innerHTML = 'いま '+where+' で作業中。'+parts.join('・')+'。'+org+'。'+note;
     } else if (s.orgs.length===0 || !s.configured) {
       $('situation').innerHTML = '👋 はじめまして！<b>このツール1つで Salesforce 開発が回せます</b>。'+
         '上の「次にやること」を順に押すだけでOK。'+
