@@ -94,6 +94,30 @@ flowchart LR
 - [Salesforce CLI (`sf`)](https://developer.salesforce.com/tools/salesforcecli)（PATHが通っていること）
 - Git（GitHub公開・PR作成には [GitHub CLI (`gh`)](https://cli.github.com/)）
 
+---
+
+## 対応コマンド一覧（コマンドパレット: `SFDevManager:`）
+
+| 分類 | コマンド | 内容 |
+|---|---|---|
+| 環境 | Org一覧を更新 / 新しいOrgを認証 / このOrgに再接続 | 認証Orgの取得・追加・再接続 |
+| 環境 | このOrgを既定に設定 / ブラウザでOrgを開く / Org IDをコピー / 認証を解除 | 既定切替・ブラウザ起動など |
+| 環境 | 環境セットアップウィザード | 開発/ステージング/本番をクリックで割当 |
+| 環境 | スクラッチOrgを作成 / 削除 | 使い捨て開発Org |
+| 開発 | 新しいプロジェクトを作成 | `sf project generate` |
+| 開発 | 新しいコンポーネントを作成 | Apexクラス/トリガ/LWC/Aura |
+| 開発 | メタデータを取得 / manifestで取得 | 39種類から選択 / package.xml |
+| 開発 | 環境(Org)に反映 / 取り込み | push（全部/資材選択）/ pull |
+| テスト | Apexテストを実行 / Orgへ反映してテスト | 結果・カバレッジ表示 / 高速ループ |
+| リリース | 環境を選んでデプロイ / Git差分をデプロイ / 検証 / 差分プレビュー | 開発→ステージング→本番、本番二重確認 |
+| 保存 | 保存してバックアップ / GitHubと同期 / GitHubに公開 | commit+push / pull+push / `gh repo create` |
+| 保存 | 作業ブランチを作成 / ブランチを管理 | feature運用・切替/作成/削除 |
+| 保存 | Pull Requestを作成 | `gh pr create`（マージ先選択） |
+| 保存 | リリースタグを作成 / タグを管理 | 次バージョン自動採番・push/削除 |
+| 設定 | チーム設定を開く / CI/CDを生成 / チーム開発ガイド / 設定 | sf-teamflow.json・GitHub Actions・ガイド |
+
+> ほとんどの操作はサイドバーの「ホーム」からクリックだけで実行できます。
+
 ## 開発（このリポジトリ）
 ```bash
 npm install
