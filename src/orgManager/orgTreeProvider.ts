@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import {
   CATEGORY_ORDER,
   listOrgs,
+  scratchRemainingLabel,
   type OrgCategory,
   type OrgInfo,
 } from "./orgService.js";
@@ -140,11 +141,15 @@ export class OrgTreeProvider implements vscode.TreeDataProvider<TreeNode> {
     const node = new TreeNode(label, vscode.TreeItemCollapsibleState.None, "org", o);
     node.id = `org:${o.username}`;
     const userPart = o.alias && o.alias !== o.username ? o.username : undefined;
+    const expiry = scratchRemainingLabel(o.category, o.expirationDate, Date.now());
     // Reflect connection state in the tree row, and switch the contextValue so
     // the "再接続" right-click action only appears on disconnected orgs.
-    node.description = o.connected
+    const baseDesc = o.connected
       ? userPart
       : `${userPart ? userPart + " · " : ""}🔌未接続`;
+    node.description = expiry
+      ? `${baseDesc ? baseDesc + " · " : ""}⏳${expiry}`
+      : baseDesc;
     node.contextValue = o.connected ? "teamflow.org" : "teamflow.orgDisconnected";
     node.command = {
       command: "teamflow.openOrg",

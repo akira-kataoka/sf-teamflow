@@ -4,6 +4,7 @@ import {
   categorize,
   isProductionOrg,
   parseOrgList,
+  scratchRemainingLabel,
   type RawOrg,
 } from "../src/orgManager/orgService.js";
 
@@ -85,4 +86,13 @@ test("toOrgInfo: connected derives from status/connectedStatus/scratch", () => {
   assert.equal(by("b").connected, true);
   assert.equal(by("c").connected, false);
   assert.equal(by("d").connected, true);
+});
+
+test("scratchRemainingLabel: only scratch, days/expired/invalid", () => {
+  const now = Date.UTC(2026, 0, 10);
+  assert.equal(scratchRemainingLabel("Sandbox", "2026-01-20", now), undefined);
+  assert.equal(scratchRemainingLabel("Scratch", undefined, now), undefined);
+  assert.equal(scratchRemainingLabel("Scratch", "bad-date", now), undefined);
+  assert.equal(scratchRemainingLabel("Scratch", "2026-01-15", now), "残り5日");
+  assert.equal(scratchRemainingLabel("Scratch", "2026-01-05", now), "期限切れ");
 });

@@ -125,6 +125,27 @@ export function parseOrgList(result: OrgListResult): OrgInfo[] {
   });
 }
 
+/**
+ * Scratch-org expiry as a short Japanese label ("残り5日" / "期限切れ"), or
+ * undefined for non-scratch / unknown. Pure & unit-tested; shared by the home
+ * cards and the Org detail tree.
+ */
+export function scratchRemainingLabel(
+  category: OrgCategory | string,
+  expirationDate: string | undefined,
+  nowMs: number
+): string | undefined {
+  if (category !== "Scratch" || !expirationDate) {
+    return undefined;
+  }
+  const exp = new Date(expirationDate).getTime();
+  if (Number.isNaN(exp)) {
+    return undefined;
+  }
+  const days = Math.ceil((exp - nowMs) / 86_400_000);
+  return days < 0 ? "期限切れ" : `残り${days}日`;
+}
+
 export const CATEGORY_ORDER: Record<OrgCategory, number> = {
   Production: 0,
   Sandbox: 1,

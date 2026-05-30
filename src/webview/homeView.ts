@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { OrgTreeProvider } from "../orgManager/orgTreeProvider.js";
+import { scratchRemainingLabel } from "../orgManager/orgService.js";
 import {
   isGitRepo,
   status,
@@ -24,19 +25,6 @@ interface HomeOrg {
   connected: boolean;
   /** For scratch orgs: "残り5日" / "期限切れ" — undefined otherwise. */
   expires?: string;
-}
-
-/** Scratch-org expiry as a short Japanese label, or undefined. */
-function scratchExpiryLabel(category: string, expirationDate?: string): string | undefined {
-  if (category !== "Scratch" || !expirationDate) {
-    return undefined;
-  }
-  const exp = new Date(expirationDate).getTime();
-  if (Number.isNaN(exp)) {
-    return undefined;
-  }
-  const days = Math.ceil((exp - Date.now()) / 86_400_000);
-  return days < 0 ? "期限切れ" : `残り${days}日`;
 }
 
 interface HomeState {
@@ -179,7 +167,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       isProduction: o.isProduction,
       isDefault: o.isDefaultUsername === true,
       connected: o.connected,
-      expires: scratchExpiryLabel(o.category, o.expirationDate),
+      expires: scratchRemainingLabel(o.category, o.expirationDate, Date.now()),
     }));
 
     let configured = false;

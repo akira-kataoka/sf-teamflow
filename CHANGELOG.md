@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.33.0] - 2026-05-31
+
+- ⏳ **Org詳細ツリーにもスクラッチ有効期限**: 行に「⏳残りN日/期限切れ」を表示。期限ロジックを scratchRemainingLabel に集約(ホームと共用・テスト追加)。
+
 ## [0.32.0] - 2026-05-31
 
 - 🔤 **入力エラーを親切に**: プロジェクト名/コンポーネント名/スクラッチ名・日数/タグ名/ブランチ名の検証メッセージに具体例と理由を明記（例: 「feature/account-search」、スペース・日本語不可 など）。
