@@ -2,7 +2,7 @@
   "name": "sf-teamflow",
   "displayName": "SF TeamFlow — Salesforce Team Dev Orchestrator",
   "description": "Salesforce チーム開発を「環境 / Git / CI/CD」で体系化する VSCode 拡張。Org 環境マネージャ・Git 差分デプロイ・GitHub Actions スキャフォルドをワンストップで提供します。",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "akira-kataoka",
   "license": "MIT",
   "engines": {
@@ -45,16 +45,66 @@
       "sf-teamflow": [
         {
           "id": "teamflow.orgs",
-          "name": "Orgs / Environments",
+          "name": "Orgs / 環境",
           "icon": "resources/activitybar.svg"
         },
         {
           "id": "teamflow.environments",
-          "name": "Team Environments",
+          "name": "チーム環境",
+          "icon": "resources/activitybar.svg"
+        },
+        {
+          "id": "teamflow.git",
+          "name": "バックアップ (Git)",
           "icon": "resources/activitybar.svg"
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "teamflow.git",
+        "contents": "まだバージョン管理(Git)が始まっていません。\n\nバージョン管理を使うと、作業のバックアップ・履歴・チーム共同作業が安全にできます。\n\n[ガイド付きセットアップ](command:teamflow.guidedSetup)\n[GitHubに公開する](command:teamflow.gitPublish)\n\nチーム開発の進め方は [ガイドを開く](command:teamflow.openWorkflowGuide) で確認できます。"
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "teamflow.gettingStarted",
+        "title": "SF TeamFlow ではじめる Salesforce チーム開発",
+        "description": "プロジェクト作成からOrg認証・環境設定・CI/CD・バックアップまで、順番に進めましょう。",
+        "steps": [
+          {
+            "id": "project",
+            "title": "プロジェクトを準備する",
+            "description": "新しいSFDXプロジェクトを作るか、既存のフォルダを開きます。\n[新しいプロジェクトを作成](command:teamflow.createProject)",
+            "media": { "markdown": "media/walkthrough/project.md" }
+          },
+          {
+            "id": "auth",
+            "title": "Orgを認証する",
+            "description": "開発・ステージング・本番などのOrgにログインします。\n[Orgを認証](command:teamflow.authorizeOrg)",
+            "media": { "markdown": "media/walkthrough/auth.md" }
+          },
+          {
+            "id": "config",
+            "title": "チーム設定を作る",
+            "description": "環境⇔ブランチ⇔Orgの対応を定義します (sf-teamflow.json)。\n[チーム設定を初期化](command:teamflow.initTeamProject)",
+            "media": { "markdown": "media/walkthrough/config.md" }
+          },
+          {
+            "id": "cicd",
+            "title": "CI/CDを生成する",
+            "description": "PR検証とデプロイのGitHub Actionsを自動生成します。\n[CI/CDを生成](command:teamflow.scaffoldCICD)",
+            "media": { "markdown": "media/walkthrough/cicd.md" }
+          },
+          {
+            "id": "backup",
+            "title": "保存してバックアップする",
+            "description": "変更をコミットしてGitHubに安全に保管します。\n[保存してバックアップ](command:teamflow.gitCommitPush)\n\n複数人開発の進め方は [ガイド](command:teamflow.openWorkflowGuide) を参照。",
+            "media": { "markdown": "media/walkthrough/backup.md" }
+          }
+        ]
+      }
+    ],
     "commands": [
       {
         "command": "teamflow.refreshOrgs",
@@ -119,6 +169,66 @@
         "command": "teamflow.createScratchOrg",
         "title": "TeamFlow: スクラッチOrgを作成",
         "icon": "$(beaker)"
+      },
+      {
+        "command": "teamflow.deleteScratchOrg",
+        "title": "TeamFlow: スクラッチOrgを削除",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "teamflow.createProject",
+        "title": "TeamFlow: 新しいプロジェクトを作成",
+        "icon": "$(repo-create)"
+      },
+      {
+        "command": "teamflow.retrieveMetadata",
+        "title": "TeamFlow: メタデータを取得",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "teamflow.retrieveByManifest",
+        "title": "TeamFlow: manifest (package.xml) でメタデータを取得",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "teamflow.sourcePush",
+        "title": "TeamFlow: Orgにソースを反映 (push)",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "teamflow.sourcePull",
+        "title": "TeamFlow: Orgから変更を取り込み (pull)",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "teamflow.guidedSetup",
+        "title": "TeamFlow: ガイド付きセットアップ",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "teamflow.openWorkflowGuide",
+        "title": "TeamFlow: チーム開発ガイドを開く",
+        "icon": "$(book)"
+      },
+      {
+        "command": "teamflow.gitCommitPush",
+        "title": "TeamFlow: 保存してバックアップ (commit & push)",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "teamflow.gitSync",
+        "title": "TeamFlow: GitHubと同期 (pull & push)",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "teamflow.gitNewBranch",
+        "title": "TeamFlow: 作業ブランチを作成 / 切り替え",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "teamflow.gitPublish",
+        "title": "TeamFlow: GitHubに公開",
+        "icon": "$(github)"
       }
     ],
     "menus": {
@@ -134,6 +244,11 @@
           "group": "navigation@2"
         },
         {
+          "command": "teamflow.guidedSetup",
+          "when": "view == teamflow.orgs",
+          "group": "navigation@3"
+        },
+        {
           "command": "teamflow.openConfig",
           "when": "view == teamflow.environments",
           "group": "navigation@1"
@@ -142,6 +257,31 @@
           "command": "teamflow.scaffoldCICD",
           "when": "view == teamflow.environments",
           "group": "navigation@2"
+        },
+        {
+          "command": "teamflow.openWorkflowGuide",
+          "when": "view == teamflow.environments",
+          "group": "navigation@3"
+        },
+        {
+          "command": "teamflow.gitCommitPush",
+          "when": "view == teamflow.git",
+          "group": "navigation@1"
+        },
+        {
+          "command": "teamflow.gitSync",
+          "when": "view == teamflow.git",
+          "group": "navigation@2"
+        },
+        {
+          "command": "teamflow.gitNewBranch",
+          "when": "view == teamflow.git",
+          "group": "navigation@3"
+        },
+        {
+          "command": "teamflow.refreshOrgs",
+          "when": "view == teamflow.git",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [
@@ -171,9 +311,29 @@
           "group": "1_actions@3"
         },
         {
+          "command": "teamflow.sourcePush",
+          "when": "view == teamflow.orgs && viewItem == teamflow.org",
+          "group": "2_source@1"
+        },
+        {
+          "command": "teamflow.sourcePull",
+          "when": "view == teamflow.orgs && viewItem == teamflow.org",
+          "group": "2_source@2"
+        },
+        {
+          "command": "teamflow.retrieveMetadata",
+          "when": "view == teamflow.orgs && viewItem == teamflow.org",
+          "group": "2_source@3"
+        },
+        {
           "command": "teamflow.logoutOrg",
           "when": "view == teamflow.orgs && viewItem == teamflow.org",
           "group": "9_danger@1"
+        },
+        {
+          "command": "teamflow.deleteScratchOrg",
+          "when": "view == teamflow.orgs && viewItem == teamflow.org",
+          "group": "9_danger@2"
         }
       ],
       "commandPalette": [

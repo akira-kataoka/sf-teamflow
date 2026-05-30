@@ -138,3 +138,161 @@ export async function changedFiles(baseRef: string, cwd: string): Promise<DiffEn
   }
   return [...merged.values()];
 }
+
+/* --------------------------- working-tree status -------------------------- */
+
+export interface StatusFile {
+  path: string;
+  /** Human label for the change, e.g. "変更", "新規", "削除". */
+  label: string;
+  staged: boolean;
+}
+
+export interface StatusSummary {
+  branch: string;
+  upstream?: string;
+  ahead: number;
+  behind: number;
+  files: StatusFile[];
+  /** Convenience: total changed paths (staged or not, incl. untracked). */
+  get changed(): number;
+}
+
+function changeLabel(code: string): string {
+  switch (code) {
+    case "M":
+      return "変更";
+    case "A":
+      return "新規";
+    case "D":
+      return "削除";
+    case "R":
+      return "リネーム";
+    case "C":
+      return "コピー";
+    case "?":
+      return "未追跡";
+    case "U":
+      return "競合";
+    default:
+      return code;
+  }
+}
+
+/**
+ * Parse `git status --porcelain=v2 --branch -z`? We use the newline form for
+ * testability. Handles branch headers, ordinary (1), rename/copy (2) and
+ * untracked (?) records. Exported pure for unit testing.
+ */
+export function parsePorcelainV2(stdout: string): StatusSummary {
+  let branch = "";
+  let upstream: string | undefined;
+  let ahead = 0;
+  let behind = 0;
+  const files: StatusFile[] = [];
+
+  for (const rawLine of stdout.split("\n")) {
+    const line = rawLine.replace(/\r$/, "");
+    if (!line) {
+      continue;
+    }
+    if (line.startsWith("# branch.head ")) {
+      branch = line.slice("# branch.head ".length).trim();
+    } else if (line.startsWith("# branch.upstream ")) {
+      upstream = line.slice("# branch.upstream ".length).trim();
+    } else if (line.startsWith("# branch.ab ")) {
+      const m = /\+(\d+)\s+-(\d+)/.exec(line);
+      if (m) {
+        ahead = Number(m[1]);
+        behind = Number(m[2]);
+      }
+    } else if (line.startsWith("1 ")) {
+      const parts = line.split(" ");
+      const xy = parts[1] ?? "..";
+      const path = parts.slice(8).join(" ");
+      files.push(toStatusFile(xy, path));
+    } else if (line.startsWith("2 ")) {
+      const parts = line.split(" ");
+      const xy = parts[1] ?? "..";
+      // path<TAB>origPath after the 9th field.
+      const rest = parts.slice(9).join(" ");
+      const path = rest.split("\t")[0];
+      files.push(toStatusFile(xy, path));
+    } else if (line.startsWith("? ")) {
+      files.push({ path: line.slice(2), label: changeLabel("?"), staged: false });
+    } else if (line.startsWith("u ")) {
+      const parts = line.split(" ");
+      files.push({ path: parts.slice(10).join(" "), label: changeLabel("U"), staged: false });
+    }
+  }
+
+  const summary = {
+    branch,
+    upstream,
+    ahead,
+    behind,
+    files,
+    get changed() {
+      return this.files.length;
+    },
+  };
+  return summary;
+}
+
+function toStatusFile(xy: string, path: string): StatusFile {
+  const index = xy[0] ?? ".";
+  const work = xy[1] ?? ".";
+  const staged = index !== "." && index !== "?";
+  const code = staged ? index : work;
+  return { path, label: changeLabel(code), staged };
+}
+
+/** Live working-tree status (branch, ahead/behind, changed files). */
+export async function status(cwd: string): Promise<StatusSummary> {
+  const out = await git(["status", "--porcelain=v2", "--branch"], cwd);
+  return parsePorcelainV2(out);
+}
+
+export async function hasRemote(cwd: string): Promise<boolean> {
+  const res = await run("git", ["remote"], { cwd, timeout: 10_000 });
+  return res.code === 0 && res.stdout.trim().length > 0;
+}
+
+export async function listBranches(cwd: string): Promise<string[]> {
+  const out = await git(["branch", "--format=%(refname:short)"], cwd);
+  return out
+    .split("\n")
+    .map((l) => l.replace(/\r$/, "").trim())
+    .filter(Boolean);
+}
+
+/* ------------------------------- git mutations ---------------------------- */
+/* These wrap git and THROW on failure so command handlers can surface errors. */
+
+export async function stageAll(cwd: string): Promise<void> {
+  await git(["add", "-A"], cwd);
+}
+
+export async function commit(message: string, cwd: string): Promise<void> {
+  await git(["commit", "-m", message], cwd);
+}
+
+export async function push(cwd: string, setUpstream: boolean, branch?: string): Promise<string> {
+  const args = ["push"];
+  if (setUpstream && branch) {
+    args.push("--set-upstream", "origin", branch);
+  }
+  return git(args, cwd);
+}
+
+export async function pull(cwd: string): Promise<string> {
+  return git(["pull", "--ff-only"], cwd);
+}
+
+export async function createBranch(name: string, cwd: string): Promise<void> {
+  await git(["switch", "-c", name], cwd);
+}
+
+export async function switchBranch(name: string, cwd: string): Promise<void> {
+  await git(["switch", name], cwd);
+}

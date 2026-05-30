@@ -30,9 +30,17 @@ import {
 import { cicdFiles } from "./cicd/templates.js";
 import { writeScaffold } from "./cicd/scaffolder.js";
 import { schemaJson } from "./config/schema.js";
+import { GitTreeProvider } from "./git/gitTreeProvider.js";
+import { registerGitCommands } from "./git/gitCommands.js";
+import { registerProjectCommands } from "./sfProject/projectCommands.js";
+import { StatusBar } from "./statusBar.js";
+import type { CommandContext } from "./commandContext.js";
+import { TEAM_WORKFLOW_GUIDE } from "./docs/workflowGuide.js";
 
 let orgTree: OrgTreeProvider;
 let envTree: EnvironmentsTreeProvider;
+let gitTree: GitTreeProvider;
+let statusBar: StatusBar;
 let deployTerminal: vscode.Terminal | undefined;
 
 function workspaceRoot(): string | undefined {
@@ -59,15 +67,26 @@ function runInTerminal(command: string): void {
   deployTerminal.sendText(command);
 }
 
+function refreshAll(): void {
+  orgTree.refresh();
+  envTree.refresh();
+  gitTree.refresh();
+  void statusBar.update(workspaceRoot(), orgTree.knownOrgs);
+}
+
 export function activate(context: vscode.ExtensionContext): void {
   logger.info(`SF TeamFlow activated (cli=${cliPath()})`);
 
   orgTree = new OrgTreeProvider(cliPath, workspaceRoot);
   envTree = new EnvironmentsTreeProvider(workspaceRoot, () => orgTree.knownOrgs);
+  gitTree = new GitTreeProvider(workspaceRoot);
+  statusBar = new StatusBar();
+  context.subscriptions.push(statusBar);
 
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("teamflow.orgs", orgTree),
-    vscode.window.registerTreeDataProvider("teamflow.environments", envTree)
+    vscode.window.registerTreeDataProvider("teamflow.environments", envTree),
+    vscode.window.registerTreeDataProvider("teamflow.git", gitTree)
   );
 
   const register = (id: string, fn: (...args: any[]) => unknown) =>
@@ -75,10 +94,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   register("teamflow.showLog", () => logger.show());
 
-  register("teamflow.refreshOrgs", () => {
-    orgTree.refresh();
-    envTree.refresh();
-  });
+  register("teamflow.refreshOrgs", () => refreshAll());
 
   register("teamflow.authorizeOrg", () => {
     runInTerminal(`${cliPath()} org login web`);
@@ -99,11 +115,41 @@ export function activate(context: vscode.ExtensionContext): void {
   register("teamflow.scaffoldCICD", () => scaffoldCICD());
   register("teamflow.initTeamProject", () => initTeamProject());
   register("teamflow.openConfig", () => openConfig());
-  register("teamflow.createScratchOrg", () => createScratchOrg());
+  register("teamflow.openWorkflowGuide", () => openWorkflowGuide());
+
+  // Git and project/metadata commands live in their own modules.
+  const ctx: CommandContext = {
+    cliPath,
+    workspaceRoot,
+    runInTerminal,
+    refreshAll,
+    knownOrgs: () => orgTree.knownOrgs,
+  };
+  registerGitCommands(context, ctx);
+  registerProjectCommands(context, ctx);
+
+  // Prime the status bar and refresh it when the active editor / config changes.
+  void statusBar.update(workspaceRoot(), orgTree.knownOrgs);
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(() =>
+      statusBar.update(workspaceRoot(), orgTree.knownOrgs)
+    )
+  );
 }
 
 export function deactivate(): void {
   logger.dispose();
+}
+
+async function openWorkflowGuide(): Promise<void> {
+  const doc = await vscode.workspace.openTextDocument({
+    content: TEAM_WORKFLOW_GUIDE,
+    language: "markdown",
+  });
+  await vscode.window.showTextDocument(doc, { preview: true });
+  await vscode.commands.executeCommand("markdown.showPreview", doc.uri).then(undefined, () => {
+    /* preview extension may be unavailable */
+  });
 }
 
 /* ------------------------------- org commands ----------------------------- */
@@ -140,8 +186,7 @@ async function setDefaultOrg(node?: TreeNode): Promise<void> {
       cwd: workspaceRoot(),
     });
     vscode.window.showInformationMessage(`既定Orgを ${org.displayName} に設定しました。`);
-    orgTree.refresh();
-    envTree.refresh();
+    refreshAll();
   } catch (err) {
     logger.error("既定Org設定に失敗", err);
     vscode.window.showErrorMessage(`既定Org設定に失敗: ${String(err)}`);
@@ -182,8 +227,7 @@ async function logoutOrg(node?: TreeNode): Promise<void> {
       cwd: workspaceRoot(),
     });
     vscode.window.showInformationMessage(`${org.displayName} の認証を解除しました。`);
-    orgTree.refresh();
-    envTree.refresh();
+    refreshAll();
   } catch (err) {
     logger.error("logout 失敗", err);
     vscode.window.showErrorMessage(`認証解除に失敗: ${String(err)}`);
@@ -435,6 +479,7 @@ async function initTeamProject(): Promise<void> {
   if (next === "CI/CDも生成する") {
     await scaffoldCICD();
   }
+  refreshAll();
 }
 
 async function scaffoldCICD(): Promise<void> {
@@ -482,44 +527,3 @@ async function scaffoldCICD(): Promise<void> {
   );
 }
 
-async function createScratchOrg(): Promise<void> {
-  const root = requireRoot();
-  if (!root) {
-    return;
-  }
-  const alias = await vscode.window.showInputBox({
-    prompt: "スクラッチOrgのエイリアス",
-    value: "scratch-dev",
-    validateInput: (v) => (v.trim() ? undefined : "エイリアスを入力してください"),
-  });
-  if (!alias) {
-    return;
-  }
-  const days = await vscode.window.showInputBox({
-    prompt: "有効日数 (1-30)",
-    value: "7",
-    validateInput: (v) => {
-      const n = Number(v);
-      return Number.isInteger(n) && n >= 1 && n <= 30 ? undefined : "1〜30の整数";
-    },
-  });
-  if (!days) {
-    return;
-  }
-  const command = renderCommand(cliPath(), [
-    "org",
-    "create",
-    "scratch",
-    "--definition-file",
-    "config/project-scratch-def.json",
-    "--alias",
-    alias,
-    "--duration-days",
-    days,
-    "--set-default",
-  ]);
-  runInTerminal(command);
-  vscode.window.showInformationMessage(
-    "スクラッチOrgを作成中です。完了後、Org一覧を更新してください。"
-  );
-}
