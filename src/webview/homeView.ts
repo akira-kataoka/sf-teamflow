@@ -109,6 +109,9 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       case "openOrg":
         await vscode.commands.executeCommand("teamflow.openOrgByName", msg.username);
         return;
+      case "reconnect":
+        await vscode.commands.executeCommand("teamflow.reconnectOrg", msg.username);
+        return;
       case "switchBranch":
         await this.doSwitchBranch(msg.name);
         return;
@@ -271,7 +274,9 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .card .dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
   .card .name { flex: 1; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .card .cat { font-size: 10.5px; opacity: .6; }
-  .card .open { font-size: 11px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--vscode-panel-border,#8884); background: transparent; color: var(--vscode-foreground); cursor: pointer; }
+  .card .open { font-size: 11px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--vscode-panel-border,#8884); background: transparent; color: var(--vscode-foreground); cursor: pointer; white-space: nowrap; }
+  .card.disc { border-color: var(--vscode-inputValidation-warningBorder, #c80); }
+  .card .open.reconnect { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border-color: transparent; }
   .row { display: flex; gap: 6px; align-items: center; }
   select { flex: 1; padding: 6px; background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground); border: 1px solid var(--vscode-dropdown-border, #8884); border-radius: 6px; }
   .iconbtn { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--vscode-panel-border,#8884); background: var(--vscode-button-secondaryBackground,#3a3d41); color: var(--vscode-button-secondaryForeground,#fff); cursor: pointer; white-space: nowrap; }
@@ -352,6 +357,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     // Single, unambiguous "what to do next". Setup is one ordered flow:
     //   ① Orgを認証 → ② 環境を設定。git は「保存」時に自動で開始するので
     // ここでは別アクションとして出さない（重複ラベルの混乱を避ける）。
+    if (s.defaultOrg && !s.defaultOrg.connected) return { em:'🔌', t1:'接続が切れています', t2:s.defaultOrg.displayName+' に再接続する', reconnect:s.defaultOrg.username };
     if (s.orgs.length === 0) return { em:'🔌', t1:'はじめに（1/2）', t2:'Orgを認証する', c:'teamflow.authorizeOrg' };
     if (!s.configured) return { em:'🧭', t1:'はじめに（2/2）', t2:'環境を設定する（開発/ステージング/本番）', c:'teamflow.setupWizard' };
     if (s.changes > 0) return { em:'💾', t1:'次にやること', t2:'変更 '+s.changes+'件を保存してバックアップ', c:'teamflow.gitCommitPush' };
@@ -377,9 +383,10 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
 
     // next-action hero
     const na = nextAction(s);
-    $('hero').innerHTML = '<div class="hero '+(na.calm?'calm':'')+'" '+(na.c?'data-cmd="'+na.c+'"':'')+'>'+
+    const heroAttr = na.reconnect ? 'data-reconnect="'+escapeAttr(na.reconnect)+'"' : (na.c?'data-cmd="'+na.c+'"':'');
+    $('hero').innerHTML = '<div class="hero '+(na.calm?'calm':'')+'" '+heroAttr+'>'+
       '<span class="em">'+na.em+'</span><span class="tx"><div class="t1">'+na.t1+'</div>'+
-      '<div class="t2">'+escapeHtml(na.t2)+'</div></span>'+(na.c?'<span class="go">▶</span>':'')+'</div>';
+      '<div class="t2">'+escapeHtml(na.t2)+'</div></span>'+((na.c||na.reconnect)?'<span class="go">▶</span>':'')+'</div>';
 
     // setup progress strip (non-clickable) — the hero above is the single CTA,
     // so there is no duplicate "始める" button to confuse. Shows where you are
@@ -456,14 +463,18 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       $('orgs').innerHTML = '<div class="empty">まだOrgがありません。</div>' + addBtn;
     } else {
       const colors = { Production:'#e5534b', Sandbox:'#4aa3df', DevHub:'#b07cf0', Scratch:'#3fb950', Other:'#888' };
-      $('orgs').innerHTML = addBtn + s.orgs.map(o =>
-        '<div class="card '+(o.isDefault?'active':'')+'" data-org="'+escapeAttr(o.username)+'">'+
+      $('orgs').innerHTML = addBtn + s.orgs.map(o => {
+        const action = o.connected
+          ? '<button class="open" data-open="'+escapeAttr(o.username)+'">開く</button>'
+          : '<button class="open reconnect" data-reconnect="'+escapeAttr(o.username)+'">再接続</button>';
+        return '<div class="card '+(o.isDefault?'active':'')+(o.connected?'':' disc')+'" data-org="'+escapeAttr(o.username)+'">'+
           '<span class="dot" style="background:'+(colors[o.category]||'#888')+'"></span>'+
           '<span class="name">'+(o.isDefault?'★ ':'')+escapeHtml(o.displayName)+
-            (o.isProduction?' ⚠️':'')+(o.connected?'':' 🔌')+
+            (o.isProduction?' ⚠️':'')+(o.connected?'':' 🔌未接続')+
             '<div class="cat">'+o.category+'</div></span>'+
-          '<button class="open" data-open="'+escapeAttr(o.username)+'">開く</button>'+
-        '</div>').join('');
+          action+
+        '</div>';
+      }).join('');
     }
   }
 
@@ -471,6 +482,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   function escapeAttr(s){ return String(s).replace(/"/g,'&quot;'); }
 
   document.addEventListener('click', (e)=>{
+    const rc = e.target.closest('[data-reconnect]');
+    if (rc) { e.stopPropagation(); send('reconnect', { username: rc.getAttribute('data-reconnect') }); return; }
     const tile = e.target.closest('[data-cmd]');
     if (tile && !tile.disabled) { cmd(tile.getAttribute('data-cmd')); return; }
     const open = e.target.closest('[data-open]');

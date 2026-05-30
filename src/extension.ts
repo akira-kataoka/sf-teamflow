@@ -113,6 +113,7 @@ export function activate(context: vscode.ExtensionContext): void {
   register("teamflow.setDefaultOrg", (node?: TreeNode) => setDefaultOrg(node));
   register("teamflow.openOrg", (node?: TreeNode) => openOrg(node));
   register("teamflow.openOrgByName", (username?: string) => openOrgByUsername(username));
+  register("teamflow.reconnectOrg", (username?: string) => reconnectOrg(username));
   register("teamflow.logoutOrg", (node?: TreeNode) => logoutOrg(node));
   register("teamflow.copyOrgId", (node?: TreeNode) => copyOrgId(node));
 
@@ -216,6 +217,26 @@ async function openOrg(node?: TreeNode): Promise<void> {
     logger.error(`org open 失敗: ${res.stderr || res.stdout}`);
     vscode.window.showErrorMessage(`Orgを開けませんでした: ${org.displayName}`);
   }
+}
+
+async function reconnectOrg(username?: string): Promise<void> {
+  const org = username
+    ? orgTree.knownOrgs.find((o) => o.username === username)
+    : await resolveOrgFromNode();
+  if (!org) {
+    return;
+  }
+  // Re-run the web login against the org's own host so the browser lands on the
+  // right login page; keep the alias so it reconnects in place.
+  const url = org.instanceUrl || org.loginUrl || "https://login.salesforce.com";
+  const args = ["org", "login", "web", "--instance-url", url];
+  if (org.alias) {
+    args.push("--alias", org.alias);
+  }
+  runInTerminal(renderCommand(cliPath(), args));
+  vscode.window.showInformationMessage(
+    `${org.displayName} に再接続します。ブラウザでログイン後、「Org一覧を更新」してください。`
+  );
 }
 
 async function openOrgByUsername(username?: string): Promise<void> {
