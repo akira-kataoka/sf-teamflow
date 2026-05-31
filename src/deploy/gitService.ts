@@ -425,6 +425,24 @@ export function mergeGitignore(current: string, entries: string[]): string {
   );
 }
 
+/**
+ * push 失敗時のエラー文から、初心者向けの具体的な対処ヒントを返す（未知なら undefined）。
+ * Pure & unit-tested.
+ */
+export function pushErrorHint(errText: string): string | undefined {
+  const t = (errText || "").toLowerCase();
+  if (/non-fast-forward|fetch first|\[rejected\]|tip of your current branch is behind/.test(t)) {
+    return "リモートに新しい変更があります。先に「🔄 GitHub同期」で取り込んでから、もう一度お試しください。";
+  }
+  if (/workflow.{0,20}scope/.test(t)) {
+    return "CI/CDのワークフロー送信には gh の『workflow』権限が必要です。`gh auth refresh -s workflow` を実行してください。";
+  }
+  if (/could not read|authentication failed|invalid username or password/.test(t)) {
+    return "GitHubの認証に失敗しました。`gh auth login` でログインし直してください。";
+  }
+  return undefined;
+}
+
 /* ------------------------------- git mutations ---------------------------- */
 /* These wrap git and THROW on failure so command handlers can surface errors. */
 

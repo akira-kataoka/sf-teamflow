@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.71.0] - 2026-06-01
+
+- 💡 **push失敗時に具体的な対処を案内**: 「バックアップ」「GitHub同期」のpushが失敗した際、汎用エラーでなく原因別の対処を表示。non-fast-forward(リモートが進んでいる)→「先にGitHub同期」、workflow権限不足→`gh auth refresh -s workflow`、認証失敗→`gh auth login`。pushErrorHint純関数+テスト。
+
 ## [0.70.2] - 2026-06-01
 
 - 🔀 **PR作成のブランチ送信を堅牢化**: Pull Request作成前のブランチpushが失敗を握りつぶしており、PRに最新コミットが入らない恐れがあった。送信前にworkflow権限を事前確認し(4経路目で一貫)、送信失敗時は黙らず警告して続行可否を確認するように。

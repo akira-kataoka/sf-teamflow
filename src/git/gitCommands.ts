@@ -17,6 +17,7 @@ import {
   initRepo,
   mergeGitignore,
   BASELINE_GITIGNORE_ENTRIES,
+  pushErrorHint,
   isGitRepo,
   remoteUrl,
   removeRemote,
@@ -214,7 +215,10 @@ export function registerGitCommands(
           ctx.recordActivity("保存してバックアップ", "ok");
         } catch (err) {
           logger.error("commit/push 失敗", err);
-          vscode.window.showErrorMessage(`保存に失敗: ${String(err)}`);
+          const hint = pushErrorHint(String(err));
+          vscode.window.showErrorMessage(
+            hint ? `保存に失敗しました。${hint}` : `保存に失敗: ${String(err)}`
+          );
           logger.show();
           ctx.recordActivity("保存してバックアップ", "error");
         } finally {
@@ -385,8 +389,11 @@ export function registerGitCommands(
           ctx.recordActivity("GitHubと同期", "ok");
         } catch (err) {
           logger.error("sync 失敗", err);
+          const hint = pushErrorHint(String(err));
           vscode.window.showErrorMessage(
-            `同期に失敗しました。コンフリクトの可能性があります: ${String(err)}`
+            hint
+              ? `同期に失敗しました。${hint}`
+              : `同期に失敗しました。コンフリクトの可能性があります: ${String(err)}`
           );
           logger.show();
           ctx.recordActivity("GitHubと同期", "error");

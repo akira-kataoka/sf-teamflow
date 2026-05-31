@@ -7,7 +7,23 @@ import {
   baseRefCandidates,
   mergeGitignore,
   BASELINE_GITIGNORE_ENTRIES,
+  pushErrorHint,
 } from "../src/deploy/gitService.js";
+
+test("pushErrorHint maps common push failures to actionable hints", () => {
+  assert.match(
+    pushErrorHint("! [rejected] main -> main (non-fast-forward)") || "",
+    /GitHub同期/,
+    "non-fast-forward は同期を促す"
+  );
+  assert.match(
+    pushErrorHint("refusing to allow an OAuth App ... without workflow scope") || "",
+    /workflow/,
+    "workflow scope を案内"
+  );
+  assert.match(pushErrorHint("fatal: Authentication failed") || "", /gh auth login/, "認証失敗を案内");
+  assert.equal(pushErrorHint("some unrelated error"), undefined, "未知はヒント無し");
+});
 
 test("mergeGitignore appends only missing entries; preserves existing; no-op when all present", () => {
   // 空から: 全エントリ＋見出しコメントが入る
