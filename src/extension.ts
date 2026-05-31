@@ -643,9 +643,6 @@ async function executeDeploy(ctx: DeployContext, validateOnly: boolean): Promise
     `ブランチ: ${ctx.branch} (基準 ${usedBase})`,
     `テストレベル: ${ctx.testLevel}`,
   ];
-  if (cs.toDelete.length) {
-    detailLines.push(`※ ${cs.toDelete.length}件の削除はこの操作に含まれません`);
-  }
   // Show exactly which files will be sent so the user can confirm before acting.
   const MAX_LIST = 25;
   detailLines.push("", `── 対象ファイル ${cs.toDeploy.length}件 ──`);
@@ -654,6 +651,17 @@ async function executeDeploy(ctx: DeployContext, validateOnly: boolean): Promise
   }
   if (cs.toDeploy.length > MAX_LIST) {
     detailLines.push(`…他 ${cs.toDeploy.length - MAX_LIST} 件`);
+  }
+  // 削除はこの操作に含まれない。どのファイルが対象外かを明示（黙って無視しない）。
+  if (cs.toDelete.length) {
+    detailLines.push("", `── 削除（この操作には含まれません）${cs.toDelete.length}件 ──`);
+    for (const f of cs.toDelete.slice(0, MAX_LIST)) {
+      detailLines.push(`✗ ${f}`);
+    }
+    if (cs.toDelete.length > MAX_LIST) {
+      detailLines.push(`…他 ${cs.toDelete.length - MAX_LIST} 件`);
+    }
+    detailLines.push("（削除の反映は別途 destructiveChanges が必要です）");
   }
 
   const confirmProd = vscode.workspace

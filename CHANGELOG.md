@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.71.1] - 2026-06-01
+
+- 👀 **デプロイ確認で「削除対象」も明示**: 従来は削除件数のみ表示だったが、どのファイルが対象外(削除はこの操作に含まれない)か一覧表示するように(上限25件、超過は「…他N件」)。destructiveChangesが別途必要な旨も明記。黙って無視せず透明性向上。
+
 ## [0.71.0] - 2026-06-01
 
 - 💡 **push失敗時に具体的な対処を案内**: 「バックアップ」「GitHub同期」のpushが失敗した際、汎用エラーでなく原因別の対処を表示。non-fast-forward(リモートが進んでいる)→「先にGitHub同期」、workflow権限不足→`gh auth refresh -s workflow`、認証失敗→`gh auth login`。pushErrorHint純関数+テスト。
