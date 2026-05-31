@@ -460,6 +460,10 @@ export function registerProjectCommands(
     if (!org) {
       return;
     }
+    // 取り込み(pull)も手元のファイルを上書きし得る。未保存変更があれば警告する。
+    if (!(await confirmNoUncommittedOverwrite())) {
+      return;
+    }
     const args = buildSourcePullArgs(org.username);
     ctx.runInTerminal(renderCommand(ctx.cliPath(), args));
     ctx.recordActivity(`環境から取込: ${org.displayName}`, "run");
