@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parsePorcelainV2 } from "../src/deploy/gitService.js";
+import { parsePorcelainV2, conflictedFiles } from "../src/deploy/gitService.js";
 
 test("parsePorcelainV2 reads branch and ahead/behind", () => {
   const out = [
@@ -93,4 +93,16 @@ test("parsePorcelainV2: ignores unrelated comment headers, counts only files", (
   );
   assert.equal(s.changed, 2);
   assert.equal(s.files.every((f) => f.label === "未追跡"), true);
+});
+
+test("conflictedFiles extracts only unmerged (競合) files", () => {
+  const s = parsePorcelainV2(
+    "# branch.head main\n1 M. N... 100644 100644 100644 a b force-app/A.cls\nu UU N... 100644 100644 100644 100644 h1 h2 h3 force-app/C.cls\n? new.txt\n"
+  );
+  assert.deepEqual(conflictedFiles(s), ["force-app/C.cls"]);
+});
+
+test("conflictedFiles returns [] when there are no conflicts", () => {
+  const s = parsePorcelainV2("# branch.head main\n? a.txt\n");
+  assert.deepEqual(conflictedFiles(s), []);
 });

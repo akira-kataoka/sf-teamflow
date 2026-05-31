@@ -9,6 +9,7 @@ import {
   switchBranch,
   changedFiles,
   classifyChanges,
+  conflictedFiles,
 } from "../deploy/gitService.js";
 import { configExists, loadConfig, readSfdxPackageDirs } from "../config/configStore.js";
 import { baseRefFor, lintTeamflowConfig, resolveEnvironment } from "../config/teamflowConfig.js";
@@ -47,6 +48,8 @@ interface HomeState {
   activity: { label: string; status: string; rel: string }[];
   /** Config lint warnings (empty = healthy). */
   warnings: string[];
+  /** Files currently in a merge conflict (relative paths). */
+  conflicts: string[];
 }
 
 /**
@@ -124,7 +127,21 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       case "switchBranch":
         await this.doSwitchBranch(msg.name);
         return;
+      case "openFile":
+        await this.openFile(msg.path);
+        return;
     }
+  }
+
+  private async openFile(relPath: string): Promise<void> {
+    const root = this.getRoot();
+    if (!root || !relPath) {
+      return;
+    }
+    const uri = vscode.Uri.file(`${root}/${relPath}`);
+    await vscode.window.showTextDocument(uri).then(undefined, (err) => {
+      logger.error(`ファイルを開けません: ${relPath}`, err);
+    });
   }
 
   private async setDefaultOrg(username: string): Promise<void> {
@@ -181,6 +198,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     let behind = 0;
     let files: { path: string; label: string }[] = [];
     let deployCount = 0;
+    let conflicts: string[] = [];
 
     if (root) {
       configured = await configExists(root);
@@ -193,6 +211,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
           ahead = s.ahead;
           behind = s.behind;
           files = s.files.slice(0, 40).map((f) => ({ path: f.path, label: f.label }));
+          conflicts = conflictedFiles(s);
         } catch {
           /* ignore */
         }
@@ -255,6 +274,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
         rel: relativeTime(a.time, Date.now()),
       })),
       warnings,
+      conflicts,
     };
   }
 
@@ -293,6 +313,12 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .warnbox { border: 1px solid var(--vscode-inputValidation-warningBorder, #c80); background: var(--vscode-inputValidation-warningBackground, #5a4a1d); border-radius: 8px; padding: 8px 10px; margin: 0 2px 12px; font-size: 11.5px; cursor: pointer; }
   .warnbox .wh { font-weight: 600; margin-bottom: 4px; }
   .warnbox .wi { padding: 1px 0; opacity: .9; }
+  .conflictbox { border: 1px solid #e55; background: var(--vscode-inputValidation-errorBackground, #5a1d1d); border-radius: 8px; padding: 8px 10px; margin: 0 2px 12px; font-size: 11.5px; }
+  .conflictbox .ch { font-weight: 600; margin-bottom: 4px; }
+  .conflictbox .ci { padding: 2px 0; cursor: pointer; }
+  .conflictbox .ci:hover { text-decoration: underline; }
+  .conflictbox .done { margin-top: 6px; cursor: pointer; opacity: .85; }
+  .conflictbox .done:hover { opacity: 1; text-decoration: underline; }
   .activity { font-size: 11px; margin: -6px 2px 12px; }
   .activity .alabel { opacity: .55; margin-bottom: 2px; }
   .activity .ai { display: flex; gap: 6px; padding: 1px 0; opacity: .85; }
@@ -363,6 +389,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   <div id="status" class="chips"></div>
   <div id="hero"></div>
   <div id="situation" class="situation"></div>
+  <div id="conflicts"></div>
   <div id="warnings"></div>
   <div id="activity" class="activity"></div>
   <div id="setup"></div>
@@ -478,6 +505,18 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
         '<span class="link" data-cmd="teamflow.openWorkflowGuide" role="button" tabindex="0">📘 使い方ガイドを見る</span>';
     } else {
       $('situation').innerHTML = '';
+    }
+
+    // merge conflicts — most urgent; show files and a path to resolve them
+    if (s.conflicts && s.conflicts.length>0) {
+      const rows = s.conflicts.map(p =>
+        '<div class="ci" data-openfile="'+escapeAttr(p)+'">📄 '+escapeHtml(p)+'</div>').join('');
+      $('conflicts').innerHTML = '<div class="conflictbox">'+
+        '<div class="ch">⚠️ コンフリクト解決中（'+s.conflicts.length+'件）</div>'+
+        '<div>各ファイルを開き、どちらの変更を残すか決めて保存してください。</div>'+rows+
+        '<div class="done" data-cmd="teamflow.gitCommitPush">✅ 解決したら「保存してバックアップ」</div></div>';
+    } else {
+      $('conflicts').innerHTML = '';
     }
 
     // config lint warnings (click → open sf-teamflow.json)
@@ -601,6 +640,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     if (rc) { send('reconnect', { username: rc.getAttribute('data-reconnect') }); return true; }
     const open = target.closest('[data-open]');
     if (open) { send('openOrg', { username: open.getAttribute('data-open') }); return true; }
+    const of = target.closest('[data-openfile]');
+    if (of) { send('openFile', { path: of.getAttribute('data-openfile') }); return true; }
     const tile = target.closest('[data-cmd]');
     if (tile && !tile.disabled) { cmd(tile.getAttribute('data-cmd')); return true; }
     const card = target.closest('[data-org]');

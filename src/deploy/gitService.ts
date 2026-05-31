@@ -247,6 +247,15 @@ function toStatusFile(xy: string, path: string): StatusFile {
   return { path, label: changeLabel(code), staged };
 }
 
+/**
+ * Files currently in a merge conflict (unmerged, status "競合"). Pure helper so
+ * the UI can surface "コンフリクト解決中" and offer to open each file. Exported
+ * for unit testing.
+ */
+export function conflictedFiles(summary: StatusSummary): string[] {
+  return summary.files.filter((f) => f.label === "競合").map((f) => f.path);
+}
+
 /** Live working-tree status (branch, ahead/behind, changed files). */
 export async function status(cwd: string): Promise<StatusSummary> {
   const out = await git(["status", "--porcelain=v2", "--branch"], cwd);
