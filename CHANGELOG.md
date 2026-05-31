@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.70.2] - 2026-06-01
+
+- 🔀 **PR作成のブランチ送信を堅牢化**: Pull Request作成前のブランチpushが失敗を握りつぶしており、PRに最新コミットが入らない恐れがあった。送信前にworkflow権限を事前確認し(4経路目で一貫)、送信失敗時は黙らず警告して続行可否を確認するように。
+
 ## [0.70.1] - 2026-06-01
 
 - 🔗 **生成CI/CDも本番テストレベル下限を適用**: v0.70.0の本番下限(NoTestRun→RunLocalTests)は拡張内デプロイのみだった。生成される sf-deploy.yml / sf-validate.yml も testLevelFor 経由にし、本番ジョブが NoTestRun を出さないよう統一。

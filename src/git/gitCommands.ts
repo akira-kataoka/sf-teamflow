@@ -666,11 +666,23 @@ export function registerGitCommands(
     if (!base) {
       return;
     }
-    // First push the current branch so the PR has commits, then open the form.
+    // PRには現在ブランチのコミットが必要。workflow権限を事前確認してから送信する。
+    if (!(await ensureWorkflowScopeOk(root))) {
+      return;
+    }
     try {
       await push(root, true, current);
-    } catch {
-      /* may already be pushed */
+    } catch (err) {
+      // 送信失敗を握りつぶすとPRに最新コミットが入らないので明示する（続行は可）。
+      const cont = await vscode.window.showWarningMessage(
+        `ブランチ「${current}」の送信に失敗した可能性があります。PRに最新の変更が反映されないかもしれません。先に「GitHub同期」を試すこともできます。`,
+        { detail: String(err), modal: false },
+        "このままPRを作成",
+        "やめる"
+      );
+      if (cont !== "このままPRを作成") {
+        return;
+      }
     }
     ctx.runInTerminal(renderCommand("gh", buildPullRequestArgs({ baseBranch: base, web: true })));
     vscode.window.showInformationMessage(
