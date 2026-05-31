@@ -2,6 +2,13 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.60.0] - 2026-06-01
+
+- 🔍 **CI/CDに品質ゲートを追加**: PR検証ワークフロー（sf-validate.yml）に2ジョブを追加（ユーザー要望）。
+  - **Apex 静的解析 (PMD)**: `@salesforce/sfdx-scanner` をインストールし `sf scanner run --engine pmd` でパッケージ配下を解析（既定はレポートのみ＝PRは止めない。`--severity-threshold` でブロッキング化できる旨をコメントで明記）。
+  - **LWC 単体テスト (Jest)**: LWC があれば `npm run test:unit`（無ければ `sfdx-lwc-jest`）を実行。LWCが無ければスキップ。
+  - これで PR時に「check-only検証＋Apexテスト／PMD静的解析／LWC Jest」が並列で回る。PRレビュー観点では CODEOWNERS で自動レビュアー指定も従来どおり生成。
+
 ## [0.59.1] - 2026-05-31
 
 - 🔎 **デプロイ時の「基準」表示を実際の値に**: baseRef自動フォールバック(v0.58)導入後、差分メッセージが設定値（例 origin/main）を表示する一方で実際は解決後ref（origin/master）でdiffしていた。表示を**実際に使った基準ref**に統一し混乱を解消（プロセステストで発見した軽微なUX不整合）。

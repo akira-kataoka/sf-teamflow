@@ -141,6 +141,49 @@ ${envCases}
       - name: No metadata changed
         if: steps.diff.outputs.files == ''
         run: echo "No package metadata changed — skipping validation."
+
+  apex-pmd:
+    name: Apex 静的解析 (PMD)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Salesforce CLI + Code Analyzer を準備
+        run: |
+          npm install --global @salesforce/cli@latest
+          sf plugins install @salesforce/sfdx-scanner@latest
+      - name: PMD で Apex / メタデータを静的解析
+        run: |
+          sf scanner run \\
+            --target "${dirs.join(",")}" \\
+            --engine pmd \\
+            --format table
+          # ↑問題があってもPRは止めません（レポートのみ）。
+          # 一定以上の重大度で失敗させたい場合は次の行を上の run に追加:
+          #   --severity-threshold 2
+
+  lwc-jest:
+    name: LWC 単体テスト (Jest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: LWC があれば Jest を実行
+        run: |
+          if find ${dirs.join(" ")} -type d -name lwc 2>/dev/null | grep -q .; then
+            npm ci || npm install
+            npm run test:unit --if-present || npx --yes @salesforce/sfdx-lwc-jest --skip-api-version-check
+          else
+            echo "LWC コンポーネントが無いためスキップします。"
+          fi
 `;
 }
 

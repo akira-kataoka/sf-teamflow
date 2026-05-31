@@ -71,6 +71,15 @@ test("prValidationWorkflow validates (check-only) on pull_request", () => {
   assert.ok(yml.includes("sf project deploy validate"));
 });
 
+test("prValidationWorkflow includes PMD static analysis and LWC Jest jobs", () => {
+  const yml = prValidationWorkflow(defaultConfig());
+  assert.ok(yml.includes("apex-pmd:"), "PMD job present");
+  assert.ok(yml.includes("sf scanner run"), "runs the scanner (PMD)");
+  assert.ok(yml.includes("--engine pmd"), "uses the pmd engine");
+  assert.ok(yml.includes("lwc-jest:"), "Jest job present");
+  assert.ok(yml.includes("sfdx-lwc-jest") || yml.includes("test:unit"), "runs LWC jest");
+});
+
 test("codeowners lists the package directories", () => {
   const co = codeowners(defaultConfig());
   assert.ok(co.includes("force-app/ @your-team"));
