@@ -2,7 +2,7 @@
   "name": "sf-teamflow",
   "displayName": "Salesforce Dev Manager",
   "description": "これ1つでSalesforce開発サイクルを完結。Org/環境管理・各環境への簡単デプロイ(開発→ステージング→本番)・Git/GitHub・テスト・CI/CDを、初心者でもクリック操作で。",
-  "version": "0.40.0",
+  "version": "0.42.0",
   "publisher": "akira-kataoka",
   "license": "MIT",
   "engines": {
@@ -27,6 +27,7 @@
     "url": "https://github.com/akira-kataoka/sf-teamflow.git"
   },
   "activationEvents": [
+    "onStartupFinished",
     "workspaceContains:sfdx-project.json",
     "workspaceContains:sf-teamflow.json"
   ],
@@ -51,7 +52,7 @@
         },
         {
           "id": "teamflow.orgs",
-          "name": "Org 詳細",
+          "name": "環境(Org)詳細",
           "icon": "resources/activitybar.svg"
         }
       ]
@@ -98,37 +99,37 @@
     "commands": [
       {
         "command": "teamflow.refreshOrgs",
-        "title": "SFDevManager: Org一覧を更新",
+        "title": "SFDevManager: 環境(Org)一覧を更新",
         "icon": "$(refresh)"
       },
       {
         "command": "teamflow.authorizeOrg",
-        "title": "SFDevManager: 新しいOrgを認証",
+        "title": "SFDevManager: 新しい環境(Org)を認証",
         "icon": "$(add)"
       },
       {
         "command": "teamflow.setDefaultOrg",
-        "title": "SFDevManager: このOrgを既定に設定",
+        "title": "SFDevManager: この環境(Org)を既定に設定",
         "icon": "$(star)"
       },
       {
         "command": "teamflow.openOrg",
-        "title": "SFDevManager: ブラウザでOrgを開く",
+        "title": "SFDevManager: ブラウザで環境(Org)を開く",
         "icon": "$(globe)"
       },
       {
         "command": "teamflow.logoutOrg",
-        "title": "SFDevManager: Orgの認証を解除",
+        "title": "SFDevManager: 環境(Org)の認証を解除",
         "icon": "$(sign-out)"
       },
       {
         "command": "teamflow.reconnectOrg",
-        "title": "SFDevManager: このOrgに再接続",
+        "title": "SFDevManager: この環境(Org)に再接続",
         "icon": "$(debug-restart)"
       },
       {
         "command": "teamflow.copyOrgId",
-        "title": "SFDevManager: Org IDをコピー"
+        "title": "SFDevManager: 環境(Org) IDをコピー"
       },
       {
         "command": "teamflow.deployDiff",
@@ -166,13 +167,18 @@
         "icon": "$(settings-gear)"
       },
       {
+        "command": "teamflow.setupDevHub",
+        "title": "SFDevManager: Dev Hub を準備（スクラッチ組織の親組織）",
+        "icon": "$(server-environment)"
+      },
+      {
         "command": "teamflow.createScratchOrg",
-        "title": "SFDevManager: スクラッチOrgを作成",
+        "title": "SFDevManager: スクラッチ環境(Org)を作成",
         "icon": "$(beaker)"
       },
       {
         "command": "teamflow.deleteScratchOrg",
-        "title": "SFDevManager: スクラッチOrgを削除",
+        "title": "SFDevManager: スクラッチ環境(Org)を削除",
         "icon": "$(trash)"
       },
       {
@@ -217,7 +223,7 @@
       },
       {
         "command": "teamflow.pushAndTest",
-        "title": "SFDevManager: Orgへ反映してテスト",
+        "title": "SFDevManager: 環境(Org)へ反映してテスト",
         "icon": "$(debug-rerun)"
       },
       {

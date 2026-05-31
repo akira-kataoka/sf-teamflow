@@ -14,6 +14,12 @@ import {
   componentOutputDir,
   buildPullRequestArgs,
   COMMON_METADATA_TYPES,
+  buildDevHubOpenArgs,
+  buildScratchOrgInfoProbeArgs,
+  buildSetDefaultDevHubArgs,
+  buildDevHubLoginArgs,
+  DEV_HUB_SETUP_PATH,
+  DEVELOPER_EDITION_SIGNUP_URL,
 } from "../src/sfProject/projectService.js";
 
 test("buildProjectGenerateArgs sets name, template, package dir and manifest", () => {
@@ -164,4 +170,62 @@ test("buildTailLogArgs streams debug logs from the target org", () => {
   assert.deepEqual(buildTailLogArgs("u@e.com"), [
     "apex", "tail", "log", "--target-org", "u@e.com", "--color",
   ]);
+});
+
+test("buildScratchCreateArgs targets a specific Dev Hub when given", () => {
+  const args = buildScratchCreateArgs({
+    alias: "s1",
+    definitionFile: "config/project-scratch-def.json",
+    durationDays: 7,
+    setDefault: true,
+    devhubUsername: "hub@e.com",
+  });
+  assert.deepEqual(args, [
+    "org", "create", "scratch",
+    "--definition-file", "config/project-scratch-def.json",
+    "--alias", "s1",
+    "--duration-days", "7",
+    "--set-default",
+    "--target-dev-hub", "hub@e.com",
+  ]);
+});
+
+test("buildScratchCreateArgs omits --target-dev-hub when no hub is given", () => {
+  const args = buildScratchCreateArgs({
+    alias: "s1",
+    definitionFile: "d.json",
+    durationDays: 1,
+  });
+  assert.ok(!args.includes("--target-dev-hub"));
+});
+
+test("buildDevHubOpenArgs opens the org's Dev Hub setup page", () => {
+  assert.deepEqual(buildDevHubOpenArgs("u@e.com"), [
+    "org", "open", "--target-org", "u@e.com", "--path", DEV_HUB_SETUP_PATH,
+  ]);
+});
+
+test("buildScratchOrgInfoProbeArgs queries ScratchOrgInfo on the target org", () => {
+  assert.deepEqual(buildScratchOrgInfoProbeArgs("u@e.com"), [
+    "data", "query", "--query", "SELECT Id FROM ScratchOrgInfo LIMIT 1", "--target-org", "u@e.com",
+  ]);
+});
+
+test("buildSetDefaultDevHubArgs sets target-dev-hub config", () => {
+  assert.deepEqual(buildSetDefaultDevHubArgs("u@e.com"), [
+    "config", "set", "target-dev-hub=u@e.com",
+  ]);
+});
+
+test("buildDevHubLoginArgs re-auths as default dev hub, with optional alias", () => {
+  assert.deepEqual(buildDevHubLoginArgs("https://x.my.salesforce.com", "hub"), [
+    "org", "login", "web", "--set-default-dev-hub", "--instance-url", "https://x.my.salesforce.com", "--alias", "hub",
+  ]);
+  assert.deepEqual(buildDevHubLoginArgs("https://x.my.salesforce.com"), [
+    "org", "login", "web", "--set-default-dev-hub", "--instance-url", "https://x.my.salesforce.com",
+  ]);
+});
+
+test("DEVELOPER_EDITION_SIGNUP_URL points at the Salesforce signup page", () => {
+  assert.match(DEVELOPER_EDITION_SIGNUP_URL, /developer\.salesforce\.com\/signup/);
 });

@@ -2,6 +2,12 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.42.0] - 2026-05-31
+
+- 🌳 **Dev Hub をDev Manager内で準備**: 新コマンド `teamflow.setupDevHub`。認証済みOrgのDev Hub設定ページを開いて有効化→`ScratchOrgInfo`クエリで実際に有効か検証→既定Dev Hubに登録、までをクリック操作で完結。無料のDeveloper Edition新規取得への導線も用意。これまでスクラッチ作成が「親組織(Dev Hub)が無い」で詰まっていた箇所を解消。
+- 🔧 **stale な `isDevHub` キャッシュを自動修復**: Dev Hubを認証後に有効化した場合、古いCLIは`isDevHub:false`をキャッシュし `org create scratch` が「is not a Dev Hub」で失敗する。有効化を検証できたら認証レコードのフラグをその場で訂正（失敗時は再認証へ誘導）。`refreshDevHubAuthFlag` + テスト。
+- 🌱 **スクラッチ作成を複数Dev Hub対応に**: 1人で複数のDev Hubを持てる前提に。作成時にDev Hubが0件なら準備へ誘導、複数なら使うDev Hubを選択（`--target-dev-hub`）。ホームに「🌳 Dev Hub 準備」タイル追加。
+
 ## [0.40.0] - 2026-05-31
 
 - 環境をチームごとに自由定義: ウィザードを固定3環境から刷新。環境を自由に追加/削除し名前・種別・環境(Org)・ブランチ・用途を編集可能に。多段Sandbox(開発→結合→UAT→ステージング→本番)も作れる。

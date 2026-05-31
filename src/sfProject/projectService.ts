@@ -106,6 +106,56 @@ export function buildScratchDeleteArgs(orgUsername: string): string[] {
   return ["org", "delete", "scratch", "--target-org", orgUsername, "--no-prompt"];
 }
 
+/* ------------------------------- Dev Hub -------------------------------- */
+//
+// A "Dev Hub" is not a special org you create from scratch — it is the Dev Hub
+// *feature* toggled on inside an existing org (production / Developer Edition).
+// A developer may enable it on as many authorised orgs as they like, so the
+// extension treats Dev Hubs as a (possibly empty, possibly multiple) set and
+// lets the user pick which one a scratch org is created against.
+
+/** Salesforce Setup path for the Dev Hub enablement page. */
+export const DEV_HUB_SETUP_PATH = "lightning/setup/DevHub/home";
+
+/** Free Developer Edition signup — a fresh org on which Dev Hub can be enabled. */
+export const DEVELOPER_EDITION_SIGNUP_URL = "https://developer.salesforce.com/signup";
+
+/** Open an org's Dev Hub Setup page so the user can toggle the feature on. */
+export function buildDevHubOpenArgs(orgUsername: string): string[] {
+  return ["org", "open", "--target-org", orgUsername, "--path", DEV_HUB_SETUP_PATH];
+}
+
+/**
+ * Probe query that only succeeds when Dev Hub is genuinely enabled — the
+ * `ScratchOrgInfo` object is unavailable otherwise. Used to verify enablement
+ * independently of the CLI's cached `isDevHub` flag (which can be stale when
+ * Dev Hub is turned on *after* the org was authorised).
+ */
+export function buildScratchOrgInfoProbeArgs(orgUsername: string): string[] {
+  return [
+    "data",
+    "query",
+    "--query",
+    "SELECT Id FROM ScratchOrgInfo LIMIT 1",
+    "--target-org",
+    orgUsername,
+  ];
+}
+
+/** Register an org as the default Dev Hub for scratch-org creation. */
+export function buildSetDefaultDevHubArgs(orgUsername: string): string[] {
+  return ["config", "set", `target-dev-hub=${orgUsername}`];
+}
+
+/** Re-auth that refreshes the cached `isDevHub` flag and sets the default hub. */
+export function buildDevHubLoginArgs(instanceUrl: string, alias?: string): string[] {
+  const args = ["org", "login", "web", "--set-default-dev-hub", "--instance-url", instanceUrl];
+  if (alias) {
+    args.push("--alias", alias);
+  }
+  return args;
+}
+
 export interface RunTestsOptions {
   orgUsername: string;
   /** When set, run only these classes (RunSpecifiedTests); else use `level`. */

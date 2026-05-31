@@ -1,4 +1,6 @@
 import * as vscode from "vscode";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { OrgTreeProvider } from "../orgManager/orgTreeProvider.js";
 import { scratchRemainingLabel } from "../orgManager/orgService.js";
 import {
@@ -29,6 +31,10 @@ interface HomeOrg {
 }
 
 interface HomeState {
+  /** A folder is open in VS Code. */
+  hasFolder: boolean;
+  /** The open folder is an SFDX project (sfdx-project.json exists). */
+  hasProject: boolean;
   configured: boolean;
   hasRepo: boolean;
   hasRemote: boolean;
@@ -180,6 +186,9 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
 
   private async getState(): Promise<HomeState> {
     const root = this.getRoot();
+    const hasFolder = !!root;
+    // An SFDX project is identified by sfdx-project.json at the workspace root.
+    const hasProject = !!root && fs.existsSync(path.join(root, "sfdx-project.json"));
     const orgsRaw = await this.orgTree.ensureOrgsLoaded().catch(() => []);
     const orgs: HomeOrg[] = orgsRaw.map((o) => ({
       username: o.username,
@@ -269,6 +278,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
 
     const allActivity = this.getActivity();
     return {
+      hasFolder,
+      hasProject,
       configured,
       hasRepo,
       hasRemote: remote,
@@ -339,6 +350,11 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .situation .link { cursor: pointer; color: var(--vscode-textLink-foreground, #4daafc); margin-left: 4px; white-space: nowrap; }
   .situation .link:hover { text-decoration: underline; }
   .situation .note { margin-top: 4px; opacity: .85; }
+  .statuslist { display: flex; flex-direction: column; gap: 3px; }
+  .statuslist .slrow { display: flex; gap: 8px; }
+  .statuslist .slk { flex: 0 0 96px; opacity: .75; }
+  .statuslist .slv { flex: 1; }
+  .statuslist .prodtag { color: #e5534b; font-weight: 600; }
   .warnbox { border: 1px solid var(--vscode-inputValidation-warningBorder, #c80); background: var(--vscode-inputValidation-warningBackground, #5a4a1d); border-radius: 8px; padding: 8px 10px; margin: 0 2px 12px; font-size: 11.5px; cursor: pointer; }
   .warnbox .wh { font-weight: 600; margin-bottom: 4px; }
   .warnbox .wi { padding: 1px 0; opacity: .9; }
@@ -405,6 +421,10 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   details.more > summary::-webkit-details-marker { display: none; }
   details.more[open] > summary { opacity: 1; margin-bottom: 8px; }
   .addorg { margin-bottom: 8px; }
+  details.orgfold { margin-top: 2px; }
+  details.orgfold > summary { cursor: pointer; font-size: 11px; opacity: .7; padding: 2px 0 6px; list-style: none; }
+  details.orgfold > summary::-webkit-details-marker { display: none; }
+  details.orgfold > summary:hover { opacity: 1; }
   .footer { display: flex; gap: 14px; justify-content: center; margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--vscode-panel-border, #8884); }
   .footer .fitem { cursor: pointer; font-size: 12px; opacity: .75; }
   .footer .fitem:hover { opacity: 1; text-decoration: underline; }
@@ -431,7 +451,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     <div id="branchbox"></div>
   </section>
   <section>
-    <div class="sechead"><span class="stepno">☁️</span><span class="sectitle">接続中の Org</span><span class="sechint">クリックで切替</span></div>
+    <div class="sechead"><span class="stepno">☁️</span><span class="sectitle">接続中の環境</span><span class="sechint">クリックで切替</span></div>
     <div id="orgs"></div>
   </section>
 
@@ -449,8 +469,13 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
 
   // Grouped, numbered workflow — the core of the "structured, not a wall of buttons" design.
   const SECTIONS = [
+    { no: '0', title: 'プロジェクト', hint: '最初の準備', tier: 'core', three: true, tiles: [
+      { c: 'teamflow.createProject', em: '📂', label: '新しいプロジェクト', desc: 'フォルダごと新規作成して自動で開きます（最初はこれ）' },
+      { c: 'teamflow.authorizeOrg', em: '🔌', label: '環境を認証', desc: '開発するSalesforce環境にログインします' },
+      { c: 'teamflow.setupWizard', em: '🧭', label: '環境を設定', need: 'project', desc: '開発/ステージング/本番を割り当てます' },
+    ]},
     { no: '1', title: '開発する', hint: '作成・環境と同期', tier: 'core', three: true, tiles: [
-      { c: 'teamflow.createComponent', em: '✨', label: '新規作成', desc: 'Apexクラス/トリガ/LWC/Aura を作成' },
+      { c: 'teamflow.createComponent', em: '✨', label: '新規作成', need: 'project', desc: 'Apexクラス/トリガ/LWC/Aura を作成' },
       { c: 'teamflow.sourcePull', em: '⬇️', label: '環境から取込', need: 'org', desc: '環境(Org)側の変更をローカルに取り込みます' },
       { c: 'teamflow.sourcePush', em: '⬆️', label: '環境へ反映', need: 'org', desc: 'ローカルの変更を環境(Org)に反映（全部/資材選択）' },
     ]},
@@ -471,18 +496,21 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     ]},
     { no: '⋯', title: 'その他', hint: '', tier: 'more', three: true, tiles: [
       { c: 'teamflow.retrieveMetadata', em: '📥', label: 'メタデータ取得', need: 'org', desc: '既存Orgから取り込み' },
-      { c: 'teamflow.createScratchOrg', em: '🌱', label: 'スクラッチ作成', desc: '使い捨て開発Org' },
+      { c: 'teamflow.setupDevHub', em: '🌳', label: 'Dev Hub 準備', desc: 'スクラッチ作成の前に親組織(Dev Hub)を用意（複数可）' },
+      { c: 'teamflow.createScratchOrg', em: '🌱', label: 'スクラッチ作成', desc: '使い捨て開発Org（Dev Hubから作成）' },
       { c: 'teamflow.openWorkflowGuide', em: '📘', label: 'ガイド', desc: '進め方を見る' },
     ]},
   ];
 
   function nextAction(s) {
-    // Single, unambiguous "what to do next". Setup is one ordered flow:
-    //   ① Orgを認証 → ② 環境を設定。git は「保存」時に自動で開始するので
-    // ここでは別アクションとして出さない（重複ラベルの混乱を避ける）。
+    // Single, unambiguous "what to do next". The ordered first-run flow is:
+    //   ⓪ プロジェクトを準備 → ① Orgを認証 → ② 環境を設定。
+    // git は「保存」時に自動で開始するのでここでは別アクションとして出さない。
+    if (!s.hasFolder) return { em:'📂', t1:'はじめに（1）', t2:'新しいプロジェクトを作成する', c:'teamflow.createProject' };
+    if (!s.hasProject) return { em:'📂', t1:'はじめに（1）', t2:'Salesforceプロジェクトを作成する', c:'teamflow.createProject' };
     if (s.defaultOrg && !s.defaultOrg.connected) return { em:'🔌', t1:'接続が切れています', t2:s.defaultOrg.displayName+' に再接続する', reconnect:s.defaultOrg.username };
-    if (s.orgs.length === 0) return { em:'🔌', t1:'はじめに（1/2）', t2:'Orgを認証する', c:'teamflow.authorizeOrg' };
-    if (!s.configured) return { em:'🧭', t1:'はじめに（2/2）', t2:'環境を設定する（開発/ステージング/本番）', c:'teamflow.setupWizard' };
+    if (s.orgs.length === 0) return { em:'🔌', t1:'はじめに（2）', t2:'環境を認証する（ログイン）', c:'teamflow.authorizeOrg' };
+    if (!s.configured) return { em:'🧭', t1:'はじめに（3）', t2:'環境を設定する（開発/ステージング/本番）', c:'teamflow.setupWizard' };
     if (s.changes > 0) return { em:'💾', t1:'次にやること', t2:'変更 '+s.changes+'件を保存してバックアップ', c:'teamflow.gitCommitPush' };
     if (s.ahead > 0) return { em:'🔄', t1:'次にやること', t2:'未バックアップ '+s.ahead+'件をGitHubへ', c:'teamflow.gitSync' };
     return { em:'✅', t1:'準備OK', t2:'変更を加えたら自動でここに表示されます', calm:true };
@@ -500,7 +528,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
         (s.defaultOrg.isProduction?'⚠️ ':'') + escapeHtml(s.defaultOrg.displayName) +
         (s.defaultOrg.connected?' 🔗':'') + '</span>');
     } else {
-      chips.push('<span class="chip dim">☁️ Org未選択</span>');
+      chips.push('<span class="chip dim">☁️ 環境未選択</span>');
     }
     if (s.hasRepo) {
       let b = '🌿 ' + escapeHtml(s.branch || '(なし)');
@@ -543,16 +571,23 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     // plain-language one-liner: where you are and what is pending.
     // In the empty/onboarding state, show a friendly welcome + guide link.
     if (s.hasRepo && (s.orgs.length>0 || s.configured)) {
-      const where = '「'+escapeHtml(s.branch||'(ブランチなし)')+'」'+(s.env?'（'+escapeHtml(s.env.name)+'環境）':'');
-      const parts = [];
-      parts.push(s.changes>0 ? '変更'+s.changes+'件が未保存' : '変更なし');
-      if (s.ahead>0) parts.push('未バックアップ'+s.ahead+'件');
-      const org = s.defaultOrg ? '反映先=「'+escapeHtml(s.defaultOrg.displayName)+'」'+(s.defaultOrg.isProduction?'⚠️本番':'') : '反映先Org未選択';
+      // 専門用語を避け、3項目を箇条書きに（読み下し文より一目で分かる）。
+      const br = escapeHtml(s.branch||'(ブランチなし)') + (s.env?'（'+escapeHtml(s.env.name)+'環境）':'');
+      const chg = s.changes>0
+        ? '未保存 '+s.changes+'件'+(s.ahead>0?'・未バックアップ '+s.ahead+'件':'')
+        : (s.ahead>0?'未バックアップ '+s.ahead+'件':'なし');
+      const dep = s.defaultOrg
+        ? escapeHtml(s.defaultOrg.displayName)+(s.defaultOrg.isProduction?' <span class="prodtag">⚠️本番</span>':'')
+        : '未選択';
+      const rows =
+        '<div class="slrow"><span class="slk">📍 作業中</span><span class="slv">'+br+'</span></div>'+
+        '<div class="slrow"><span class="slk">✏️ 変更</span><span class="slv">'+chg+'</span></div>'+
+        '<div class="slrow"><span class="slk">☁️ 反映する環境</span><span class="slv">'+dep+'</span></div>';
       let note = '';
       if (s.configured && !s.env && s.branch) {
         note = '<div class="note">ℹ️ このブランチは環境に未割当（作業用ブランチ）。デプロイ先は「環境へデプロイ」で選びます。</div>';
       }
-      $('situation').innerHTML = 'いま '+where+' で作業中。'+parts.join('・')+'。'+org+'。'+note;
+      $('situation').innerHTML = '<div class="statuslist">'+rows+'</div>'+note;
     } else if (s.orgs.length===0 || !s.configured) {
       $('situation').innerHTML = '👋 はじめまして！<b>このツール1つで Salesforce 開発が回せます</b>。'+
         '上の「次にやること」を順に押すだけでOK。'+
@@ -591,7 +626,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
           escapeHtml(a.label)+'<span class="rel">'+escapeHtml(a.rel)+'</span></div>').join('');
     }
     if (s.hasRepo || (s.activity && s.activity.length>0)) {
-      actHtml += '<div class="ai loglink" data-cmd="teamflow.showLog" role="button" tabindex="0" aria-label="出力ログを開く">📋 出力ログを開く（詳細・エラー）</div>';
+      actHtml += '<div class="ai loglink" data-cmd="teamflow.showLog" role="button" tabindex="0" aria-label="実行ログを開く">🔎 うまくいかない時はここ（実行ログ）</div>';
     }
     $('activity').innerHTML = actHtml;
 
@@ -599,11 +634,13 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     // so there is no duplicate "始める" button to confuse. Shows where you are
     // in the 2-step setup. Git is NOT a step here; it starts automatically the
     // first time you press 保存してバックアップ.
-    if (s.orgs.length===0 || !s.configured) {
-      const d1 = s.orgs.length>0, d2 = s.configured;
-      $('setup').innerHTML = '<div class="setupbar"><span class="'+(d1?'done':'now')+'">'+
-        (d1?'✓':'①')+' Org認証</span><span class="sep">→</span><span class="'+(d2?'done':(d1?'now':''))+'">'+
-        (d2?'✓':'②')+' 環境設定</span></div>';
+    if (!s.hasProject || s.orgs.length===0 || !s.configured) {
+      const d0 = s.hasProject, d1 = s.orgs.length>0, d2 = s.configured;
+      const cls = (done, prevDone) => done ? 'done' : (prevDone ? 'now' : '');
+      $('setup').innerHTML = '<div class="setupbar">'+
+        '<span class="'+(d0?'done':'now')+'">'+(d0?'✓':'①')+' プロジェクト作成</span><span class="sep">→</span>'+
+        '<span class="'+cls(d1,d0)+'">'+(d1?'✓':'②')+' 環境を認証</span><span class="sep">→</span>'+
+        '<span class="'+cls(d2,d1)+'">'+(d2?'✓':'③')+' 環境を設定</span></div>';
     } else {
       $('setup').innerHTML = '';
     }
@@ -627,6 +664,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     function renderSec(sec) {
       const tiles = sec.tiles.map(t => {
         let disabled = false;
+        if (t.need==='project' && !s.hasProject) disabled = true;
         if (t.need==='repo' && !s.hasRepo) disabled = true;
         if (t.need==='remote' && !s.hasRemote) disabled = true;
         if (t.need==='org' && s.orgs.length===0) disabled = true;
@@ -643,14 +681,14 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
         '<span class="sectitle">'+sec.title+'</span>'+hint+'</div>'+
         '<div class="grid '+(sec.three?'three':'')+'">'+tiles+'</div></section>';
     }
-    const fresh = s.orgs.length===0 && !s.configured;
-    if (fresh) {
-      $('sections').innerHTML = '';
-    } else {
+    {
+      // 「プロジェクト準備」を含む基本セクションは常に表示し、最初の一歩
+      // （📂新しいプロジェクト）に必ずたどり着けるようにする。応用操作は
+      // 折りたたみの中へ。
       const core = SECTIONS.filter(x=>x.tier==='core').map(renderSec).join('');
       const more = SECTIONS.filter(x=>x.tier==='more').map(renderSec).join('');
       $('sections').innerHTML = core +
-        '<details class="more"><summary>▸ もっと操作（テスト / デプロイ / タグ / Org追加）</summary>'+more+'</details>';
+        '<details class="more"><summary>▸ 応用操作を表示（テスト・デプロイ・ブランチ・タグ・メタデータ取得）</summary>'+more+'</details>';
     }
 
     // branch
@@ -664,13 +702,14 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       $('branchbox').innerHTML = '<div class="empty">「セットアップを始める」で開始できます。</div>';
     }
 
-    // orgs
-    const addBtn = '<button class="iconbtn addorg" data-cmd="teamflow.authorizeOrg">＋ Orgを追加</button>';
+    // 環境(Org)一覧。接続中の環境は折りたたみ（<details>）に入れ、既定でも開いて
+    // おくが、数が多いときに畳める。「＋ 環境を追加」は常に外に出す。
+    const addBtn = '<button class="iconbtn addorg" data-cmd="teamflow.authorizeOrg">＋ 環境を追加</button>';
     if (s.orgs.length===0) {
-      $('orgs').innerHTML = '<div class="empty">まだOrgがありません。</div>' + addBtn;
+      $('orgs').innerHTML = '<div class="empty">まだ環境がありません。「＋ 環境を追加」でログインします。</div>' + addBtn;
     } else {
       const colors = { Production:'#e5534b', Sandbox:'#4aa3df', DevHub:'#b07cf0', Scratch:'#3fb950', Other:'#888' };
-      $('orgs').innerHTML = addBtn + s.orgs.map(o => {
+      const cards = s.orgs.map(o => {
         const action = o.connected
           ? '<button class="open" data-open="'+escapeAttr(o.username)+'">開く</button>'
           : '<button class="open reconnect" data-reconnect="'+escapeAttr(o.username)+'">再接続</button>';
@@ -682,6 +721,9 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
           action+
         '</div>';
       }).join('');
+      $('orgs').innerHTML = addBtn +
+        '<details class="orgfold" open><summary>一覧（'+s.orgs.length+'）— クリックで開閉</summary>'+
+        '<div class="orglist">'+cards+'</div></details>';
     }
   }
 

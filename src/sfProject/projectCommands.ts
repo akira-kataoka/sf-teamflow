@@ -1,8 +1,12 @@
 import * as vscode from "vscode";
+import * as path from "node:path";
 import type { CommandContext } from "../commandContext.js";
 import { renderCommand } from "../deploy/deployService.js";
+import { run } from "../util/exec.js";
+import { runSf } from "../util/cli.js";
 import { readSfdxPackageDirs } from "../config/configStore.js";
 import type { OrgInfo } from "../orgManager/orgService.js";
+import { refreshDevHubAuthFlag } from "../orgManager/devHubAuth.js";
 import {
   buildProjectGenerateArgs,
   buildRetrieveArgs,
@@ -15,6 +19,11 @@ import {
   buildGenerateComponentArgs,
   componentOutputDir,
   buildTailLogArgs,
+  buildDevHubOpenArgs,
+  buildScratchOrgInfoProbeArgs,
+  buildSetDefaultDevHubArgs,
+  buildDevHubLoginArgs,
+  DEVELOPER_EDITION_SIGNUP_URL,
   type ComponentKind,
   COMMON_METADATA_TYPES,
 } from "./projectService.js";
@@ -43,6 +52,13 @@ export function registerProjectCommands(
       { placeHolder: def ? `${placeHolder} (既定: ${def.displayName})` : placeHolder }
     );
     return pick?.org;
+  }
+
+  /** Authorised orgs the CLI currently flags as Dev Hubs (may be empty / many). */
+  function devHubOrgs(): OrgInfo[] {
+    return ctx
+      .knownOrgs()
+      .filter((o) => o.isDevHub || o.category === "DevHub" || o.isDefaultDevHubUsername);
   }
 
   /** Multi-select metadata types (with a free-text "other" entry). Shared by 取得/反映. */
@@ -82,9 +98,11 @@ export function registerProjectCommands(
   }
 
   // 新しいプロジェクトを作成 (sf project generate).
+  // 名前と作成場所を尋ね、生成が終わったら自動でそのフォルダを開く（初心者が
+  // 「作ったのに次に何をすればいいか分からない」状態にならないように）。
   reg("teamflow.createProject", async () => {
     const name = await vscode.window.showInputBox({
-      title: "新しいSalesforceプロジェクト",
+      title: "新しいSalesforceプロジェクト (1/3)",
       prompt: "プロジェクト名 (フォルダ名になります)",
       placeHolder: "my-sf-project",
       validateInput: (v) =>
@@ -97,23 +115,73 @@ export function registerProjectCommands(
     }
     const template = await vscode.window.showQuickPick(
       [
-        { label: "標準 (standard)", description: "通常のプロジェクト", value: "standard" as const },
+        { label: "標準 (standard)", description: "通常のプロジェクト（おすすめ）", value: "standard" as const },
         { label: "空 (empty)", description: "最小構成", value: "empty" as const },
       ],
-      { title: "テンプレート" }
+      { title: "新しいSalesforceプロジェクト (2/3) — テンプレート" }
     );
     if (!template) {
       return;
     }
+
+    // どこに作るか（親フォルダ）を選ぶ。既定は今開いているフォルダの親 or ホーム。
+    const root = ctx.workspaceRoot();
+    const defaultParent = root ? vscode.Uri.file(path.dirname(root)) : undefined;
+    const picked = await vscode.window.showOpenDialog({
+      title: "新しいSalesforceプロジェクト (3/3) — どこに作りますか？（親フォルダを選択）",
+      openLabel: "ここに作成",
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      defaultUri: defaultParent,
+    });
+    if (!picked || picked.length === 0) {
+      return;
+    }
+    const parentDir = picked[0].fsPath;
+    const projectName = name.trim();
+    const projectDir = path.join(parentDir, projectName);
+
     const args = buildProjectGenerateArgs({
-      name: name.trim(),
+      name: projectName,
       template: template.value,
       defaultPackageDir: "force-app",
       manifest: true,
     });
-    ctx.runInTerminal(renderCommand(ctx.cliPath(), args));
-    vscode.window.showInformationMessage(
-      `プロジェクト「${name.trim()}」を作成中です。完了後 File > Open でそのフォルダを開いてください。`
+
+    // 生成を同期実行して、完了したら自動でフォルダを開く。
+    await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: `プロジェクト「${projectName}」を作成中…` },
+      async () => {
+        const res = await run(ctx.cliPath(), args, { cwd: parentDir, timeout: 120_000 });
+        if (res.code !== 0) {
+          // 失敗時は同じコマンドをターミナルにも出して、原因を見えるようにする。
+          ctx.runInTerminal(renderCommand(ctx.cliPath(), args));
+          vscode.window.showErrorMessage(
+            `プロジェクト作成に失敗しました。ターミナルの出力を確認してください: ${res.stderr || res.stdout}`
+          );
+          throw new Error("createProject failed");
+        }
+      }
+    ).then(
+      async () => {
+        const openChoice = await vscode.window.showInformationMessage(
+          `プロジェクト「${projectName}」を作成しました 🎉 そのフォルダを開きますか？`,
+          { modal: false },
+          "開く（このウィンドウ）",
+          "新しいウィンドウで開く"
+        );
+        if (openChoice) {
+          await vscode.commands.executeCommand(
+            "vscode.openFolder",
+            vscode.Uri.file(projectDir),
+            { forceNewWindow: openChoice === "新しいウィンドウで開く" }
+          );
+        }
+      },
+      () => {
+        /* 失敗時は上で通知済み */
+      }
     );
   });
 
@@ -322,6 +390,129 @@ export function registerProjectCommands(
     ctx.recordActivity(`環境から取込: ${org.displayName}`, "run");
   });
 
+  // Dev Hub を準備する (スクラッチOrgの親組織). 既存Orgで有効化 or 無料DEを新規取得.
+  // 何度でも実行でき、複数のOrgをDev Hubにできる (上限分散やチーム別運用のため).
+  reg("teamflow.setupDevHub", async () => {
+    const existing = devHubOrgs();
+    const how = await vscode.window.showQuickPick(
+      [
+        {
+          label: "$(server) 認証済みのOrgをDev Hubにする",
+          detail: "開発者組織/本番組織などでDev Hubを有効化します（おすすめ）",
+          action: "existing" as const,
+        },
+        {
+          label: "$(globe) 無料の開発者組織を新規取得してDev Hubにする",
+          detail: "ブラウザでDeveloper Editionに登録 → 認証 → 有効化",
+          action: "signup" as const,
+        },
+      ],
+      {
+        title: "Dev Hub を準備",
+        placeHolder:
+          existing.length > 0
+            ? `現在のDev Hub: ${existing.map((o) => o.displayName).join(", ")} — さらに追加できます`
+            : "スクラッチ組織を作るための親組織(Dev Hub)を用意します",
+      }
+    );
+    if (!how) {
+      return;
+    }
+
+    if (how.action === "signup") {
+      await vscode.env.openExternal(vscode.Uri.parse(DEVELOPER_EDITION_SIGNUP_URL));
+      const next = await vscode.window.showInformationMessage(
+        "ブラウザで開発者組織を登録し、確認メールから有効化してください。完了したら、その組織を認証 → もう一度「Dev Hubを準備」で有効化します。",
+        "この組織を認証する"
+      );
+      if (next === "この組織を認証する") {
+        await vscode.commands.executeCommand("teamflow.authorizeOrg");
+      }
+      return;
+    }
+
+    // --- 既存Orgを Dev Hub にする ---
+    const org = await pickOrg("Dev Hubにする組織を選択", (o) => o.category !== "Scratch");
+    if (!org) {
+      return;
+    }
+
+    // 1. Dev Hub設定ページをブラウザで開く.
+    ctx.runInTerminal(renderCommand(ctx.cliPath(), buildDevHubOpenArgs(org.username)));
+    const confirmed = await vscode.window.showInformationMessage(
+      `「${org.displayName}」の設定画面を開きました。\n\n` +
+        "［設定］→ クイック検索に「Dev Hub」→「Dev Hub」を開き、" +
+        "「Dev Hubの有効化（Enable Dev Hub）」を ON にして保存してください。\n\n" +
+        "※ 一度ONにするとOFFには戻せません。\n\n完了したら［有効化を確認］を押してください。",
+      { modal: true },
+      "有効化を確認"
+    );
+    if (confirmed !== "有効化を確認") {
+      return;
+    }
+
+    // 2. ScratchOrgInfo を引けるか試して「本当に有効か」を検証 (キャッシュに依存しない).
+    const verified = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: "Dev Hubの有効化を確認中…" },
+      async () => {
+        try {
+          await runSf(buildScratchOrgInfoProbeArgs(org.username), {
+            cliPath: ctx.cliPath(),
+            cwd: ctx.workspaceRoot(),
+            timeout: 60_000,
+          });
+          return true;
+        } catch {
+          return false;
+        }
+      }
+    );
+    if (!verified) {
+      const retry = await vscode.window.showWarningMessage(
+        "まだDev Hubが有効になっていないようです。設定で「Dev Hubの有効化」をONにして保存後、もう一度お試しください。",
+        "設定をもう一度開く"
+      );
+      if (retry === "設定をもう一度開く") {
+        ctx.runInTerminal(renderCommand(ctx.cliPath(), buildDevHubOpenArgs(org.username)));
+      }
+      return;
+    }
+
+    // 3. 既定Dev Hubに登録 + stale な isDevHub キャッシュを修復.
+    try {
+      await runSf(buildSetDefaultDevHubArgs(org.username), {
+        cliPath: ctx.cliPath(),
+        cwd: ctx.workspaceRoot(),
+      });
+    } catch {
+      // 既定設定に失敗しても、作成時に --target-dev-hub で個別指定できるので続行.
+    }
+    const refreshed = await refreshDevHubAuthFlag(org.username).catch(() => false);
+    ctx.refreshAll();
+    ctx.recordActivity(`Dev Hub 準備: ${org.displayName}`, "ok");
+
+    if (refreshed) {
+      const go = await vscode.window.showInformationMessage(
+        `✅ ${org.displayName} をDev Hubとして準備しました。スクラッチ組織を作成できます。`,
+        "スクラッチ組織を作成"
+      );
+      if (go === "スクラッチ組織を作成") {
+        await vscode.commands.executeCommand("teamflow.createScratchOrg");
+      }
+    } else {
+      // フラグを書き換えられなかった場合は再認証で反映 (CLIのキャッシュ更新).
+      const re = await vscode.window.showInformationMessage(
+        `Dev Hubを確認しました。反映のため「${org.displayName}」の再認証が必要な場合があります。`,
+        "再認証する",
+        "そのまま試す"
+      );
+      if (re === "再認証する") {
+        const url = org.instanceUrl || org.loginUrl || "https://login.salesforce.com";
+        ctx.runInTerminal(renderCommand(ctx.cliPath(), buildDevHubLoginArgs(url, org.alias)));
+      }
+    }
+  });
+
   // スクラッチOrgを作成 (definition file 自動判定).
   reg("teamflow.createScratchOrg", async () => {
     const root = ctx.workspaceRoot();
@@ -329,6 +520,43 @@ export function registerProjectCommands(
       vscode.window.showErrorMessage("フォルダを開いてください。");
       return;
     }
+
+    // スクラッチOrgには Dev Hub (親組織) が必須。0件なら準備に誘導、複数なら選ばせる。
+    const hubs = devHubOrgs();
+    let devhubUsername: string | undefined;
+    if (hubs.length === 0) {
+      const go = await vscode.window.showInformationMessage(
+        "スクラッチ組織には「Dev Hub」が有効な親組織が必要です。先にDev Hubを準備しますか？",
+        { modal: true },
+        "Dev Hubを準備する",
+        "このまま作成を試す"
+      );
+      if (go === "Dev Hubを準備する") {
+        await vscode.commands.executeCommand("teamflow.setupDevHub");
+        return;
+      }
+      if (go !== "このまま作成を試す") {
+        return;
+      }
+      // 「このまま試す」: 既定Dev Hub (あれば) に委ねる。
+    } else if (hubs.length === 1) {
+      devhubUsername = hubs[0].username;
+    } else {
+      const pick = await vscode.window.showQuickPick(
+        hubs.map((o) => ({
+          label: `${o.isDefaultDevHubUsername ? "★ " : ""}${o.displayName}`,
+          description: o.isDefaultDevHubUsername ? "既定のDev Hub" : "",
+          detail: o.username,
+          org: o,
+        })),
+        { title: "どのDev Hubで作成しますか？", placeHolder: "親組織(Dev Hub)を選択" }
+      );
+      if (!pick) {
+        return;
+      }
+      devhubUsername = pick.org.username;
+    }
+
     const alias = await vscode.window.showInputBox({
       title: "スクラッチOrgを作成",
       prompt: "エイリアス (分かりやすい名前)",
@@ -366,6 +594,7 @@ export function registerProjectCommands(
       definitionFile,
       durationDays: Number(days),
       setDefault: true,
+      devhubUsername,
     });
     ctx.runInTerminal(renderCommand(ctx.cliPath(), args));
     vscode.window.showInformationMessage(
