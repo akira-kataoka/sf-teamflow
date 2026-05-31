@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.59.1] - 2026-05-31
+
+- 🔎 **デプロイ時の「基準」表示を実際の値に**: baseRef自動フォールバック(v0.58)導入後、差分メッセージが設定値（例 origin/main）を表示する一方で実際は解決後ref（origin/master）でdiffしていた。表示を**実際に使った基準ref**に統一し混乱を解消（プロセステストで発見した軽微なUX不整合）。
+
 ## [0.59.0] - 2026-05-31
 
 - 🐞 **日本語環境名でCI/CDのYAMLが壊れるバグを修正（ほぼ全ユーザーに影響）**: ウィザード既定の環境名は日本語（開発環境/ステージング環境/本番環境）。job idやsecret名を環境名から作っていたため、日本語のみだと全環境が `deploy--` / `SF__` に潰れて**重複・衝突→GitHub Actionsが不正**になっていた。ASCIIが無い場合は一意な `orgAlias` から作る `envSlug` を導入し、job id・concurrency・`secretPrefix` をそれ経由に（例: 開発環境→`deploy-scratch-dev`/`SF_SCRATCH_DEV`）。ASCII名は従来どおり。`envSlug` テスト＋日本語衝突回避テスト追加。プロセステストで発見。

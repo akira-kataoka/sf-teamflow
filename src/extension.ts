@@ -6,6 +6,7 @@ import { OrgTreeProvider, type TreeNode } from "./orgManager/orgTreeProvider.js"
 import type { OrgInfo } from "./orgManager/orgService.js";
 import {
   changedFiles,
+  resolveBaseRef,
   classifyChanges,
   currentBranch,
   isGitRepo,
@@ -590,9 +591,11 @@ async function deployToEnvironment(): Promise<void> {
 
 async function executeDeploy(ctx: DeployContext, validateOnly: boolean): Promise<void> {
   const cs = await computeChangeSet(ctx);
+  // 実際に diff に使われた基準ref（設定値が無ければ origin/master 等にフォールバック）を表示する。
+  const usedBase = (await resolveBaseRef(ctx.baseRef, ctx.root)) ?? ctx.baseRef;
   if (cs.toDeploy.length === 0) {
     vscode.window.showInformationMessage(
-      `デプロイ対象の差分がありません (基準: ${ctx.baseRef})。`
+      `デプロイ対象の差分がありません (基準: ${usedBase})。`
     );
     return;
   }
@@ -600,7 +603,7 @@ async function executeDeploy(ctx: DeployContext, validateOnly: boolean): Promise
   const verb = validateOnly ? "検証" : "デプロイ";
   const detailLines = [
     `対象Org: ${ctx.orgAlias}${ctx.isProduction ? " ⚠️ 本番環境" : ""}`,
-    `ブランチ: ${ctx.branch} (基準 ${ctx.baseRef})`,
+    `ブランチ: ${ctx.branch} (基準 ${usedBase})`,
     `テストレベル: ${ctx.testLevel}`,
   ];
   if (cs.toDelete.length) {
