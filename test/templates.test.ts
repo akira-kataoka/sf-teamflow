@@ -54,6 +54,13 @@ test("branchCondition emits exact vs startsWith for globs", () => {
   );
 });
 
+test("deployWorkflow: 初回(親コミット無し)はパッケージ全体をデプロイし取りこぼさない", () => {
+  const yml = deployWorkflow(defaultConfig());
+  // 親が無ければ CHANGED にパッケージdirを入れる分岐がある
+  assert.ok(yml.includes('BEFORE=$(git rev-parse HEAD~1 2>/dev/null || echo "")'), "親無しは空に");
+  assert.ok(yml.includes('CHANGED="force-app"'), "初回はパッケージ全体をデプロイ");
+});
+
 test("deployWorkflow contains a job per environment with its org + auth secrets", () => {
   const c = defaultConfig();
   const yml = deployWorkflow(c);

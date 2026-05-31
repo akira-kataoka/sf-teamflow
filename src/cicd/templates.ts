@@ -259,10 +259,16 @@ ${authStep(env)}
         id: diff
         run: |
           BEFORE="\${{ github.event.before }}"
-          if [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-            BEFORE=$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)
+          ZERO="0000000000000000000000000000000000000000"
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "$ZERO" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            BEFORE=$(git rev-parse HEAD~1 2>/dev/null || echo "")
           fi
-          CHANGED=$(git diff --name-only "$BEFORE" HEAD -- ${dirs.join(" ")} | tr '\\n' ' ')
+          if [ -n "$BEFORE" ]; then
+            CHANGED=$(git diff --name-only "$BEFORE" HEAD -- ${dirs.join(" ")} | tr '\\n' ' ')
+          else
+            # 初回(親コミット無し): パッケージ全体をデプロイ（取りこぼし防止）。
+            CHANGED="${dirs.join(" ")}"
+          fi
           echo "Changed: $CHANGED"
           echo "files=$CHANGED" >> "$GITHUB_OUTPUT"
 

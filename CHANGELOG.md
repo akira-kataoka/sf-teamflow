@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.68.0] - 2026-06-01
+
+- 🛠️ **生成CDの初回デプロイ取りこぼしを修正**: 新規の環境ブランチへ初回pushしたとき、親コミットが無いと差分が空になり「何もデプロイされない」問題。github.event.before がゼロSHAや親無しの場合はパッケージ全体をデプロイするように(取りこぼし防止)。通常の差分デプロイは従来通り。
+
 ## [0.67.0] - 2026-06-01
 
 - ⚠️ **古い sf CLI を検知して更新を促す**: 起動時に `sf --version` を確認し、安全な下限(2.40)未満なら一度だけ警告(「Finalizing」クラッシュ等の不可解なエラーを未然に回避)。同じ古いバージョンでは繰り返し警告しない(globalStateで抑制)。判定は純関数 parseSfVersion/isSfVersionOutdated でテスト。UI不変(一度きりの通知)。
