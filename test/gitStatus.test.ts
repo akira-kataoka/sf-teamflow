@@ -5,7 +5,23 @@ import {
   conflictedFiles,
   parseCommitLog,
   baseRefCandidates,
+  mergeGitignore,
+  BASELINE_GITIGNORE_ENTRIES,
 } from "../src/deploy/gitService.js";
+
+test("mergeGitignore appends only missing entries; preserves existing; no-op when all present", () => {
+  // 空から: 全エントリ＋見出しコメントが入る
+  const a = mergeGitignore("", BASELINE_GITIGNORE_ENTRIES);
+  assert.ok(a.includes(".sf/"), ".sf/ を追加");
+  assert.ok(a.includes("ci-keys/"), "ci-keys/ を追加");
+  // 既存に一部あり: 重複させず不足分だけ追記
+  const b = mergeGitignore("node_modules/\n.sf/\n", BASELINE_GITIGNORE_ENTRIES);
+  assert.equal((b.match(/^\.sf\/$/gm) || []).length, 1, ".sf/ は重複しない");
+  assert.ok(b.includes("ci-keys/"), "不足の ci-keys/ は追記");
+  // 全部ある: 変更なし（入力をそのまま返す）
+  const full = BASELINE_GITIGNORE_ENTRIES.join("\n") + "\n";
+  assert.equal(mergeGitignore(full, BASELINE_GITIGNORE_ENTRIES), full, "全て揃っていれば無変更");
+});
 
 test("baseRefCandidates: preferred first, common fallbacks, deduped", () => {
   const c = baseRefCandidates("origin/main");

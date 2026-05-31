@@ -397,6 +397,34 @@ export async function revertCommit(
   return { ok: false, conflict, message: (res.stderr || res.stdout).trim() };
 }
 
+/** 初回コミットで誤って公開すると危険な、Salesforce開発の定番除外エントリ。 */
+export const BASELINE_GITIGNORE_ENTRIES = [
+  ".sf/", // org認証トークンを含む
+  ".sfdx/", // 旧CLIの認証/キャッシュ
+  "ci-keys/", // CI用のJWT秘密鍵
+  "node_modules/",
+  ".DS_Store",
+];
+
+/**
+ * 既存の .gitignore 内容に、未記載のベースラインエントリだけを追記して返す。
+ * 既にあるものは重複させない。変更不要なら入力をそのまま返す。Pure & unit-tested.
+ */
+export function mergeGitignore(current: string, entries: string[]): string {
+  const lines = current.split(/\r?\n/).map((l) => l.trim());
+  const missing = entries.filter((e) => !lines.includes(e.trim()));
+  if (missing.length === 0) {
+    return current;
+  }
+  const prefix = current && !current.endsWith("\n") ? current + "\n" : current;
+  return (
+    prefix +
+    "\n# Salesforce Dev Manager — 認証情報/秘密鍵などを誤公開しないための除外\n" +
+    missing.join("\n") +
+    "\n"
+  );
+}
+
 /* ------------------------------- git mutations ---------------------------- */
 /* These wrap git and THROW on failure so command handlers can surface errors. */
 

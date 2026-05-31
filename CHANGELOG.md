@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.65.0] - 2026-06-01
+
+- 🔒 **Git開始時に認証情報の誤コミットを防止**: 「Gitを開始する」の初回コミット前に、ベースラインの .gitignore(.sf/ =org認証トークン / .sfdx/ / ci-keys/ =JWT秘密鍵 / node_modules/ / .DS_Store)を保証(既存は尊重し不足分のみ追記)。誤って認証情報や秘密鍵をGitHubに公開する事故を防ぐ。mergeGitignore 純関数+テスト。
+
 ## [0.64.2] - 2026-06-01
 
 - ✅ **設定の保存→読込ラウンドトリップ回帰テストを追加**: ウィザードが書く sf-teamflow.json は全機能の土台。日本語環境名/glob/purpose/requireValidation を含む設定が直列化→parseで壊れないことを保証(実データでも往復一致を確認)。テスト109件。機能変更なし(ハードニング)。

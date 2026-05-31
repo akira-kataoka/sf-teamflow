@@ -1,4 +1,6 @@
 import * as vscode from "vscode";
+import * as path from "node:path";
+import { promises as fsp } from "node:fs";
 import type { CommandContext } from "../commandContext.js";
 import { logger } from "../util/logger.js";
 import { run } from "../util/exec.js";
@@ -13,6 +15,8 @@ import {
   hasRemote,
   hasUpstream,
   initRepo,
+  mergeGitignore,
+  BASELINE_GITIGNORE_ENTRIES,
   isGitRepo,
   remoteUrl,
   removeRemote,
@@ -37,6 +41,22 @@ import { renderCommand } from "../deploy/deployService.js";
  * ("保存してバックアップ") rather than exposing raw git porcelain. All run with
  * progress notifications and clear Japanese success/error messages.
  */
+
+/** ベースラインの除外を .gitignore に保証する（既存は尊重し、不足分のみ追記）。 */
+async function ensureBaselineGitignore(root: string): Promise<void> {
+  const gi = path.join(root, ".gitignore");
+  let cur = "";
+  try {
+    cur = await fsp.readFile(gi, "utf8");
+  } catch {
+    /* .gitignore がまだ無い */
+  }
+  const next = mergeGitignore(cur, BASELINE_GITIGNORE_ENTRIES);
+  if (next !== cur) {
+    await fsp.writeFile(gi, next, "utf8");
+  }
+}
+
 export function registerGitCommands(
   context: vscode.ExtensionContext,
   ctx: CommandContext
@@ -63,6 +83,9 @@ export function registerGitCommands(
             { location: vscode.ProgressLocation.Notification, title: "Gitを開始中…" },
             async () => {
               await initRepo(root);
+              // 初回コミットで .sf/（認証トークンを含む）や ci-keys/（秘密鍵）等を
+              // 誤って公開しないよう、ベースラインの .gitignore を先に用意する。
+              await ensureBaselineGitignore(root);
               await stageAll(root);
               await commit("初回コミット", root);
             }
