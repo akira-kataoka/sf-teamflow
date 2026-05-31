@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.66.1] - 2026-06-01
+
+- 🛡️ **CI/CD設定後にブランチ保護へ誘導**: 「CI/CD設定」完了時に、main/develop のブランチ保護(検証通過を必須化・直接push禁止)を促し、設定ページを開くボタンを表示。CIをbranch protectionで必須化しないと迂回できるため(GitHub Flow定石)。gh repo view でURL取得、UI不変。
+
 ## [0.66.0] - 2026-06-01
 
 - 🧹 **CI/CDにESLint(LWC/Aura)を追加**: PR検証に lint-lwc ジョブを追加。ESLint設定とLWC/Auraがあれば npm run lint を実行(レポートのみ/無ければスキップ)。これでPR時の品質スイートが「検証+Apexテスト+PMD+LWC Jest+Prettier+ESLint」に。CI(YAML)のみ・UI不変。

@@ -941,7 +941,20 @@ async function setupCicdSecrets(): Promise<void> {
     }
     vscode.window.showInformationMessage(`${env.name}: ${results.join(" / ")}`);
   }
-  vscode.window.showInformationMessage("CI/CDシークレットの設定を完了しました。PRを出すと自動検証が動きます。");
+  // 仕上げ: CIは「ブランチ保護」で必須化しないと迂回できる。設定ページへ誘導。
+  const url = await run("gh", ["repo", "view", "--json", "url", "-q", ".url"], {
+    cwd: root,
+    timeout: 15_000,
+  });
+  const repoUrl = url.code === 0 ? url.stdout.trim() : "";
+  const next = await vscode.window.showInformationMessage(
+    "CI/CDシークレットの設定を完了しました。PRを出すと自動検証が動きます。\n\n" +
+      "仕上げに、main/develop の「ブランチ保護」を設定すると、検証通過を必須にできます（直接pushを禁止）。",
+    ...(repoUrl ? ["ブランチ保護を設定"] : [])
+  );
+  if (next === "ブランチ保護を設定" && repoUrl) {
+    await vscode.env.openExternal(vscode.Uri.parse(`${repoUrl}/settings/branches`));
+  }
 }
 
 /** Append a line to .gitignore if not already present. */
