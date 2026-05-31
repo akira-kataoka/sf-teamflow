@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.51.0] - 2026-05-31
+
+- 🤖 **CI/CD生成をホームに**: これまでセットアップ完了画面からしか辿れなかった「CI/CD生成」(GitHub Actions)を ④テスト・リリース にタイル追加。PRで自動検証(sf-validate.yml)／対象ブランチへのmergeで自動デプロイ(sf-deploy.yml)を生成でき、GitHub Flow（feature→develop→main）に対応。
+
 ## [0.50.0] - 2026-05-31
 
 - ↕️ **環境の並び替え（バックログA）**: 環境設定の各環境を **⠿ハンドルのドラッグ&ドロップ** で並び替え可能に。確実な **↑↓ボタン** も併設。複数の環境（並列のスクラッチ環境など）を自由に構成・順序変更できる。
