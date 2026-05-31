@@ -15,7 +15,7 @@ import { configExists, loadConfig, readSfdxPackageDirs } from "../config/configS
 import { baseRefFor, lintTeamflowConfig, resolveEnvironment } from "../config/teamflowConfig.js";
 import { runSf } from "../util/cli.js";
 import { logger } from "../util/logger.js";
-import { relativeTime, type ActivityEntry } from "../activityLog.js";
+import { relativeTime, computeStats, type ActivityEntry } from "../activityLog.js";
 
 interface HomeOrg {
   username: string;
@@ -50,6 +50,10 @@ interface HomeState {
   warnings: string[];
   /** Files currently in a merge conflict (relative paths). */
   conflicts: string[];
+  /** Handy dev metrics: deploys(リリース)/tests/saves + connected org count. */
+  stats: { deploys: number; tests: number; saves: number; orgs: number };
+  /** Environment pipeline for the visual (dev → staging → prod). */
+  pipeline: { name: string; type: string; orgAlias: string; current: boolean; connected: boolean }[];
 }
 
 /**
@@ -199,6 +203,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     let files: { path: string; label: string }[] = [];
     let deployCount = 0;
     let conflicts: string[] = [];
+    let pipeline: HomeState["pipeline"] = [];
 
     if (root) {
       configured = await configExists(root);
@@ -238,7 +243,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       }
     }
 
-    // Lint the team config (independent of git) and warn about common mistakes.
+    // Lint the team config + build the environment pipeline visual.
     let warnings: string[] = [];
     if (root && configured) {
       try {
@@ -248,12 +253,20 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
             cfg2,
             orgsRaw.map((o) => o.alias || o.username)
           );
+          pipeline = cfg2.environments.map((e) => ({
+            name: e.name,
+            type: e.type,
+            orgAlias: e.orgAlias,
+            current: env?.name === e.name,
+            connected: orgs.some((o) => o.username === e.orgAlias || o.displayName === e.orgAlias),
+          }));
         }
       } catch {
         /* invalid config — surfaced elsewhere */
       }
     }
 
+    const allActivity = this.getActivity();
     return {
       configured,
       hasRepo,
@@ -268,13 +281,15 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       behind,
       files,
       deployCount,
-      activity: this.getActivity().map((a) => ({
+      activity: allActivity.slice(0, 3).map((a) => ({
         label: a.label,
         status: a.status,
         rel: relativeTime(a.time, Date.now()),
       })),
       warnings,
       conflicts,
+      stats: { ...computeStats(allActivity), orgs: orgs.length },
+      pipeline,
     };
   }
 
@@ -294,6 +309,18 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 13px; font-size: 11.5px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); }
   .chip.prod { background: var(--vscode-inputValidation-errorBackground, #5a1d1d); outline: 1px solid #e55; }
   .chip.dim { opacity: .6; }
+  .stats { display: flex; gap: 6px; margin-bottom: 10px; }
+  .stat { flex: 1; text-align: center; padding: 7px 4px; border: 1px solid var(--vscode-panel-border, #8884); border-radius: 8px; }
+  .stat .n { font-size: 17px; font-weight: 700; line-height: 1.1; }
+  .stat .l { font-size: 10px; opacity: .65; margin-top: 2px; }
+  .pipeline { display: flex; align-items: stretch; gap: 0; margin-bottom: 12px; }
+  .pipeline .penv { flex: 1; text-align: center; padding: 7px 3px; border: 1px solid var(--vscode-panel-border, #8884); border-radius: 8px; font-size: 10.5px; position: relative; }
+  .pipeline .penv.cur { outline: 2px solid var(--vscode-focusBorder); }
+  .pipeline .penv.prod { border-color: #e55; }
+  .pipeline .penv .pe { font-size: 15px; }
+  .pipeline .penv .pn { font-weight: 600; margin-top: 1px; }
+  .pipeline .penv .po { opacity: .6; }
+  .pipeline .arrow { display: flex; align-items: center; padding: 0 3px; opacity: .5; font-size: 12px; }
   .chip.clickable { cursor: pointer; }
   .chip.clickable:hover { filter: brightness(1.2); }
   [tabindex="0"]:focus-visible, button:focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 1px; }
@@ -387,6 +414,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
   <div id="status" class="chips"></div>
+  <div id="stats" class="stats"></div>
+  <div id="pipeline" class="pipeline"></div>
   <div id="hero"></div>
   <div id="situation" class="situation"></div>
   <div id="conflicts"></div>
@@ -477,6 +506,28 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       chips.push('<span class="chip">' + b + '</span>');
     }
     $('status').innerHTML = chips.join('');
+
+    // dev metrics (handy numbers at a glance)
+    const st = s.stats || { deploys:0, tests:0, saves:0, orgs:0 };
+    $('stats').innerHTML =
+      '<div class="stat"><div class="n">'+st.deploys+'</div><div class="l">🚀 リリース</div></div>'+
+      '<div class="stat"><div class="n">'+st.tests+'</div><div class="l">🧪 テスト</div></div>'+
+      '<div class="stat"><div class="n">'+st.saves+'</div><div class="l">💾 保存</div></div>'+
+      '<div class="stat"><div class="n">'+st.orgs+'</div><div class="l">☁️ Org</div></div>';
+
+    // environment pipeline visual (dev → staging → prod)
+    if (s.pipeline && s.pipeline.length>0) {
+      const EM = { development:'🛠️', staging:'🧪', production:'🛡️', sandbox:'🧪', dev:'🛠️', scratch:'🌱' };
+      const cells = s.pipeline.map(p => {
+        const emoji = EM[p.name.toLowerCase()] || EM[p.type] || '☁️';
+        return '<div class="penv'+(p.current?' cur':'')+(p.type==='production'?' prod':'')+'">'+
+          '<div class="pe">'+emoji+'</div><div class="pn">'+escapeHtml(p.name)+'</div>'+
+          '<div class="po">'+escapeHtml(p.orgAlias)+(p.connected?'':' ❌')+'</div></div>';
+      });
+      $('pipeline').innerHTML = cells.join('<div class="arrow">→</div>');
+    } else {
+      $('pipeline').innerHTML = '';
+    }
 
     // next-action hero
     const na = nextAction(s);

@@ -38,6 +38,43 @@ export class ActivityLog {
   }
 }
 
+/**
+ * Count how many deploy actions are recorded (label starts with "デプロイ").
+ * Used for the home "リリース回数" stat. Pure & unit-tested.
+ */
+export function countDeploys(entries: ActivityEntry[]): number {
+  return entries.filter((e) => e.label.startsWith("デプロイ")).length;
+}
+
+export interface ActivityStats {
+  /** デプロイ実行回数 */
+  deploys: number;
+  /** テスト実行回数 */
+  tests: number;
+  /** 保存(バックアップ)回数 */
+  saves: number;
+}
+
+/**
+ * Aggregate handy dev metrics from the activity log by matching the label
+ * prefixes the command layer records. Pure & unit-tested.
+ */
+export function computeStats(entries: ActivityEntry[]): ActivityStats {
+  let deploys = 0;
+  let tests = 0;
+  let saves = 0;
+  for (const e of entries) {
+    if (e.label.startsWith("デプロイ")) {
+      deploys++;
+    } else if (e.label.startsWith("テスト実行") || e.label.startsWith("反映してテスト")) {
+      tests++;
+    } else if (e.label.startsWith("保存")) {
+      saves++;
+    }
+  }
+  return { deploys, tests, saves };
+}
+
 /** Pure relative-time formatter in Japanese. */
 export function relativeTime(fromMs: number, nowMs: number): string {
   const diff = Math.max(0, nowMs - fromMs);

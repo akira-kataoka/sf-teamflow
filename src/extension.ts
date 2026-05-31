@@ -93,7 +93,7 @@ export function activate(context: vscode.ExtensionContext): void {
     workspaceRoot,
     cliPath,
     refreshAll,
-    () => activity.recent(3)
+    () => activity.all()
   );
   setupWizard = new SetupWizard(context.extensionUri, orgTree, workspaceRoot, refreshAll);
 

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ActivityLog, relativeTime, type KeyValueStore } from "../src/activityLog.js";
+import { ActivityLog, relativeTime, countDeploys, computeStats, type KeyValueStore } from "../src/activityLog.js";
 
 function fakeStore(): KeyValueStore {
   const data: Record<string, unknown> = {};
@@ -69,4 +69,26 @@ test("ActivityLog: get returns default array independently each call", () => {
   assert.deepEqual(log.all(), []);
   log.record("x", "run", 5);
   assert.equal(log.all().length, 1);
+});
+
+test("computeStats counts deploys/tests/saves by label prefix", () => {
+  const log = new ActivityLog(fakeStore());
+  log.record("デプロイ: prod", "run", 1);
+  log.record("テスト実行: dev", "run", 2);
+  log.record("反映してテスト: dev", "run", 3);
+  log.record("保存してバックアップ", "ok", 4);
+  log.record("環境から取込: dev", "run", 5);
+  const s = computeStats(log.all());
+  assert.deepEqual(s, { deploys: 1, tests: 2, saves: 1 });
+});
+
+test("computeStats on empty is all zero", () => {
+  assert.deepEqual(computeStats([]), { deploys: 0, tests: 0, saves: 0 });
+});
+
+test("countDeploys matches computeStats.deploys", () => {
+  const log = new ActivityLog(fakeStore());
+  log.record("デプロイ: a", "run", 1);
+  log.record("デプロイ: b", "run", 2);
+  assert.equal(countDeploys(log.all()), 2);
 });
