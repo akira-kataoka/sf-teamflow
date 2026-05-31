@@ -2,7 +2,7 @@
   "name": "sf-teamflow",
   "displayName": "Salesforce Dev Manager",
   "description": "これ1つでSalesforce開発サイクルを完結。Org/環境管理・各環境への簡単デプロイ(開発→ステージング→本番)・Git/GitHub・テスト・CI/CDを、初心者でもクリック操作で。",
-  "version": "0.61.0",
+  "version": "0.62.0",
   "publisher": "akira-kataoka",
   "license": "MIT",
   "engines": {
@@ -165,6 +165,11 @@
         "command": "teamflow.scaffoldCICD",
         "title": "SFDevManager: CI/CD (GitHub Actions) を生成",
         "icon": "$(rocket)"
+      },
+      {
+        "command": "teamflow.setupCicdSecrets",
+        "title": "SFDevManager: CI/CDシークレットを設定（JWT鍵＋GitHub Secrets）",
+        "icon": "$(key)"
       },
       {
         "command": "teamflow.initTeamProject",

@@ -2,6 +2,14 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.62.0] - 2026-06-01
+
+- 🔑 **CI/CDシークレット設定支援を追加（優先度#1）**: 生成したCI/CDを“実際に動く”状態にする最後のピース。新コマンド `teamflow.setupCicdSecrets`（④に「CI/CD設定」タイル）:
+  - **JWT鍵ペアを openssl で生成**（`ci-keys/` に。`.gitignore` 自動追記でGitには含めない）。`server.crt` を接続アプリにアップロードする導線。
+  - **接続アプリ作成のチェックリスト**を提示（Salesforce UI操作は手動）。
+  - **各環境のGitHubシークレット/変数を `gh secret/variable set` で一括登録**（`SF_<ENV>_CLIENT_ID` / `_USERNAME` / `_JWT_KEY` / 変数 `_INSTANCE_URL`）。Consumer Key・ユーザー名を入力、ログインURLは種別で既定。
+  - CI/CD生成後にも「シークレットを設定」へ誘導。
+
 ## [0.61.0] - 2026-06-01
 
 - 🧹 **煩雑さ低減（段階的開示）**: ホームの機能グループ（①〜⑤）を、**今の状態で1つも使えない場合は初期状態で折りたたむ**ように。例: プロジェクト未作成なら②〜⑤は畳まれ①だけ開く／Git未開始ならバージョン管理は畳まれる。セットアップが進むと自然に開き、ユーザーはいつでも手動展開できる。タイルは何も削除せず「見える量」だけ減らす方針。

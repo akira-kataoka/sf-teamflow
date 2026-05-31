@@ -4,12 +4,15 @@ import { run } from "./util/exec.js";
 import { runSf } from "./util/cli.js";
 import { OrgTreeProvider, type TreeNode } from "./orgManager/orgTreeProvider.js";
 import type { OrgInfo } from "./orgManager/orgService.js";
+import * as path from "node:path";
+import { promises as fsp } from "node:fs";
 import {
   changedFiles,
   resolveBaseRef,
   classifyChanges,
   currentBranch,
   isGitRepo,
+  hasRemote,
 } from "./deploy/gitService.js";
 import { buildDeployArgs, renderCommand } from "./deploy/deployService.js";
 import {
@@ -27,7 +30,7 @@ import {
   readSfdxPackageDirs,
   saveConfig,
 } from "./config/configStore.js";
-import { cicdFiles } from "./cicd/templates.js";
+import { cicdFiles, secretPrefix } from "./cicd/templates.js";
 import { writeScaffold } from "./cicd/scaffolder.js";
 import { schemaJson } from "./config/schema.js";
 import { registerGitCommands } from "./git/gitCommands.js";
@@ -133,6 +136,7 @@ export function activate(context: vscode.ExtensionContext): void {
   register("teamflow.deployToEnvironment", () => deployToEnvironment());
 
   register("teamflow.scaffoldCICD", () => scaffoldCICD());
+  register("teamflow.setupCicdSecrets", () => setupCicdSecrets());
   register("teamflow.initTeamProject", () => initTeamProject());
   register("teamflow.openConfig", () => openConfig());
   register("teamflow.openWorkflowGuide", () => openWorkflowGuide());
@@ -780,7 +784,177 @@ async function scaffoldCICD(): Promise<void> {
   result.skipped.forEach((f) => logger.info(`  ⏭️ skip (既存) ${f}`));
   vscode.window.showInformationMessage(
     `CI/CDを生成しました (作成 ${result.written.length} / スキップ ${result.skipped.length})。` +
-      " 各環境の SF_<ENV>_CLIENT_ID / _USERNAME / _JWT_KEY シークレットを設定してください。"
+      " 続けて「CI/CDシークレット設定」で各環境の認証情報を登録できます。",
+    "シークレットを設定"
+  ).then((pick) => {
+    if (pick === "シークレットを設定") {
+      void vscode.commands.executeCommand("teamflow.setupCicdSecrets");
+    }
+  });
+}
+
+/**
+ * 生成したCI/CDを“実際に動く”状態にする最後のピース。接続アプリ作成(Salesforce UI)は
+ * 自動化できないが、自動化できる部分を支援する:
+ *  1. JWT鍵ペアを openssl で生成（ci-keys/ は .gitignore 済み）
+ *  2. 各環境の GitHub シークレット/変数を `gh secret/variable set` で登録
+ *  3. 接続アプリ作成のチェックリストを提示
+ */
+async function setupCicdSecrets(): Promise<void> {
+  const root = requireRoot();
+  if (!root) {
+    return;
+  }
+  let config: TeamflowConfig | undefined;
+  try {
+    config = await loadConfig(root);
+  } catch (err) {
+    vscode.window.showErrorMessage(`sf-teamflow.json が不正です: ${String(err)}`);
+    return;
+  }
+  if (!config || config.environments.length === 0) {
+    vscode.window.showInformationMessage("先に「① 環境設定」で環境を定義してください。");
+    return;
+  }
+  if (!(await isGitRepo(root)) || !(await hasRemote(root))) {
+    vscode.window.showInformationMessage("先に「🐙 GitHubに接続」してください（シークレットの登録先が必要）。");
+    return;
+  }
+  const ghOk = await run("gh", ["auth", "status"], { cwd: root, timeout: 15_000 });
+  if (ghOk.code !== 0) {
+    vscode.window.showErrorMessage("GitHub CLI (gh) のログインが必要です。`gh auth login` を実行してください。");
+    return;
+  }
+
+  // 1. JWT鍵ペア生成（接続アプリ用）。
+  const keyPath = path.join(root, "ci-keys", "server.key");
+  const crtPath = path.join(root, "ci-keys", "server.crt");
+  let hasKey = await fsp
+    .access(keyPath)
+    .then(() => true)
+    .catch(() => false);
+  if (!hasKey) {
+    const gen = await vscode.window.showInformationMessage(
+      "CI認証用のJWT鍵ペア（証明書＋秘密鍵）を生成しますか？証明書(server.crt)は接続アプリにアップロードします。",
+      "鍵を生成する",
+      "スキップ"
+    );
+    if (gen === "鍵を生成する") {
+      await fsp.mkdir(path.dirname(keyPath), { recursive: true });
+      const res = await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: "JWT鍵ペアを生成中…" },
+        () =>
+          run(
+            "openssl",
+            ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", keyPath, "-out", crtPath,
+             "-subj", "/CN=sf-teamflow-ci", "-days", "3650"],
+            { cwd: root, timeout: 60_000 }
+          )
+      );
+      if (res.code !== 0) {
+        vscode.window.showErrorMessage(
+          `鍵生成に失敗しました（openssl が必要です）: ${(res.stderr || res.stdout).trim().slice(0, 200)}`
+        );
+        return;
+      }
+      await ensureGitignored(root, "ci-keys/");
+      hasKey = true;
+      const open = await vscode.window.showInformationMessage(
+        "✅ 鍵を生成しました（ci-keys/。.gitignore済みでGitには含めません）。server.crt を接続アプリにアップロードしてください。",
+        "server.crt を開く"
+      );
+      if (open === "server.crt を開く") {
+        await vscode.window.showTextDocument(vscode.Uri.file(crtPath)).then(undefined, () => {});
+      }
+    }
+  }
+
+  // 2. 接続アプリ作成チェックリスト（手動・Salesforce UI）。
+  await vscode.window.showInformationMessage(
+    "【接続アプリの作成（各環境で1回）】\n" +
+      "①設定→アプリケーションマネージャー→新規接続アプリ\n" +
+      "②OAuth有効化／スコープに api, refresh_token, web\n" +
+      "③「デジタル署名を使用」で server.crt をアップロード\n" +
+      "④保存後の Consumer Key を控える（次で入力）",
+    { modal: true },
+    "OK"
   );
+
+  // 3. 環境ごとに gh secret/variable を登録。
+  let keyBody: string | undefined;
+  if (hasKey) {
+    keyBody = await fsp.readFile(keyPath, "utf8").catch(() => undefined);
+  }
+  for (const env of config.environments) {
+    const prefix = secretPrefix(env);
+    const go = await vscode.window.showQuickPick(
+      [
+        { label: `$(key) この環境のシークレットを登録`, detail: `${env.name} → ${prefix}_*`, do: true },
+        { label: "$(arrow-right) スキップ", do: false },
+      ],
+      { title: `${env.name} (${env.orgAlias}) のCI認証情報` }
+    );
+    if (!go) {
+      return;
+    }
+    if (!go.do) {
+      continue;
+    }
+    const clientId = await vscode.window.showInputBox({
+      title: `${env.name}: Consumer Key`,
+      prompt: "接続アプリの Consumer Key (Client ID)",
+      ignoreFocusOut: true,
+    });
+    if (clientId === undefined) {
+      return;
+    }
+    const username = await vscode.window.showInputBox({
+      title: `${env.name}: 連携ユーザー`,
+      prompt: "CIが使う連携ユーザーのユーザー名（例: ci@example.com）",
+      ignoreFocusOut: true,
+    });
+    if (username === undefined) {
+      return;
+    }
+    const instanceUrl = await vscode.window.showInputBox({
+      title: `${env.name}: ログインURL`,
+      value: env.type === "production" ? "https://login.salesforce.com" : "https://test.salesforce.com",
+      ignoreFocusOut: true,
+    });
+    if (instanceUrl === undefined) {
+      return;
+    }
+    const setSecret = async (name: string, value: string, isVar = false) =>
+      run("gh", [isVar ? "variable" : "secret", "set", name, "-b", value], { cwd: root, timeout: 30_000 });
+    const results: string[] = [];
+    const r1 = await setSecret(`${prefix}_CLIENT_ID`, clientId.trim());
+    results.push(`CLIENT_ID:${r1.code === 0 ? "✓" : "✗"}`);
+    const r2 = await setSecret(`${prefix}_USERNAME`, username.trim());
+    results.push(`USERNAME:${r2.code === 0 ? "✓" : "✗"}`);
+    const r3 = await setSecret(`${prefix}_INSTANCE_URL`, instanceUrl.trim(), true);
+    results.push(`INSTANCE_URL:${r3.code === 0 ? "✓" : "✗"}`);
+    if (keyBody) {
+      const r4 = await setSecret(`${prefix}_JWT_KEY`, keyBody);
+      results.push(`JWT_KEY:${r4.code === 0 ? "✓" : "✗"}`);
+    } else {
+      results.push("JWT_KEY:未(鍵未生成)");
+    }
+    vscode.window.showInformationMessage(`${env.name}: ${results.join(" / ")}`);
+  }
+  vscode.window.showInformationMessage("CI/CDシークレットの設定を完了しました。PRを出すと自動検証が動きます。");
+}
+
+/** Append a line to .gitignore if not already present. */
+async function ensureGitignored(root: string, entry: string): Promise<void> {
+  const gi = path.join(root, ".gitignore");
+  let cur = "";
+  try {
+    cur = await fsp.readFile(gi, "utf8");
+  } catch {
+    /* no .gitignore yet */
+  }
+  if (!cur.split(/\r?\n/).some((l) => l.trim() === entry)) {
+    await fsp.writeFile(gi, (cur && !cur.endsWith("\n") ? cur + "\n" : cur) + `${entry}\n`, "utf8");
+  }
 }
 
