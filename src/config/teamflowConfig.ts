@@ -27,6 +27,8 @@ export interface TeamEnvironment {
   testLevel?: TestLevel;
   /** If true, merges to this branch run validate-only in CI before deploy. */
   requireValidation?: boolean;
+  /** Free-text role/purpose of this environment (例: 結合テスト, UAT, リリースリハ). */
+  purpose?: string;
 }
 
 export interface TeamflowConfig {
@@ -105,6 +107,7 @@ export function parseTeamflowConfig(raw: unknown): TeamflowConfig {
       baseRef: typeof env.baseRef === "string" ? env.baseRef : undefined,
       testLevel: envTestLevel,
       requireValidation: env.requireValidation === true,
+      purpose: typeof env.purpose === "string" ? env.purpose : undefined,
     };
   });
 

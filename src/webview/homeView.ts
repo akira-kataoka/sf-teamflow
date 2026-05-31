@@ -53,7 +53,7 @@ interface HomeState {
   /** Handy dev metrics: deploys(リリース)/tests/saves + connected org count. */
   stats: { deploys: number; tests: number; saves: number; orgs: number };
   /** Environment pipeline for the visual (dev → staging → prod). */
-  pipeline: { name: string; type: string; orgAlias: string; current: boolean; connected: boolean }[];
+  pipeline: { name: string; type: string; orgAlias: string; purpose?: string; current: boolean; connected: boolean }[];
 }
 
 /**
@@ -257,6 +257,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
             name: e.name,
             type: e.type,
             orgAlias: e.orgAlias,
+            purpose: e.purpose,
             current: env?.name === e.name,
             connected: orgs.some((o) => o.username === e.orgAlias || o.displayName === e.orgAlias),
           }));
@@ -320,6 +321,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .pipeline .penv .pe { font-size: 15px; }
   .pipeline .penv .pn { font-weight: 600; margin-top: 1px; }
   .pipeline .penv .po { opacity: .6; }
+  .pipeline .penv .pp { opacity: .55; font-size: 9.5px; margin-top: 2px; }
   .pipeline .arrow { display: flex; align-items: center; padding: 0 3px; opacity: .5; font-size: 12px; }
   .chip.clickable { cursor: pointer; }
   .chip.clickable:hover { filter: brightness(1.2); }
@@ -520,9 +522,10 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       const EM = { development:'🛠️', staging:'🧪', production:'🛡️', sandbox:'🧪', dev:'🛠️', scratch:'🌱' };
       const cells = s.pipeline.map(p => {
         const emoji = EM[p.name.toLowerCase()] || EM[p.type] || '☁️';
-        return '<div class="penv'+(p.current?' cur':'')+(p.type==='production'?' prod':'')+'">'+
+        const purpose = p.purpose ? '<div class="pp">'+escapeHtml(p.purpose)+'</div>' : '';
+        return '<div class="penv'+(p.current?' cur':'')+(p.type==='production'?' prod':'')+'" title="'+escapeAttr((p.purpose?p.purpose+' / ':'')+p.orgAlias)+'">'+
           '<div class="pe">'+emoji+'</div><div class="pn">'+escapeHtml(p.name)+'</div>'+
-          '<div class="po">'+escapeHtml(p.orgAlias)+(p.connected?'':' ❌')+'</div></div>';
+          '<div class="po">'+escapeHtml(p.orgAlias)+(p.connected?'':' ❌')+'</div>'+purpose+'</div>';
       });
       $('pipeline').innerHTML = cells.join('<div class="arrow">→</div>');
     } else {

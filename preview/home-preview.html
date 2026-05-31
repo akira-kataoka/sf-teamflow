@@ -68,10 +68,22 @@
   details.more { margin: 2px 0 10px; }
   details.more > summary { cursor: pointer; font-size: 12.5px; padding: 8px 10px; border: 1px dashed var(--vscode-panel-border); border-radius: 8px; opacity: .85; list-style: none; }
   .addorg { margin-bottom: 8px; }
+  .stats { display: flex; gap: 6px; margin-bottom: 10px; }
+  .stat { flex: 1; text-align: center; padding: 7px 4px; border: 1px solid var(--vscode-panel-border); border-radius: 8px; }
+  .stat .n { font-size: 17px; font-weight: 700; line-height: 1.1; }
+  .stat .l { font-size: 10px; opacity: .65; margin-top: 2px; }
+  .pipeline { display: flex; align-items: stretch; margin-bottom: 12px; }
+  .pipeline .penv { flex: 1; text-align: center; padding: 7px 3px; border: 1px solid var(--vscode-panel-border); border-radius: 8px; font-size: 10.5px; }
+  .pipeline .penv.cur { outline: 2px solid var(--vscode-focusBorder); }
+  .pipeline .penv.prod { border-color: #e55; }
+  .pipeline .penv .pe { font-size: 15px; } .pipeline .penv .pn { font-weight: 600; margin-top: 1px; } .pipeline .penv .po { opacity: .6; }
+  .pipeline .arrow { display: flex; align-items: center; padding: 0 3px; opacity: .5; }
 </style>
 </head>
 <body>
   <div id="status" class="chips"></div>
+  <div id="stats" class="stats"></div>
+  <div id="pipeline" class="pipeline"></div>
   <div id="hero"></div>
   <div id="situation" style="font-size:11.5px;opacity:.72;margin:-4px 2px 12px;line-height:1.45;"></div>
   <div id="changedbox"></div>
@@ -102,6 +114,9 @@
     if(s.defaultOrg) chips.push('<span class="chip '+(s.defaultOrg.isProduction?'prod':'')+'">☁️ '+(s.defaultOrg.isProduction?'⚠️ ':'')+escapeHtml(s.defaultOrg.displayName)+'</span>');
     if(s.hasRepo){ let b='🌿 '+escapeHtml(s.branch); if(s.env) b+=' → '+escapeHtml(s.env.name); chips.push('<span class="chip">'+b+'</span>'); }
     $('status').innerHTML=chips.join('');
+    const st=s.stats||{deploys:0,tests:0,saves:0,orgs:0};
+    $('stats').innerHTML='<div class="stat"><div class="n">'+st.deploys+'</div><div class="l">🚀 リリース</div></div><div class="stat"><div class="n">'+st.tests+'</div><div class="l">🧪 テスト</div></div><div class="stat"><div class="n">'+st.saves+'</div><div class="l">💾 保存</div></div><div class="stat"><div class="n">'+st.orgs+'</div><div class="l">☁️ Org</div></div>';
+    if(s.pipeline&&s.pipeline.length>0){ const EM={development:'🛠️',staging:'🧪',production:'🛡️'}; $('pipeline').innerHTML=s.pipeline.map(p=>'<div class="penv'+(p.current?' cur':'')+(p.type==='production'?' prod':'')+'"><div class="pe">'+(EM[p.name.toLowerCase()]||'☁️')+'</div><div class="pn">'+p.name+'</div><div class="po">'+p.orgAlias+(p.connected?'':' ❌')+'</div></div>').join('<div class="arrow">→</div>'); }
     const na=nextAction(s);
     $('hero').innerHTML='<div class="hero'+(na.calm?' calm':'')+'"><span class="em">'+na.em+'</span><span class="tx"><div class="t1">'+na.t1+'</div><div class="t2">'+escapeHtml(na.t2)+'</div></span>'+(na.c?'<span class="go">▶</span>':'')+'</div>';
     if(s.hasRepo){ const where='「'+escapeHtml(s.branch)+'」'+(s.env?'（'+escapeHtml(s.env.name)+'環境）':''); const parts=[s.changes>0?'変更'+s.changes+'件が未保存':'変更なし']; if(s.ahead>0)parts.push('未バックアップ'+s.ahead+'件'); const org=s.defaultOrg?'反映先=「'+escapeHtml(s.defaultOrg.displayName)+'」'+(s.defaultOrg.isProduction?'⚠️本番':''):'反映先Org未選択'; document.getElementById('situation').innerHTML='いま '+where+' で作業中。'+parts.join('・')+'。'+org+'。'; }
@@ -122,6 +137,12 @@
     $('orgs').innerHTML='<button class="iconbtn addorg">＋ Orgを追加</button>'+s.orgs.map(o=>'<div class="card '+(o.isDefault?'active':'')+'"><span class="dot" style="background:'+(colors[o.category]||'#888')+'"></span><span class="name">'+(o.isDefault?'★ ':'')+escapeHtml(o.displayName)+(o.isProduction?' ⚠️':'')+'<div class="cat">'+o.category+'</div></span><button class="open">開く</button></div>').join('');
   }
   render({
+    stats:{deploys:12,tests:34,saves:58,orgs:3},
+    pipeline:[
+      {name:'development',type:'sandbox',orgAlias:'gantt-dev',current:true,connected:true},
+      {name:'staging',type:'sandbox',orgAlias:'gantt-new',current:false,connected:true},
+      {name:'production',type:'production',orgAlias:'mfg-dev',current:false,connected:true},
+    ],
     configured:true, hasRepo:true, hasRemote:true, changes:3, ahead:2, behind:0, deployCount:5,
     files:[
       {label:'変更', path:'force-app/main/default/classes/AccountController.cls'},

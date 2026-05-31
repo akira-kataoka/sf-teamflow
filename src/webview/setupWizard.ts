@@ -25,6 +25,7 @@ interface WizardEnvInput {
   type: EnvironmentType;
   enabled: boolean;
   requireValidation?: boolean;
+  purpose?: string;
 }
 
 /**
@@ -137,6 +138,7 @@ export class SetupWizard {
       type: e.type,
       testLevel: "RunLocalTests",
       requireValidation: e.type === "production" || e.requireValidation === true,
+      ...(e.purpose ? { purpose: e.purpose } : {}),
     }));
 
     // Validate through the same parser used at load time.
@@ -212,6 +214,12 @@ export class SetupWizard {
   .envhead .title { font-size: 15px; font-weight: 600; }
   .envhead .desc { font-size: 12px; opacity: .65; }
   .envhead label { margin-left: auto; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .envhead .enm { flex: 1; padding: 6px 8px; font-size: 14px; font-weight: 600; background: var(--vscode-input-background, #3c3c3c); color: var(--vscode-input-foreground, #fff); border: 1px solid var(--vscode-input-border, #8884); border-radius: 6px; }
+  .envhead .del { background: transparent; border: none; cursor: pointer; font-size: 15px; padding: 4px 6px; }
+  .envhead .del:hover { background: var(--vscode-toolbar-hoverBackground, #ffffff22); border-radius: 6px; }
+  .field .epurpose { flex: 1; padding: 6px 8px; background: var(--vscode-input-background, #3c3c3c); color: var(--vscode-input-foreground, #fff); border: 1px solid var(--vscode-input-border, #8884); border-radius: 6px; font-size: 13px; }
+  .addenv { width: 100%; padding: 10px; border: 1px dashed var(--vscode-panel-border, #8884); border-radius: 8px; background: transparent; color: var(--vscode-foreground); cursor: pointer; font-size: 13px; }
+  .addenv:hover { background: var(--vscode-list-hoverBackground); }
   .field { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
   .field > .lbl { width: 92px; font-size: 12.5px; opacity: .8; flex: 0 0 auto; }
   select, input[type=text] { flex: 1; padding: 7px 8px; background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground); border: 1px solid var(--vscode-dropdown-border, #8884); border-radius: 6px; font-size: 13px; }
@@ -254,7 +262,7 @@ export class SetupWizard {
 
   <!-- STEP 2 -->
   <div class="page" data-page="2">
-    <p class="hint">それぞれの環境に、使う Org とブランチを選びます。使わない環境はオフにできます。</p>
+    <p class="hint">チームに合わせて環境を自由に定義できます。各環境に名前・種別・環境(Org)・ブランチ・用途を設定。「＋環境を追加」で何段でも作れます（例: 開発→結合→UAT→ステージング→本番）。</p>
     <div id="envs"></div>
     <div class="row"><button class="secondary" id="back2">‹ 戻る</button><button class="primary" id="to3">次へ ›</button></div>
   </div>
@@ -275,12 +283,15 @@ export class SetupWizard {
   const $$ = (s) => Array.from(document.querySelectorAll(s));
   let ORGS = [];
 
-  const ENV_DEFS = [
-    { key:'development', emoji:'🛠️', title:'開発 (Development)', desc:'各開発者が日々使う環境', type:'sandbox', branch:'develop', on:true },
-    { key:'staging', emoji:'🧪', title:'ステージング (Staging)', desc:'本番前の受入テスト', type:'sandbox', branch:'release/*', on:true },
-    { key:'production', emoji:'🛡️', title:'本番 (Production)', desc:'お客様が使う環境', type:'production', branch:'main', on:true },
+  // Environments are fully team-defined: start from a common template, then
+  // add / remove / edit rows freely (name, type, org, branch, purpose).
+  const TYPES = ['sandbox','production','scratch','dev'];
+  let ENVS = [
+    { name:'development', type:'sandbox', orgAlias:'', branch:'develop', purpose:'各開発者が日々使う' },
+    { name:'staging', type:'sandbox', orgAlias:'', branch:'release/*', purpose:'本番前の受入テスト' },
+    { name:'production', type:'production', orgAlias:'', branch:'main', purpose:'お客様が使う環境' },
   ];
-  const BRANCH_PRESETS = ['develop','release/*','main','feature/*','hotfix/*'];
+  const BRANCH_PRESETS = ['develop','release/*','main','feature/*','hotfix/*','integration','uat'];
 
   function showPage(n) {
     $$('.page').forEach(p => p.classList.toggle('show', p.dataset.page == n));
@@ -298,30 +309,51 @@ export class SetupWizard {
     return BRANCH_PRESETS.map(b => '<option '+(b===selected?'selected':'')+'>'+esc(b)+'</option>').join('') +
       (has?'':'<option selected>'+esc(selected)+'</option>');
   }
+  function typeOptions(selected) {
+    const labels = { sandbox:'Sandbox', production:'本番', scratch:'スクラッチ', dev:'開発' };
+    return TYPES.map(t => '<option value="'+t+'" '+(t===selected?'selected':'')+'>'+labels[t]+'</option>').join('');
+  }
+  function emojiFor(e) {
+    if (e.type==='production') return '🛡️';
+    if (e.type==='scratch') return '🌱';
+    const n = (e.name||'').toLowerCase();
+    if (n.includes('uat')||n.includes('test')) return '🧪';
+    if (n.includes('stag')) return '🚦';
+    return '🛠️';
+  }
 
   function renderEnvs() {
-    $('#envs').innerHTML = ENV_DEFS.map((e,i) =>
-      '<div class="envcard '+(e.on?'':'off')+'" data-env="'+i+'">'+
-        '<div class="envhead"><span class="emoji">'+e.emoji+'</span>'+
-          '<span><div class="title">'+e.title+'</div><div class="desc">'+e.desc+'</div></span>'+
-          '<label><input type="checkbox" class="toggle enable" data-i="'+i+'" '+(e.on?'checked':'')+'> 使う</label></div>'+
+    const rows = ENVS.map((e,i) =>
+      '<div class="envcard" data-env="'+i+'">'+
+        '<div class="envhead"><span class="emoji">'+emojiFor(e)+'</span>'+
+          '<input type="text" class="enm" data-i="'+i+'" value="'+esc(e.name)+'" placeholder="環境名（例: uat）">'+
+          '<button class="del" data-i="'+i+'" title="この環境を削除">🗑</button></div>'+
+        '<div class="field"><span class="lbl">種別</span><select class="etype" data-i="'+i+'">'+typeOptions(e.type)+'</select></div>'+
         '<div class="field"><span class="lbl">Org</span><select class="org" data-i="'+i+'">'+orgOptions(e.orgAlias)+'</select></div>'+
         '<div class="field"><span class="lbl">ブランチ</span><select class="branch" data-i="'+i+'">'+branchOptions(e.branch)+'</select></div>'+
+        '<div class="field"><span class="lbl">用途</span><input type="text" class="epurpose" data-i="'+i+'" value="'+esc(e.purpose||'')+'" placeholder="この環境の役割（任意）"></div>'+
       '</div>').join('');
-    $$('.enable').forEach(el => el.addEventListener('change', (ev)=>{ ENV_DEFS[ev.target.dataset.i].on = ev.target.checked; renderEnvs(); }));
-    $$('.org').forEach(el => el.addEventListener('change', (ev)=>{ ENV_DEFS[ev.target.dataset.i].orgAlias = ev.target.value; }));
-    $$('.branch').forEach(el => el.addEventListener('change', (ev)=>{ ENV_DEFS[ev.target.dataset.i].branch = ev.target.value; }));
+    $('#envs').innerHTML = rows + '<button class="addenv" id="addenv">＋ 環境を追加</button>';
+    $$('.enm').forEach(el => el.addEventListener('input', (ev)=>{ ENVS[ev.target.dataset.i].name = ev.target.value; }));
+    $$('.etype').forEach(el => el.addEventListener('change', (ev)=>{ ENVS[ev.target.dataset.i].type = ev.target.value; renderEnvs(); }));
+    $$('.org').forEach(el => el.addEventListener('change', (ev)=>{ ENVS[ev.target.dataset.i].orgAlias = ev.target.value; }));
+    $$('.branch').forEach(el => el.addEventListener('change', (ev)=>{ ENVS[ev.target.dataset.i].branch = ev.target.value; }));
+    $$('.epurpose').forEach(el => el.addEventListener('input', (ev)=>{ ENVS[ev.target.dataset.i].purpose = ev.target.value; }));
+    $$('.del').forEach(el => el.addEventListener('click', (ev)=>{ ENVS.splice(Number(ev.target.dataset.i),1); renderEnvs(); }));
+    $('#addenv').addEventListener('click', ()=>{ ENVS.push({ name:'', type:'sandbox', orgAlias:'', branch:'feature/*', purpose:'' }); renderEnvs(); });
   }
 
   function collect() {
-    return ENV_DEFS.map(e => ({ name:e.key, orgAlias:e.orgAlias||'', branch:e.branch, type:e.type, enabled:e.on, requireValidation: e.type!=='sandbox' }));
+    return ENVS.map(e => ({ name:(e.name||'').trim(), orgAlias:e.orgAlias||'', branch:e.branch, type:e.type, purpose:(e.purpose||'').trim(), enabled: !!(e.name||'').trim(), requireValidation: e.type==='production' }));
   }
 
   function renderPreview() {
-    const envs = collect().filter(e => e.enabled && e.orgAlias && e.branch).map(e => ({
-      name:e.name, orgAlias:e.orgAlias, branch:e.branch, type:e.type, testLevel:'RunLocalTests',
-      requireValidation: e.type==='production' || e.requireValidation
-    }));
+    const envs = collect().filter(e => e.enabled && e.orgAlias && e.branch).map(e => {
+      const o = { name:e.name, orgAlias:e.orgAlias, branch:e.branch, type:e.type, testLevel:'RunLocalTests',
+        requireValidation: e.type==='production' || e.requireValidation };
+      if (e.purpose) o.purpose = e.purpose;
+      return o;
+    });
     const cfg = { "$schema":"./sf-teamflow.schema.json", version:1, defaultBaseRef:"origin/main", testLevel:"RunLocalTests", packageDirectories:["force-app"], environments: envs };
     $('#preview').textContent = JSON.stringify(cfg, null, 2);
     $('#create').disabled = envs.length === 0;

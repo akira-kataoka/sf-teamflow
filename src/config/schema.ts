@@ -40,6 +40,7 @@ export const TEAMFLOW_SCHEMA = {
             enum: ["NoTestRun", "RunSpecifiedTests", "RunLocalTests", "RunAllTestsInOrg"],
           },
           requireValidation: { type: "boolean" },
+          purpose: { type: "string", description: "この環境の役割/用途（例: 結合テスト, UAT）" },
         },
       },
     },
