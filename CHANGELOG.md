@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.58.0] - 2026-05-31
+
+- 🐞 **master系リポジトリでデプロイ/検証が落ちるバグを修正**: 既定の基準ブランチが `origin/main` のため、既定ブランチが `master` のリポジトリ（GitHubの多く）で `git diff origin/main...HEAD` が「unknown revision」で失敗し、デプロイ前チェック・環境へデプロイ・ホームのデプロイ件数バッジが動かなかった。`changedFiles` が**実在する基準refへ自動フォールバック**（`origin/main`→`origin/master`→`master` 等）するように。`baseRefCandidates` 純関数＋テスト。プロセステストで発見。
+
 ## [0.57.0] - 2026-05-31
 
 - 🌿🌱 **機能ブランチ↔スクラッチ環境の連動（バックログ#3）**: GitHub Flow（1機能=1ブランチ=1使い捨て環境）を支援。

@@ -1,6 +1,23 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parsePorcelainV2, conflictedFiles, parseCommitLog } from "../src/deploy/gitService.js";
+import {
+  parsePorcelainV2,
+  conflictedFiles,
+  parseCommitLog,
+  baseRefCandidates,
+} from "../src/deploy/gitService.js";
+
+test("baseRefCandidates: preferred first, common fallbacks, deduped", () => {
+  const c = baseRefCandidates("origin/main");
+  assert.equal(c[0], "origin/main");
+  assert.ok(c.includes("origin/master"), "origin/master fallback present");
+  assert.ok(c.includes("master"), "master fallback present");
+  assert.equal(new Set(c).size, c.length, "no duplicates");
+  // preferred が master でも重複せず先頭に
+  const c2 = baseRefCandidates("master");
+  assert.equal(c2[0], "master");
+  assert.equal(new Set(c2).size, c2.length);
+});
 
 test("parseCommitLog parses hash/rel/author/subject (subject may contain tabs)", () => {
   const out = [

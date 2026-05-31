@@ -115,10 +115,47 @@ export async function currentBranch(cwd: string): Promise<string> {
  * Includes committed changes; uncommitted tracked changes are added via a
  * second working-tree diff, and untracked files are appended as additions.
  */
+/**
+ * Ordered base-ref candidates to try when the configured one is missing.
+ * Many repos default to `master` (not `main`), so `origin/main` (the default
+ * setting) doesn't exist and `git diff origin/main...HEAD` would crash. We fall
+ * back to the actual default branch. Pure & unit-tested.
+ */
+export function baseRefCandidates(preferred: string): string[] {
+  const fallbacks = ["origin/HEAD", "origin/main", "origin/master", "main", "master"];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const r of [preferred, ...fallbacks]) {
+    const v = (r || "").trim();
+    if (v && !seen.has(v)) {
+      seen.add(v);
+      out.push(v);
+    }
+  }
+  return out;
+}
+
+/** First base-ref candidate that actually exists in the repo, or undefined. */
+export async function resolveBaseRef(preferred: string, cwd: string): Promise<string | undefined> {
+  for (const ref of baseRefCandidates(preferred)) {
+    const r = await run("git", ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`], {
+      cwd,
+      timeout: 10_000,
+    });
+    if (r.code === 0 && r.stdout.trim()) {
+      return ref;
+    }
+  }
+  return undefined;
+}
+
 export async function changedFiles(baseRef: string, cwd: string): Promise<DiffEntry[]> {
-  const committed = parseNameStatus(
-    await git(["diff", "--name-status", `${baseRef}...HEAD`], cwd)
-  );
+  // 設定の baseRef が存在しない場合（例: 既定 origin/main だが repo は master）に
+  // 落ちないよう、実在する基準refへフォールバックする。解決できなければ committed 差分は空。
+  const base = await resolveBaseRef(baseRef, cwd);
+  const committed = base
+    ? parseNameStatus(await git(["diff", "--name-status", `${base}...HEAD`], cwd))
+    : [];
   const working = parseNameStatus(await git(["diff", "--name-status", "HEAD"], cwd));
   const untrackedRaw = await git(["ls-files", "--others", "--exclude-standard"], cwd);
   const untracked: DiffEntry[] = untrackedRaw
