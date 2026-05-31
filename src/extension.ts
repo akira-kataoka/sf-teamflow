@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { logger } from "./util/logger.js";
 import { run } from "./util/exec.js";
-import { runSf } from "./util/cli.js";
+import { runSf, parseSfVersion, isSfVersionOutdated } from "./util/cli.js";
 import { OrgTreeProvider, type TreeNode } from "./orgManager/orgTreeProvider.js";
 import type { OrgInfo } from "./orgManager/orgService.js";
 import * as path from "node:path";
@@ -62,6 +62,38 @@ function cliPath(): string {
   return vscode.workspace.getConfiguration("teamflow").get<string>("sfCliPath", "sf") || "sf";
 }
 
+/**
+ * 古い sf CLI は「Missing message ... Finalizing」等の不可解なクラッシュを起こすため、
+ * 起動時に一度だけ検知して更新を促す。同じバージョンでは二度警告しない（naggyにしない）。
+ */
+async function warnIfSfOutdated(context: vscode.ExtensionContext): Promise<void> {
+  try {
+    const res = await run(cliPath(), ["--version"], { timeout: 15_000 });
+    const out = `${res.stdout}\n${res.stderr}`;
+    if (res.code !== 0 || !isSfVersionOutdated(out)) {
+      return;
+    }
+    const v = parseSfVersion(out);
+    const verStr = v ? `${v.major}.${v.minor}.${v.patch}` : "unknown";
+    const KEY = "teamflow.lastSfVersionWarned";
+    if (context.globalState.get<string>(KEY) === verStr) {
+      return; // 同じ古いバージョンでは繰り返さない
+    }
+    void context.globalState.update(KEY, verStr);
+    const pick = await vscode.window.showWarningMessage(
+      `Salesforce CLI (sf) が古い可能性があります（${verStr}）。デプロイ時の不可解なエラー（"Finalizing" クラッシュ等）の原因になります。ターミナルで \`sf update\` を実行して更新を推奨します。`,
+      "更新方法を開く"
+    );
+    if (pick === "更新方法を開く") {
+      await vscode.env.openExternal(
+        vscode.Uri.parse("https://developer.salesforce.com/tools/salesforcecli")
+      );
+    }
+  } catch {
+    /* バージョン確認は補助的なもの。失敗しても無視。 */
+  }
+}
+
 function requireRoot(): string | undefined {
   const root = workspaceRoot();
   if (!root) {
@@ -86,6 +118,7 @@ function refreshAll(): void {
 
 export function activate(context: vscode.ExtensionContext): void {
   logger.info(`Salesforce Dev Manager activated (cli=${cliPath()})`);
+  void warnIfSfOutdated(context);
 
   orgTree = new OrgTreeProvider(cliPath, workspaceRoot);
   statusBar = new StatusBar();

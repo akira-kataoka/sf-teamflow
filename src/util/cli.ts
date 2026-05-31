@@ -1,5 +1,33 @@
 import { run } from "./exec.js";
 
+export interface SfVersion {
+  major: number;
+  minor: number;
+  patch: number;
+}
+
+/** `sf --version`（例: "@salesforce/cli/2.25.7 win32-x64 node-v20.10.0"）からバージョンを抽出。 */
+export function parseSfVersion(out: string): SfVersion | undefined {
+  const m = out.match(/@salesforce\/cli\/(\d+)\.(\d+)\.(\d+)/);
+  if (!m) {
+    return undefined;
+  }
+  return { major: Number(m[1]), minor: Number(m[2]), patch: Number(m[3]) };
+}
+
+/**
+ * 既知の不具合(例: 2.25系の "Missing message ... Finalizing" クラッシュ)を避けるための
+ * 下限を下回るかを判定。floor は「最新」ではなく安全な下限。parse不能なら false(警告しない)。
+ * Pure & unit-tested.
+ */
+export function isSfVersionOutdated(out: string, floorMajor = 2, floorMinor = 40): boolean {
+  const v = parseSfVersion(out);
+  if (!v) {
+    return false;
+  }
+  return v.major < floorMajor || (v.major === floorMajor && v.minor < floorMinor);
+}
+
 /** Shape of every `sf ... --json` envelope. */
 export interface SfJson<T> {
   status: number;

@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.67.0] - 2026-06-01
+
+- ⚠️ **古い sf CLI を検知して更新を促す**: 起動時に `sf --version` を確認し、安全な下限(2.40)未満なら一度だけ警告(「Finalizing」クラッシュ等の不可解なエラーを未然に回避)。同じ古いバージョンでは繰り返し警告しない(globalStateで抑制)。判定は純関数 parseSfVersion/isSfVersionOutdated でテスト。UI不変(一度きりの通知)。
+
 ## [0.66.1] - 2026-06-01
 
 - 🛡️ **CI/CD設定後にブランチ保護へ誘導**: 「CI/CD設定」完了時に、main/develop のブランチ保護(検証通過を必須化・直接push禁止)を促し、設定ページを開くボタンを表示。CIをbranch protectionで必須化しないと迂回できるため(GitHub Flow定石)。gh repo view でURL取得、UI不変。
