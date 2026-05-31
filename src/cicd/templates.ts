@@ -184,6 +184,26 @@ ${envCases}
           else
             echo "LWC コンポーネントが無いためスキップします。"
           fi
+
+  format-check:
+    name: コード整形チェック (Prettier)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Prettier 設定があれば整形をチェック（レポートのみ）
+        run: |
+          if [ -f .prettierrc ] || [ -f .prettierrc.json ] || [ -f .prettierrc.yaml ] || [ -f .prettierrc.js ] || [ -f prettier.config.js ] || grep -q '"prettier"' package.json 2>/dev/null; then
+            npm ci || npm install
+            npx --yes prettier --check "${dirs.map((d) => `${d}/**/*.{cls,trigger,js,html,xml}`).join("\" \"")}" \\
+              || echo "::warning::整形されていないファイルがあります（ローカルで npx prettier --write で整えられます）。"
+          else
+            echo "Prettier 設定が無いためスキップします。"
+          fi
 `;
 }
 

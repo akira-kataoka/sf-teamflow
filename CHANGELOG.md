@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.64.0] - 2026-06-01
+
+- 💅 **CI/CDにPrettier整形チェックを追加**: PR検証に format-check ジョブを追加。.prettierrc 等の設定があれば `prettier --check` で整形を検査(レポートのみ/設定が無ければスキップ)。これでPRに「検証/Apexテスト/PMD/Jest/整形」が揃う。UIは増やさずCI(YAML)のみ拡張。
+
 ## [0.63.1] - 2026-06-01
 
 - 📘 ガイド更新: 新機能(機能ブランチ↔スクラッチ連動 / 🕘変更履歴 / ⏪取り消し / 🤖CI/CD生成+PMD+Jest / 🔑CI/CD設定)と、workflow権限エラーの対処をガイドに追記。画面は変えず内容のみ最新化。

@@ -78,6 +78,8 @@ test("prValidationWorkflow includes PMD static analysis and LWC Jest jobs", () =
   assert.ok(yml.includes("--engine pmd"), "uses the pmd engine");
   assert.ok(yml.includes("lwc-jest:"), "Jest job present");
   assert.ok(yml.includes("sfdx-lwc-jest") || yml.includes("test:unit"), "runs LWC jest");
+  assert.ok(yml.includes("format-check:"), "Prettier format-check job present");
+  assert.ok(yml.includes("prettier --check"), "runs prettier --check");
 });
 
 test("codeowners lists the package directories", () => {
