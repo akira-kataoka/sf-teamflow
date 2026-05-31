@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.52.0] - 2026-05-31
+
+- ⏳ **スクラッチ環境の期日管理（バックログB）**: 期限切れのスクラッチ環境をホームの環境カードで**グレーアウト＋「⏳期限切れ」表示**し、「🗑 掃除」ボタンでその環境を直接削除できるように（`deleteScratchOrg` が username 指定に対応）。期限切れは自動では消さず（誤削除防止）、一目で分かる＋ワンクリック掃除の方針。`isScratchExpired` 純関数＋テスト追加。
+
 ## [0.51.0] - 2026-05-31
 
 - 🤖 **CI/CD生成をホームに**: これまでセットアップ完了画面からしか辿れなかった「CI/CD生成」(GitHub Actions)を ④テスト・リリース にタイル追加。PRで自動検証(sf-validate.yml)／対象ブランチへのmergeで自動デプロイ(sf-deploy.yml)を生成でき、GitHub Flow（feature→develop→main）に対応。

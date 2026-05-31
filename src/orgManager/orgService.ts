@@ -146,6 +146,22 @@ export function scratchRemainingLabel(
   return days < 0 ? "期限切れ" : `残り${days}日`;
 }
 
+/**
+ * True when a scratch org's expiration date has passed. Used to gray out and
+ * offer cleanup of dead scratch orgs in the home view. Pure & unit-tested.
+ */
+export function isScratchExpired(
+  category: OrgCategory | string,
+  expirationDate: string | undefined,
+  nowMs: number
+): boolean {
+  if (category !== "Scratch" || !expirationDate) {
+    return false;
+  }
+  const exp = new Date(expirationDate).getTime();
+  return !Number.isNaN(exp) && exp < nowMs;
+}
+
 export const CATEGORY_ORDER: Record<OrgCategory, number> = {
   Production: 0,
   Sandbox: 1,

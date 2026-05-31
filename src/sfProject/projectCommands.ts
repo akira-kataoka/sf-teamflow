@@ -632,8 +632,15 @@ export function registerProjectCommands(
   });
 
   // 不要なスクラッチOrgを削除.
-  reg("teamflow.deleteScratchOrg", async () => {
-    const org = await pickOrg("削除するスクラッチOrg", (o) => o.category === "Scratch");
+  reg("teamflow.deleteScratchOrg", async (usernameArg?: string) => {
+    // ホームの期限切れカードから username 指定で直接呼ばれることがある。
+    let org =
+      typeof usernameArg === "string"
+        ? ctx.knownOrgs().find((o) => o.username === usernameArg && o.category === "Scratch")
+        : undefined;
+    if (!org) {
+      org = await pickOrg("削除するスクラッチOrg", (o) => o.category === "Scratch");
+    }
     if (!org) {
       return;
     }

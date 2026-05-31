@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { OrgTreeProvider } from "../orgManager/orgTreeProvider.js";
-import { scratchRemainingLabel } from "../orgManager/orgService.js";
+import { scratchRemainingLabel, isScratchExpired } from "../orgManager/orgService.js";
 import {
   isGitRepo,
   status,
@@ -28,6 +28,8 @@ interface HomeOrg {
   connected: boolean;
   /** For scratch orgs: "残り5日" / "期限切れ" — undefined otherwise. */
   expires?: string;
+  /** True when a scratch org is past its expiration date (gray out + cleanup). */
+  expired?: boolean;
 }
 
 interface HomeState {
@@ -134,6 +136,10 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       case "reconnect":
         await vscode.commands.executeCommand("teamflow.reconnectOrg", msg.username);
         return;
+      case "deleteScratch":
+        await vscode.commands.executeCommand("teamflow.deleteScratchOrg", msg.username);
+        setTimeout(() => void this.postState(), 800);
+        return;
       case "switchBranch":
         await this.doSwitchBranch(msg.name);
         return;
@@ -198,6 +204,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       isDefault: o.isDefaultUsername === true,
       connected: o.connected,
       expires: scratchRemainingLabel(o.category, o.expirationDate, Date.now()),
+      expired: isScratchExpired(o.category, o.expirationDate, Date.now()),
     }));
 
     let configured = false;
@@ -401,6 +408,12 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .card .open { font-size: 11px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--vscode-panel-border,#8884); background: transparent; color: var(--vscode-foreground); cursor: pointer; white-space: nowrap; }
   .card.disc { border-color: var(--vscode-inputValidation-warningBorder, #c80); }
   .card .open.reconnect { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border-color: transparent; }
+  /* 期限切れスクラッチ: グレーアウトして「掃除」だけ目立たせる。 */
+  .card.expired { opacity: .5; border-style: dashed; }
+  .card.expired:hover { opacity: .75; }
+  .card .expiredtag { color: var(--vscode-inputValidation-errorBorder, #e5534b); font-weight: 600; }
+  .card .open.delscratch { border-color: var(--vscode-inputValidation-errorBorder, #e5534b); color: var(--vscode-inputValidation-errorBorder, #e5534b); }
+  .card .open.delscratch:hover { background: var(--vscode-inputValidation-errorBorder, #e5534b); color: #fff; }
   .row { display: flex; gap: 6px; align-items: center; }
   select { flex: 1; padding: 6px; background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground); border: 1px solid var(--vscode-dropdown-border, #8884); border-radius: 6px; }
   .iconbtn { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--vscode-panel-border,#8884); background: var(--vscode-button-secondaryBackground,#3a3d41); color: var(--vscode-button-secondaryForeground,#fff); cursor: pointer; white-space: nowrap; }
@@ -717,14 +730,20 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       // 種別を日本語の説明で表示（英語のカテゴリ名だと初心者に伝わらないため）。
       const KIND = { Production:'本番（お客様が使う）', Sandbox:'検証用（本番のコピー）', DevHub:'スクラッチの親（使い捨て環境を作る元）', Scratch:'使い捨ての開発環境', Other:'その他' };
       const cards = s.orgs.map(o => {
-        const action = o.connected
-          ? '<button class="open" data-open="'+escapeAttr(o.username)+'">開く</button>'
-          : '<button class="open reconnect" data-reconnect="'+escapeAttr(o.username)+'">再接続</button>';
-        return '<div class="card '+(o.isDefault?'active':'')+(o.connected?'':' disc')+'" data-org="'+escapeAttr(o.username)+'" role="button" tabindex="0" aria-label="'+escapeAttr(o.displayName+' を既定に設定')+'">'+
+        // 期限切れスクラッチは操作不能なので「掃除（削除）」だけ出す。
+        const action = o.expired
+          ? '<button class="open delscratch" data-delscratch="'+escapeAttr(o.username)+'">🗑 掃除</button>'
+          : (o.connected
+            ? '<button class="open" data-open="'+escapeAttr(o.username)+'">開く</button>'
+            : '<button class="open reconnect" data-reconnect="'+escapeAttr(o.username)+'">再接続</button>');
+        const expiryTag = o.expired
+          ? ' · <span class="expiredtag">⏳期限切れ</span>'
+          : (o.expires?' · ⏳'+escapeHtml(o.expires):'');
+        return '<div class="card '+(o.isDefault?'active':'')+(o.connected?'':' disc')+(o.expired?' expired':'')+'" data-org="'+escapeAttr(o.username)+'" role="button" tabindex="0" aria-label="'+escapeAttr(o.displayName+' を既定に設定')+'">'+
           '<span class="dot" style="background:'+(colors[o.category]||'#888')+'"></span>'+
           '<span class="name">'+(o.isDefault?'★ ':'')+escapeHtml(o.displayName)+
             (o.isProduction?' ⚠️':'')+(o.connected?'':' 🔌未接続')+
-            '<div class="cat">'+escapeHtml(KIND[o.category]||o.category)+(o.expires?' · ⏳'+escapeHtml(o.expires):'')+'</div></span>'+
+            '<div class="cat">'+escapeHtml(KIND[o.category]||o.category)+expiryTag+'</div></span>'+
           action+
         '</div>';
       }).join('');
@@ -741,6 +760,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   function activateFrom(target) {
     const rc = target.closest('[data-reconnect]');
     if (rc) { send('reconnect', { username: rc.getAttribute('data-reconnect') }); return true; }
+    const del = target.closest('[data-delscratch]');
+    if (del) { send('deleteScratch', { username: del.getAttribute('data-delscratch') }); return true; }
     const open = target.closest('[data-open]');
     if (open) { send('openOrg', { username: open.getAttribute('data-open') }); return true; }
     const of = target.closest('[data-openfile]');

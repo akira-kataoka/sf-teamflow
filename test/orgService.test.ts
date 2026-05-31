@@ -5,6 +5,7 @@ import {
   isProductionOrg,
   parseOrgList,
   scratchRemainingLabel,
+  isScratchExpired,
   type RawOrg,
 } from "../src/orgManager/orgService.js";
 
@@ -95,4 +96,13 @@ test("scratchRemainingLabel: only scratch, days/expired/invalid", () => {
   assert.equal(scratchRemainingLabel("Scratch", "bad-date", now), undefined);
   assert.equal(scratchRemainingLabel("Scratch", "2026-01-15", now), "残り5日");
   assert.equal(scratchRemainingLabel("Scratch", "2026-01-05", now), "期限切れ");
+});
+
+test("isScratchExpired: true only for past-dated scratch orgs", () => {
+  const now = Date.UTC(2026, 0, 10);
+  assert.equal(isScratchExpired("Scratch", "2026-01-05", now), true);
+  assert.equal(isScratchExpired("Scratch", "2026-01-15", now), false);
+  assert.equal(isScratchExpired("Scratch", undefined, now), false);
+  assert.equal(isScratchExpired("Scratch", "bad-date", now), false);
+  assert.equal(isScratchExpired("Sandbox", "2026-01-05", now), false);
 });
