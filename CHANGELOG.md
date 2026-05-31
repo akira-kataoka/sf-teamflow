@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.64.2] - 2026-06-01
+
+- ✅ **設定の保存→読込ラウンドトリップ回帰テストを追加**: ウィザードが書く sf-teamflow.json は全機能の土台。日本語環境名/glob/purpose/requireValidation を含む設定が直列化→parseで壊れないことを保証(実データでも往復一致を確認)。テスト109件。機能変更なし(ハードニング)。
+
 ## [0.64.1] - 2026-06-01
 
 - ⚡ **PR検証に並行制御を追加**: 同じPRに新しいコミットが来たら進行中の古い検証を自動キャンセル(concurrency cancel-in-progress)。CI時間の節約・標準ベストプラクティス。CI(YAML)のみの変更。

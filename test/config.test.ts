@@ -48,6 +48,29 @@ test("parseTeamflowConfig rejects bad input", () => {
   );
 });
 
+test("parseTeamflowConfig is stable under serialize→parse (保存→読込の往復で壊れない)", () => {
+  // ウィザードが書く sf-teamflow.json と同等。日本語名/glob/purpose/requireValidation を含む。
+  const cfg = parseTeamflowConfig({
+    version: 1,
+    defaultBaseRef: "origin/main",
+    testLevel: "RunLocalTests",
+    packageDirectories: ["force-app"],
+    environments: [
+      { name: "開発環境", orgAlias: "scratch-dev", branch: "feature/*", type: "scratch", purpose: "各開発者が日々使う" },
+      { name: "ステージング環境", orgAlias: "myDevOrg", branch: "release/*", type: "sandbox", purpose: "受入" },
+      { name: "本番環境", orgAlias: "mfg-dev", branch: "main", type: "production", requireValidation: true },
+    ],
+  });
+  // JSONに直列化して読み直しても等価（保存→読込ラウンドトリップの不変条件）。
+  const round = parseTeamflowConfig(JSON.parse(JSON.stringify(cfg)));
+  assert.deepEqual(round, cfg);
+  // 主要フィールドが保持される。
+  assert.equal(round.environments[0].name, "開発環境");
+  assert.equal(round.environments[0].branch, "feature/*");
+  assert.equal(round.environments[0].purpose, "各開発者が日々使う");
+  assert.equal(round.environments[2].requireValidation, true);
+});
+
 test("matchBranch handles exact and glob", () => {
   assert.equal(matchBranch("main", "main"), true);
   assert.equal(matchBranch("main", "develop"), false);
