@@ -1,4 +1,5 @@
 import type { TeamEnvironment, TeamflowConfig } from "../config/teamflowConfig.js";
+import { testLevelFor } from "../config/teamflowConfig.js";
 
 /**
  * GitHub Actions templates derived from the team config. All pure string
@@ -87,7 +88,7 @@ export function prValidationWorkflow(config: TeamflowConfig): string {
   const envCases = config.environments
     .map(
       (env) => `          if [ "$BASE" = "${env.branch}" ] || [[ "${env.branch}" == *"*"* && "$BASE" == ${env.branch} ]]; then
-            ALIAS="${env.orgAlias}"; LEVEL="${env.testLevel || config.testLevel}"
+            ALIAS="${env.orgAlias}"; LEVEL="${testLevelFor(config, env)}"
           fi`
     )
     .join("\n");
@@ -244,7 +245,7 @@ export function deployWorkflow(config: TeamflowConfig): string {
 
   const jobs = config.environments
     .map((env) => {
-      const level = env.testLevel || config.testLevel;
+      const level = testLevelFor(config, env);
       return `  deploy-${envSlug(env)}:
     name: Deploy → ${env.name} (${env.orgAlias})
     if: ${branchCondition(env)}

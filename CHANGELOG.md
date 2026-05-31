@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.70.1] - 2026-06-01
+
+- 🔗 **生成CI/CDも本番テストレベル下限を適用**: v0.70.0の本番下限(NoTestRun→RunLocalTests)は拡張内デプロイのみだった。生成される sf-deploy.yml / sf-validate.yml も testLevelFor 経由にし、本番ジョブが NoTestRun を出さないよう統一。
+
 ## [0.70.0] - 2026-06-01
 
 - 🛡️ **本番デプロイのテストレベル下限を保証**: 本番環境は Apex テスト実行が必須(NoTestRun では Salesforce が必ずデプロイを拒否)。設定が NoTestRun でも本番だけは最低 RunLocalTests に自動で引き上げ、確実に失敗するデプロイを未然に防止。非本番は設定どおり。

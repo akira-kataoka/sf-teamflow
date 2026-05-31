@@ -54,6 +54,21 @@ test("branchCondition emits exact vs startsWith for globs", () => {
   );
 });
 
+test("deployWorkflow: 本番ジョブは NoTestRun 設定でも RunLocalTests でデプロイ(testLevelFor経由)", () => {
+  const cfg = {
+    version: 1 as const,
+    defaultBaseRef: "origin/main",
+    testLevel: "NoTestRun" as const,
+    packageDirectories: ["force-app"],
+    environments: [
+      { name: "prod", orgAlias: "p", branch: "main", type: "production" as const, testLevel: "NoTestRun" as const },
+    ],
+  };
+  const yml = deployWorkflow(cfg);
+  assert.ok(yml.includes("--test-level RunLocalTests"), "本番はRunLocalTestsに引き上げ");
+  assert.ok(!yml.includes("--test-level NoTestRun"), "本番でNoTestRunは出さない");
+});
+
 test("deployWorkflow: 初回(親コミット無し)はパッケージ全体をデプロイし取りこぼさない", () => {
   const yml = deployWorkflow(defaultConfig());
   // 親が無ければ CHANGED にパッケージdirを入れる分岐がある
