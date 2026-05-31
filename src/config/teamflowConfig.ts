@@ -167,7 +167,13 @@ export function baseRefFor(config: TeamflowConfig, env?: TeamEnvironment): strin
 }
 
 export function testLevelFor(config: TeamflowConfig, env?: TeamEnvironment): TestLevel {
-  return env?.testLevel || config.testLevel;
+  const level = env?.testLevel || config.testLevel;
+  // 本番はApexテスト実行が必須（NoTestRun では Salesforce が必ずデプロイを拒否する）。
+  // 設定が NoTestRun でも、本番だけは最低 RunLocalTests に引き上げる。
+  if (env?.type === "production" && level === "NoTestRun") {
+    return "RunLocalTests";
+  }
+  return level;
 }
 
 /**

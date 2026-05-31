@@ -134,6 +134,22 @@ test("baseRefFor and testLevelFor fall back to config defaults", () => {
   assert.equal(testLevelFor(c, undefined), "RunLocalTests");
 });
 
+test("testLevelFor: 本番はNoTestRunを許さずRunLocalTestsに引き上げる", () => {
+  const c = parseTeamflowConfig({
+    testLevel: "NoTestRun",
+    environments: [
+      { name: "dev", orgAlias: "d", branch: "develop", type: "sandbox", testLevel: "NoTestRun" },
+      { name: "prod", orgAlias: "p", branch: "main", type: "production", testLevel: "NoTestRun" },
+    ],
+  });
+  const dev = resolveEnvironment(c, "develop");
+  const prod = resolveEnvironment(c, "main");
+  // 非本番は設定どおり NoTestRun を許容
+  assert.equal(testLevelFor(c, dev), "NoTestRun");
+  // 本番は NoTestRun を RunLocalTests に引き上げ（Salesforceが拒否するため）
+  assert.equal(testLevelFor(c, prod), "RunLocalTests");
+});
+
 test("matchBranch: edge globs (prefix, suffix, multiple stars, empty)", () => {
   assert.equal(matchBranch("*", "anything/here"), true);
   assert.equal(matchBranch("release/*", "release/"), true);

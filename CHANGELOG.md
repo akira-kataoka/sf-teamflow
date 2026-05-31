@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.70.0] - 2026-06-01
+
+- 🛡️ **本番デプロイのテストレベル下限を保証**: 本番環境は Apex テスト実行が必須(NoTestRun では Salesforce が必ずデプロイを拒否)。設定が NoTestRun でも本番だけは最低 RunLocalTests に自動で引き上げ、確実に失敗するデプロイを未然に防止。非本番は設定どおり。
+
 ## [0.69.0] - 2026-06-01
 
 - ✍️ **資材作成の名前チェックを種別ごとに正確化**: LWC は小文字始まりの camelCase 必須(大文字始まり/アンダースコアはsfが弾く)なのに、従来は大文字始まりも通っていた。種別別の検証 componentNameError を追加し、LWCは小文字camelCase、Apex/Auraは英字始まり(_可)に。入力時点で分かりやすくエラー表示(sfの不可解なエラーより前に)。
