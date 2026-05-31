@@ -323,10 +323,21 @@ export class SetupWizard {
     return none + ORGS.map(o => '<option value="'+esc(o.value)+'" '+(o.value===selected?'selected':'')+'>'+
       esc(o.label)+' — '+o.category+(o.isProduction?' ⚠️本番':'')+'</option>').join('');
   }
+  // ブランチ名 + 平易な説明。「/*」= その接頭辞で始まる全ブランチ（ワイルドカード）。
+  const BRANCH_DESC = {
+    'develop': '統合用（みんなの変更を合流）',
+    'release/*': 'リリース準備（release/ で始まる全ブランチ）',
+    'main': '本番（リリース確定）',
+    'feature/*': '機能開発（feature/ で始まる全ブランチ）',
+    'hotfix/*': '緊急修正（hotfix/ で始まる全ブランチ）',
+    'integration': '結合テスト用',
+    'uat': '受入テスト用',
+  };
   function branchOptions(selected) {
     const has = BRANCH_PRESETS.includes(selected);
-    return BRANCH_PRESETS.map(b => '<option '+(b===selected?'selected':'')+'>'+esc(b)+'</option>').join('') +
-      (has?'':'<option selected>'+esc(selected)+'</option>');
+    const label = b => esc(b) + (BRANCH_DESC[b] ? '  — ' + esc(BRANCH_DESC[b]) : '');
+    return BRANCH_PRESETS.map(b => '<option value="'+esc(b)+'" '+(b===selected?'selected':'')+'>'+label(b)+'</option>').join('') +
+      (has?'':'<option value="'+esc(selected)+'" selected>'+esc(selected)+'（自由入力）</option>');
   }
   function typeOptions(selected) {
     const labels = { sandbox:'Sandbox', production:'本番', scratch:'スクラッチ', dev:'開発' };
