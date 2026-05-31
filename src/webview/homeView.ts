@@ -454,7 +454,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     <div id="branchbox"></div>
   </section>
   <section>
-    <div class="sechead"><span class="stepno">☁️</span><span class="sectitle">環境</span><span class="sechint">クリックで切替</span></div>
+    <div class="sechead"><span class="stepno">☁️</span><span class="sectitle">環境</span></div>
     <div id="orgs"></div>
   </section>
 
@@ -490,20 +490,20 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       { c: 'teamflow.gitPublish', em: '🐙', label: 'GitHubに接続', need: 'project', desc: 'GitHubにリポジトリを作って公開（初回の接続。gh連携）' },
       { c: 'teamflow.gitSync', em: '🔄', label: 'GitHub同期', need: 'remote', badge: 'ahead', desc: '取り込み→バックアップ（接続済みのとき）' },
     ]},
-    { no: '④', title: 'テスト・リリース', hint: '品質確認', three: true, tiles: [
+    { no: '④', title: 'テスト・リリース', three: true, tiles: [
       { c: 'teamflow.runTests', em: '🧪', label: 'テスト', need: 'org', desc: 'Apexテストを実行します' },
       { c: 'teamflow.tailLog', em: '📜', label: 'ログ', need: 'org', desc: 'System.debug出力をリアルタイム表示' },
       { c: 'teamflow.validateDiff', em: '✅', label: 'デプロイ前チェック', need: 'repo', badge: 'deploy', desc: '本番に送らず「問題なく送れるか」だけ確認（お試し・dry-run）' },
       { c: 'teamflow.deployToEnvironment', em: '🚀', label: '環境へデプロイ', need: 'repo', badge: 'deploy', desc: 'ステージング/本番など「共有環境」へ配布。※資材反映=自分の環境用 / デプロイ=共有環境用' },
     ]},
-    { no: '⑤', title: 'バージョン管理 (Git)', hint: 'ブランチ/PR/タグ', three: true, tiles: [
+    { no: '⑤', title: 'バージョン管理', three: true, tiles: [
       { c: 'teamflow.manageBranches', em: '🌿', label: 'ブランチ管理', need: 'repo', desc: '切替/作成/削除' },
-      { c: 'teamflow.createPullRequest', em: '🔀', label: 'PR作成', need: 'repo', desc: 'レビュー依頼(develop等へ)' },
+      { c: 'teamflow.createPullRequest', em: '🔀', label: 'Pull Request', need: 'repo', desc: 'レビュー依頼(develop等へ)' },
       { c: 'teamflow.manageTags', em: '🏷️', label: 'タグ管理', need: 'repo', desc: 'リリースの目印' },
     ]},
   ];
 
-  // 使い捨ての開発Org。初期セットアップ後はほぼ触らないので折りたたみへ。
+  // スクラッチ環境の作成系。「環境」セクションの操作として一緒に見せる。
   const SCRATCH_SECTION = { three: true, tiles: [
     { c: 'teamflow.setupDevHub', em: '🌳', label: 'Dev Hub 準備', desc: 'スクラッチ作成の前に親組織(Dev Hub)を用意（複数可）' },
     { c: 'teamflow.createScratchOrg', em: '🌱', label: 'スクラッチ作成', need: 'project', desc: '使い捨て開発Org（Dev Hubから作成）' },
@@ -690,15 +690,12 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
         '<div class="grid '+(sec.three?'three':'')+'">'+sec.tiles.map(tileHtml).join('')+'</div></section>';
     }
     {
-      // 機能ごとのグループを明確なタイトルで全表示。まれにしか使わない
-      // スクラッチ環境だけ折りたたみに入れる。
-      const groups = SECTIONS.map(renderSec).join('');
-      const scratch = '<details class="more"><summary>▸ スクラッチ環境（使い捨ての開発環境）</summary>'+
-        '<div class="grid three">'+SCRATCH_SECTION.tiles.map(tileHtml).join('')+'</div></details>';
-      $('sections').innerHTML = groups + scratch;
+      // 機能ごとのグループを明確なタイトルで全表示。スクラッチ作成系は
+      // 「環境」セクションの操作としてそちらに置く。
+      $('sections').innerHTML = SECTIONS.map(renderSec).join('');
     }
 
-    // branch
+    // branch — 今いる作業ブランチの切替・新規作成。
     if (s.hasRepo) {
       const opts = s.branches.map(b => '<option '+(b===s.branch?'selected':'')+'>'+escapeHtml(b)+'</option>').join('');
       $('branchbox').innerHTML = '<div class="row"><select id="branchsel">'+opts+'</select>'+
@@ -706,12 +703,12 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       $('branchsel').addEventListener('change', (e)=> send('switchBranch', { name: e.target.value }));
       $('newbranch').addEventListener('click', ()=> cmd('teamflow.gitNewBranch'));
     } else {
-      $('branchbox').innerHTML = '<div class="empty">「セットアップを始める」で開始できます。</div>';
+      $('branchbox').innerHTML = '<div class="empty">「③ 保存 → 💾 バックアップ」でGitを始めると、ここで作業ブランチを切り替えられます。</div>';
     }
 
-    // 環境(Org)一覧。接続中の環境は折りたたみ（<details>）に入れ、既定でも開いて
-    // おくが、数が多いときに畳める。「＋ 環境を追加」は常に外に出す。
-    const addBtn = '<button class="iconbtn addorg" data-cmd="teamflow.authorizeOrg">＋ 環境を追加</button>';
+    // 環境一覧 + 環境を作る操作（追加 / Dev Hub準備 / スクラッチ作成）をまとめる。
+    const addBtn = '<button class="iconbtn addorg" data-cmd="teamflow.authorizeOrg">＋ 環境を追加</button>'+
+      SCRATCH_SECTION.tiles.map(t => '<button class="iconbtn" data-cmd="'+t.c+'" title="'+escapeAttr(t.desc)+'">'+t.em+' '+escapeHtml(t.label)+'</button>').join('');
     if (s.orgs.length===0) {
       $('orgs').innerHTML = '<div class="empty">まだ環境がありません。「＋ 環境を追加」でログインします。</div>' + addBtn;
     } else {
