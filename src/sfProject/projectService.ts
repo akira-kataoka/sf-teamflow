@@ -260,6 +260,25 @@ export function buildGenerateComponentArgs(
   }
 }
 
+/**
+ * Path (relative to the workspace root) of the primary editable file a scaffold
+ * produces, so the command can open it right after creation — confirming to the
+ * user that the file really exists. Pure & unit-tested.
+ */
+export function componentMainFile(outputDir: string, kind: ComponentKind, name: string): string {
+  const dir = outputDir.replace(/\/$/, "");
+  switch (kind) {
+    case "apexClass":
+      return `${dir}/${name}.cls`;
+    case "apexTrigger":
+      return `${dir}/${name}.trigger`;
+    case "lwc":
+      return `${dir}/${name}/${name}.js`;
+    case "aura":
+      return `${dir}/${name}/${name}.cmp`;
+  }
+}
+
 export interface PullRequestOptions {
   baseBranch: string;
   /** Open the PR form in the browser (true) or create non-interactively. */

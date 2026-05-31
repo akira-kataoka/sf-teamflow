@@ -12,6 +12,7 @@ import {
   buildGenerateComponentArgs,
   buildTailLogArgs,
   componentOutputDir,
+  componentMainFile,
   buildPullRequestArgs,
   COMMON_METADATA_TYPES,
   buildDevHubOpenArgs,
@@ -148,6 +149,23 @@ test("buildGenerateComponentArgs builds apex/lwc/trigger commands", () => {
   const trg = buildGenerateComponentArgs("apexTrigger", "AccTrg", "d", "Account");
   assert.ok(trg.includes("--sobject") && trg.includes("Account"));
   assert.throws(() => buildGenerateComponentArgs("apexClass", " ", "d"), /名前/);
+});
+
+test("componentMainFile points at the primary editable file per kind", () => {
+  const dir = "force-app/main/default/classes";
+  assert.equal(componentMainFile(dir, "apexClass", "AccountService"), `${dir}/AccountService.cls`);
+  assert.equal(
+    componentMainFile("force-app/main/default/triggers", "apexTrigger", "AccTrg"),
+    "force-app/main/default/triggers/AccTrg.trigger"
+  );
+  assert.equal(
+    componentMainFile("force-app/main/default/lwc/", "lwc", "accountCard"),
+    "force-app/main/default/lwc/accountCard/accountCard.js"
+  );
+  assert.equal(
+    componentMainFile("force-app/main/default/aura", "aura", "accountList"),
+    "force-app/main/default/aura/accountList/accountList.cmp"
+  );
 });
 
 test("buildPullRequestArgs targets a base branch with --fill", () => {

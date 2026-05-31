@@ -18,6 +18,7 @@ import {
   buildDeployMetadataArgs,
   buildGenerateComponentArgs,
   componentOutputDir,
+  componentMainFile,
   buildTailLogArgs,
   buildDevHubOpenArgs,
   buildScratchOrgInfoProbeArgs,
@@ -229,8 +230,36 @@ export function registerProjectCommands(
     const dirs = await readSfdxPackageDirs(root);
     const outputDir = componentOutputDir(dirs[0] || "force-app", kindPick.ckind);
     const args = buildGenerateComponentArgs(kindPick.ckind, name.trim(), outputDir, sobject || undefined);
-    ctx.runInTerminal(renderCommand(ctx.cliPath(), args));
-    vscode.window.showInformationMessage(`${name.trim()} を ${outputDir} に作成します。`);
+    // 共有ターミナル経由(fire-and-forget)はターミナルがビジーだと無言で失敗するため、
+    // 子プロセスで実行して成否を確実に捕捉する。
+    const res = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: `${name.trim()} を作成中…` },
+      () => run(ctx.cliPath(), args, { cwd: root, timeout: 120_000 })
+    );
+    if (res.code !== 0) {
+      const detail = (res.stderr || res.stdout || "")
+        .trim()
+        .split(/\r?\n/)
+        .filter((l) => l && !/update available/i.test(l))
+        .slice(-3)
+        .join(" / ");
+      vscode.window.showErrorMessage(
+        `作成に失敗しました: ${detail || "不明なエラー（sf CLI が見つからない可能性）"}`
+      );
+      ctx.recordActivity(`新規作成: ${name.trim()}`, "error");
+      return;
+    }
+    ctx.recordActivity(`新規作成: ${name.trim()}`, "ok");
+    ctx.refreshAll();
+    // 生成された主要ファイルを開いて「本当にできた」ことを確認できるようにする。
+    try {
+      const mainFile = path.join(root, componentMainFile(outputDir, kindPick.ckind, name.trim()));
+      const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(mainFile));
+      await vscode.window.showTextDocument(doc);
+    } catch {
+      /* 生成はできたがファイルを開けないだけ — 無視 */
+    }
+    vscode.window.showInformationMessage(`✅ ${name.trim()} を ${outputDir} に作成しました。`);
   });
 
   // メタデータを取得 (種類を選んで sf project retrieve).
