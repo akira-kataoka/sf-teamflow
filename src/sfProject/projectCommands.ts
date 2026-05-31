@@ -19,6 +19,7 @@ import {
   buildGenerateComponentArgs,
   componentOutputDir,
   componentMainFile,
+  componentNameError,
   buildTailLogArgs,
   buildDevHubOpenArgs,
   buildScratchOrgInfoProbeArgs,
@@ -205,14 +206,11 @@ export function registerProjectCommands(
     if (!kindPick) {
       return;
     }
-    const isLwc = kindPick.ckind === "lwc" || kindPick.ckind === "aura";
     const name = await vscode.window.showInputBox({
       title: `${kindPick.label.replace(/^\$\([a-z-]+\)\s*/, "")} の名前`,
-      prompt: isLwc ? "小文字始まり (例: accountSearch)" : "大文字始まり (例: AccountService)",
-      validateInput: (v) =>
-        /^[A-Za-z][A-Za-z0-9_]*$/.test(v.trim())
-          ? undefined
-          : `英字で始まる英数字で入力してください（例: ${isLwc ? "accountSearch" : "AccountService"}）。記号・スペース・日本語は不可。`,
+      prompt:
+        kindPick.ckind === "lwc" ? "小文字始まり (例: accountSearch)" : "英字始まり (例: AccountService)",
+      validateInput: (v) => componentNameError(v, kindPick.ckind),
     });
     if (!name) {
       return;

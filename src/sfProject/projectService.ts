@@ -261,6 +261,23 @@ export function buildGenerateComponentArgs(
 }
 
 /**
+ * コンポーネント名の妥当性を種別ごとに検証し、NGなら日本語のエラー文を返す（OKは undefined）。
+ * LWC は小文字始まりの camelCase（英数字のみ）、それ以外（Apex/Aura）は英字始まりの英数字_。
+ * sf CLI が後で弾くより前に、入力時点で分かりやすく止める。Pure & unit-tested.
+ */
+export function componentNameError(name: string, kind: ComponentKind): string | undefined {
+  const v = (name || "").trim();
+  if (kind === "lwc") {
+    return /^[a-z][A-Za-z0-9]*$/.test(v)
+      ? undefined
+      : "小文字で始まる英数字（camelCase）で入力してください（例: accountSearch）。記号・アンダースコア・スペース・日本語は不可。";
+  }
+  return /^[A-Za-z][A-Za-z0-9_]*$/.test(v)
+    ? undefined
+    : "英字で始まる英数字（_可）で入力してください（例: AccountService）。記号・スペース・日本語は不可。";
+}
+
+/**
  * Path (relative to the workspace root) of the primary editable file a scaffold
  * produces, so the command can open it right after creation — confirming to the
  * user that the file really exists. Pure & unit-tested.

@@ -13,6 +13,7 @@ import {
   buildTailLogArgs,
   componentOutputDir,
   componentMainFile,
+  componentNameError,
   scratchAliasForBranch,
   buildPullRequestArgs,
   COMMON_METADATA_TYPES,
@@ -167,6 +168,21 @@ test("componentMainFile points at the primary editable file per kind", () => {
     componentMainFile("force-app/main/default/aura", "aura", "accountList"),
     "force-app/main/default/aura/accountList/accountList.cmp"
   );
+});
+
+test("componentNameError: LWCは小文字camelCase必須・Apex/Auraは英字始まり_可", () => {
+  // LWC: 小文字始まりのみOK、大文字始まり/アンダースコアはNG
+  assert.equal(componentNameError("accountSearch", "lwc"), undefined);
+  assert.ok(componentNameError("AccountSearch", "lwc"), "LWCは大文字始まりNG");
+  assert.ok(componentNameError("account_search", "lwc"), "LWCはアンダースコアNG");
+  // Apexクラス/トリガ: 英字始まり・_可
+  assert.equal(componentNameError("AccountService", "apexClass"), undefined);
+  assert.equal(componentNameError("Acc_Trigger", "apexTrigger"), undefined);
+  // Aura: 大文字始まりもOK
+  assert.equal(componentNameError("MyCmp", "aura"), undefined);
+  // 共通: 日本語/記号/空はNG
+  assert.ok(componentNameError("取引先", "apexClass"));
+  assert.ok(componentNameError("", "lwc"));
 });
 
 test("scratchAliasForBranch derives a safe alias, drops prefix, falls back on non-ascii", () => {

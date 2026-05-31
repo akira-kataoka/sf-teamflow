@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.69.0] - 2026-06-01
+
+- ✍️ **資材作成の名前チェックを種別ごとに正確化**: LWC は小文字始まりの camelCase 必須(大文字始まり/アンダースコアはsfが弾く)なのに、従来は大文字始まりも通っていた。種別別の検証 componentNameError を追加し、LWCは小文字camelCase、Apex/Auraは英字始まり(_可)に。入力時点で分かりやすくエラー表示(sfの不可解なエラーより前に)。
+
 ## [0.68.1] - 2026-06-01
 
 - 🐞 **PR検証の差分取得バグを修正**: 生成された sf-validate.yml の base 取得が `git fetch origin <base> --depth=0` を使っていたが、git の depth は正の整数のみで 0 は不正→fetch失敗で base 差分が取れず検証が空振りする恐れ。depth指定を外して通常fetchに修正。
