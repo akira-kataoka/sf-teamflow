@@ -324,7 +324,10 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .stats { display: flex; gap: 6px; margin-bottom: 10px; }
   .stat { flex: 1; text-align: center; padding: 7px 4px; border: 1px solid var(--vscode-panel-border, #8884); border-radius: 8px; }
   .stat .n { font-size: 17px; font-weight: 700; line-height: 1.1; }
+  .stat .n .u { font-size: 10px; font-weight: 400; opacity: .6; margin-left: 1px; }
   .stat .l { font-size: 10px; opacity: .65; margin-top: 2px; }
+  /* 環境数は「回数」とは別物なので、左側に区切りを入れて視覚的に分ける。 */
+  .stat.env { border-color: var(--vscode-focusBorder, #4aa3df88); margin-left: 4px; }
   .pipeline { display: flex; align-items: stretch; gap: 0; margin-bottom: 12px; }
   .pipeline .penv { flex: 1; text-align: center; padding: 7px 3px; border: 1px solid var(--vscode-panel-border, #8884); border-radius: 8px; font-size: 10.5px; position: relative; }
   .pipeline .penv.cur { outline: 2px solid var(--vscode-focusBorder); }
@@ -447,11 +450,11 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   <div id="changedbox"></div>
   <div id="sections"></div>
   <section>
-    <div class="sechead"><span class="stepno">🌿</span><span class="sectitle">作業ブランチ</span></div>
+    <div class="sechead"><span class="stepno">🌿</span><span class="sectitle">ブランチ</span><span class="sechint">作業の分岐（Git）</span></div>
     <div id="branchbox"></div>
   </section>
   <section>
-    <div class="sechead"><span class="stepno">☁️</span><span class="sectitle">接続中の環境</span><span class="sechint">クリックで切替</span></div>
+    <div class="sechead"><span class="stepno">☁️</span><span class="sectitle">環境</span><span class="sechint">クリックで切替</span></div>
     <div id="orgs"></div>
   </section>
 
@@ -467,40 +470,43 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   function send(type, extra) { vscode.postMessage(Object.assign({ type }, extra || {})); }
   function cmd(c) { send('command', { command: c }); }
 
-  // Grouped, numbered workflow — the core of the "structured, not a wall of buttons" design.
+  // 機能ごとに分けた、番号付きの開発サイクル。各グループは明確なタイトルで
+  // 常時表示（あいまいな「応用操作」折りたたみは廃止）。まれにしか使わない
+  // スクラッチ環境だけ SCRATCH_SECTION として折りたたみに入れる。
   const SECTIONS = [
-    { no: '0', title: 'プロジェクト', hint: '最初の準備', tier: 'core', three: true, tiles: [
-      { c: 'teamflow.createProject', em: '📂', label: '新しいプロジェクト', desc: 'フォルダごと新規作成して自動で開きます（最初はこれ）' },
-      { c: 'teamflow.authorizeOrg', em: '🔌', label: '環境を認証', desc: '開発するSalesforce環境にログインします' },
-      { c: 'teamflow.setupWizard', em: '🧭', label: '環境を設定', need: 'project', desc: '開発/ステージング/本番を割り当てます' },
+    { no: '①', title: 'プロジェクト', three: true, tiles: [
+      { c: 'teamflow.createProject', em: '📂', label: 'プロジェクト作成', desc: 'フォルダごと新規作成して自動で開きます（最初はこれ）' },
+      { c: 'teamflow.authorizeOrg', em: '🔌', label: '環境認証', desc: '開発するSalesforce環境にログインします' },
+      { c: 'teamflow.setupWizard', em: '🧭', label: '環境設定', need: 'project', desc: '開発/ステージング/本番を割り当て・編集します' },
     ]},
-    { no: '1', title: '開発する', hint: '作成・環境と同期', tier: 'core', three: true, tiles: [
-      { c: 'teamflow.createComponent', em: '✨', label: '新規作成', need: 'project', desc: 'Apexクラス/トリガ/LWC/Aura を作成' },
-      { c: 'teamflow.sourcePull', em: '⬇️', label: '環境から取込', need: 'org', desc: '環境(Org)側の変更をローカルに取り込みます' },
-      { c: 'teamflow.sourcePush', em: '⬆️', label: '環境へ反映', need: 'org', desc: 'ローカルの変更を環境(Org)に反映（全部/資材選択）' },
+    { no: '②', title: '開発', three: true, tiles: [
+      { c: 'teamflow.createComponent', em: '✨', label: '資材作成', need: 'project', desc: 'Apexクラス/トリガ/LWC/Aura を作成' },
+      { c: 'teamflow.sourcePull', em: '⬇️', label: '資材取込', need: 'org', desc: '環境側の変更をローカルに取り込みます' },
+      { c: 'teamflow.sourcePush', em: '⬆️', label: '資材反映', need: 'org', desc: 'ローカルの変更を環境に反映（全部/資材選択）' },
+      { c: 'teamflow.retrieveMetadata', em: '📥', label: 'メタデータ取得', need: 'org', desc: '既存環境から種類を選んで取り込み' },
     ]},
-    { no: '2', title: '保存する', hint: 'バックアップ', tier: 'core', tiles: [
-      { c: 'teamflow.gitCommitPush', em: '💾', label: '保存してバックアップ', need: 'project', badge: 'changes', desc: '変更を保存してGitHubに送ります（未管理なら自動でGit初期化を案内）' },
-      { c: 'teamflow.gitSync', em: '🔄', label: 'GitHubと同期', need: 'remote', badge: 'ahead', desc: '取り込み→バックアップ' },
+    { no: '③', title: '保存', three: true, tiles: [
+      { c: 'teamflow.gitCommitPush', em: '💾', label: 'バックアップ', need: 'project', badge: 'changes', desc: '変更を保存してGitHubに送ります（未管理なら自動でGit初期化を案内）' },
+      { c: 'teamflow.gitSync', em: '🔄', label: 'GitHub同期', need: 'remote', badge: 'ahead', desc: '取り込み→バックアップ' },
     ]},
-    { no: '3', title: 'テスト・リリース', hint: '品質確認', tier: 'more', three: true, tiles: [
+    { no: '④', title: 'テスト・リリース', hint: '品質確認', three: true, tiles: [
       { c: 'teamflow.runTests', em: '🧪', label: 'テスト実行', need: 'org', desc: 'Apexテストを実行します' },
       { c: 'teamflow.tailLog', em: '📜', label: 'ログ確認', need: 'org', desc: 'System.debug出力をリアルタイム表示' },
       { c: 'teamflow.validateDiff', em: '✅', label: '検証（お試し）', need: 'repo', badge: 'deploy', desc: 'デプロイせず差分を検証' },
       { c: 'teamflow.deployToEnvironment', em: '🚀', label: '環境へデプロイ', need: 'repo', badge: 'deploy', desc: '開発/ステージング/本番を選んでデプロイ' },
     ]},
-    { no: '4', title: 'バージョン管理', hint: 'ブランチ/PR/タグ', tier: 'more', three: true, tiles: [
+    { no: '⑤', title: 'バージョン管理 (Git)', hint: 'ブランチ/PR/タグ', three: true, tiles: [
       { c: 'teamflow.manageBranches', em: '🌿', label: 'ブランチ管理', need: 'repo', desc: '切替/作成/削除' },
       { c: 'teamflow.createPullRequest', em: '🔀', label: 'PR作成', need: 'repo', desc: 'レビュー依頼(develop等へ)' },
       { c: 'teamflow.manageTags', em: '🏷️', label: 'タグ管理', need: 'repo', desc: 'リリースの目印' },
     ]},
-    { no: '⋯', title: 'その他', hint: '', tier: 'more', three: true, tiles: [
-      { c: 'teamflow.retrieveMetadata', em: '📥', label: 'メタデータ取得', need: 'org', desc: '既存Orgから取り込み' },
-      { c: 'teamflow.setupDevHub', em: '🌳', label: 'Dev Hub 準備', desc: 'スクラッチ作成の前に親組織(Dev Hub)を用意（複数可）' },
-      { c: 'teamflow.createScratchOrg', em: '🌱', label: 'スクラッチ作成', desc: '使い捨て開発Org（Dev Hubから作成）' },
-      { c: 'teamflow.openWorkflowGuide', em: '📘', label: 'ガイド', desc: '進め方を見る' },
-    ]},
   ];
+
+  // 使い捨ての開発Org。初期セットアップ後はほぼ触らないので折りたたみへ。
+  const SCRATCH_SECTION = { three: true, tiles: [
+    { c: 'teamflow.setupDevHub', em: '🌳', label: 'Dev Hub 準備', desc: 'スクラッチ作成の前に親組織(Dev Hub)を用意（複数可）' },
+    { c: 'teamflow.createScratchOrg', em: '🌱', label: 'スクラッチ作成', need: 'project', desc: '使い捨て開発Org（Dev Hubから作成）' },
+  ]};
 
   function nextAction(s) {
     // Single, unambiguous "what to do next". The ordered first-run flow is:
@@ -511,9 +517,9 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     if (s.defaultOrg && !s.defaultOrg.connected) return { em:'🔌', t1:'接続が切れています', t2:s.defaultOrg.displayName+' に再接続する', reconnect:s.defaultOrg.username };
     if (s.orgs.length === 0) return { em:'🔌', t1:'はじめに（2）', t2:'環境を認証する（ログイン）', c:'teamflow.authorizeOrg' };
     if (!s.configured) return { em:'🧭', t1:'はじめに（3）', t2:'環境を設定する（開発/ステージング/本番）', c:'teamflow.setupWizard' };
-    if (s.changes > 0) return { em:'💾', t1:'次にやること', t2:'変更 '+s.changes+'件を保存してバックアップ', c:'teamflow.gitCommitPush' };
+    if (s.changes > 0) return { em:'💾', t1:'次にやること', t2:'変更 '+s.changes+'件をバックアップ', c:'teamflow.gitCommitPush' };
     if (s.ahead > 0) return { em:'🔄', t1:'次にやること', t2:'未バックアップ '+s.ahead+'件をGitHubへ', c:'teamflow.gitSync' };
-    return { em:'✅', t1:'準備OK', t2:'変更を加えたら自動でここに表示されます', calm:true };
+    return { em:'✅', t1:'いまやる操作はありません', t2:'資材を変更すると、次にやることがここに出ます', calm:true };
   }
 
   function render(s) {
@@ -537,13 +543,15 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     }
     $('status').innerHTML = chips.join('');
 
-    // dev metrics (handy numbers at a glance)
+    // これまでの操作回数（リリース/テスト/保存）と、接続中の環境数。回数と
+    // 環境数は別物なので、回数には「回」を付け、環境数は区切って別枠で見せる。
     const st = s.stats || { deploys:0, tests:0, saves:0, orgs:0 };
+    const u = '<span class="u">回</span>';
     $('stats').innerHTML =
-      '<div class="stat"><div class="n">'+st.deploys+'</div><div class="l">🚀 リリース</div></div>'+
-      '<div class="stat"><div class="n">'+st.tests+'</div><div class="l">🧪 テスト</div></div>'+
-      '<div class="stat"><div class="n">'+st.saves+'</div><div class="l">💾 保存</div></div>'+
-      '<div class="stat"><div class="n">'+st.orgs+'</div><div class="l">☁️ Org</div></div>';
+      '<div class="stat"><div class="n">'+st.deploys+u+'</div><div class="l">🚀 リリースした</div></div>'+
+      '<div class="stat"><div class="n">'+st.tests+u+'</div><div class="l">🧪 テストした</div></div>'+
+      '<div class="stat"><div class="n">'+st.saves+u+'</div><div class="l">💾 保存した</div></div>'+
+      '<div class="stat env"><div class="n">'+st.orgs+'</div><div class="l">☁️ 環境</div></div>';
 
     // environment pipeline visual (dev → staging → prod)
     if (s.pipeline && s.pipeline.length>0) {
@@ -585,13 +593,12 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
         '<div class="slrow"><span class="slk">☁️ 反映する環境</span><span class="slv">'+dep+'</span></div>';
       let note = '';
       if (s.configured && !s.env && s.branch) {
-        note = '<div class="note">ℹ️ このブランチは環境に未割当（作業用ブランチ）。デプロイ先は「環境へデプロイ」で選びます。</div>';
+        note = '<div class="note">ℹ️ 作業用ブランチ（デプロイ先は都度選択）</div>';
       }
       $('situation').innerHTML = '<div class="statuslist">'+rows+'</div>'+note;
     } else if (s.orgs.length===0 || !s.configured) {
-      $('situation').innerHTML = '👋 はじめまして！<b>このツール1つで Salesforce 開発が回せます</b>。'+
-        '上の「次にやること」を順に押すだけでOK。'+
-        '<span class="link" data-cmd="teamflow.openWorkflowGuide" role="button" tabindex="0">📘 使い方ガイドを見る</span>';
+      $('situation').innerHTML = '👋 「次にやること」から順に進めましょう。'+
+        '<span class="link" data-cmd="teamflow.openWorkflowGuide" role="button" tabindex="0">📘 ガイド</span>';
     } else {
       $('situation').innerHTML = '';
     }
@@ -603,7 +610,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       $('conflicts').innerHTML = '<div class="conflictbox">'+
         '<div class="ch">⚠️ コンフリクト解決中（'+s.conflicts.length+'件）</div>'+
         '<div>各ファイルを開き、どちらの変更を残すか決めて保存してください。</div>'+rows+
-        '<div class="done" data-cmd="teamflow.gitCommitPush">✅ 解決したら「保存してバックアップ」</div></div>';
+        '<div class="done" data-cmd="teamflow.gitCommitPush">✅ 解決したら「バックアップ」</div></div>';
     } else {
       $('conflicts').innerHTML = '';
     }
@@ -611,7 +618,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     // config lint warnings (click → open sf-teamflow.json)
     if (s.warnings && s.warnings.length>0) {
       $('warnings').innerHTML = '<div class="warnbox" data-cmd="teamflow.openConfig" role="button" tabindex="0">'+
-        '<div class="wh">⚠️ チーム設定の確認（クリックで開く）</div>'+
+        '<div class="wh">⚠️ 設定の確認</div>'+
         s.warnings.map(w => '<div class="wi">• '+escapeHtml(w)+'</div>').join('')+'</div>';
     } else {
       $('warnings').innerHTML = '';
@@ -626,7 +633,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
           escapeHtml(a.label)+'<span class="rel">'+escapeHtml(a.rel)+'</span></div>').join('');
     }
     if (s.hasRepo || (s.activity && s.activity.length>0)) {
-      actHtml += '<div class="ai loglink" data-cmd="teamflow.showLog" role="button" tabindex="0" aria-label="実行ログを開く">🔎 うまくいかない時はここ（実行ログ）</div>';
+      actHtml += '<div class="ai loglink" data-cmd="teamflow.showLog" role="button" tabindex="0" aria-label="実行ログを開く">🔎 実行ログ</div>';
     }
     $('activity').innerHTML = actHtml;
 
@@ -661,34 +668,33 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     //    the hero + checklist alone guide the first run.
     //  * otherwise: show the daily essentials (core) and tuck the rest behind
     //    a "もっと操作" expander so the screen is not a wall of buttons.
+    function tileHtml(t) {
+      let disabled = false;
+      if (t.need==='project' && !s.hasProject) disabled = true;
+      if (t.need==='repo' && !s.hasRepo) disabled = true;
+      if (t.need==='remote' && !s.hasRemote) disabled = true;
+      if (t.need==='org' && s.orgs.length===0) disabled = true;
+      let badge = '';
+      if (t.badge==='changes' && s.changes>0) badge = '<span class="badge">'+s.changes+'</span>';
+      if (t.badge==='ahead' && s.ahead>0) badge = '<span class="badge">'+s.ahead+'</span>';
+      if (t.badge==='deploy' && s.deployCount>0) badge = '<span class="badge">'+s.deployCount+'</span>';
+      const tip = t.desc ? ' title="'+escapeAttr(t.desc)+'"' : '';
+      return '<button class="tile '+(na.c===t.c?'primary':'')+'" data-cmd="'+t.c+'" '+(disabled?'disabled':'')+tip+'>'+
+        badge+'<span class="em">'+t.em+'</span><span>'+escapeHtml(t.label)+'</span></button>';
+    }
     function renderSec(sec) {
-      const tiles = sec.tiles.map(t => {
-        let disabled = false;
-        if (t.need==='project' && !s.hasProject) disabled = true;
-        if (t.need==='repo' && !s.hasRepo) disabled = true;
-        if (t.need==='remote' && !s.hasRemote) disabled = true;
-        if (t.need==='org' && s.orgs.length===0) disabled = true;
-        let badge = '';
-        if (t.badge==='changes' && s.changes>0) badge = '<span class="badge">'+s.changes+'</span>';
-        if (t.badge==='ahead' && s.ahead>0) badge = '<span class="badge">'+s.ahead+'</span>';
-        if (t.badge==='deploy' && s.deployCount>0) badge = '<span class="badge">'+s.deployCount+'</span>';
-        const tip = t.desc ? ' title="'+escapeAttr(t.desc)+'"' : '';
-        return '<button class="tile '+(na.c===t.c?'primary':'')+'" data-cmd="'+t.c+'" '+(disabled?'disabled':'')+tip+'>'+
-          badge+'<span class="em">'+t.em+'</span><span>'+escapeHtml(t.label)+'</span></button>';
-      }).join('');
       const hint = sec.hint ? '<span class="sechint">'+sec.hint+'</span>' : '';
       return '<section><div class="sechead"><span class="stepno">'+sec.no+'</span>'+
         '<span class="sectitle">'+sec.title+'</span>'+hint+'</div>'+
-        '<div class="grid '+(sec.three?'three':'')+'">'+tiles+'</div></section>';
+        '<div class="grid '+(sec.three?'three':'')+'">'+sec.tiles.map(tileHtml).join('')+'</div></section>';
     }
     {
-      // 「プロジェクト準備」を含む基本セクションは常に表示し、最初の一歩
-      // （📂新しいプロジェクト）に必ずたどり着けるようにする。応用操作は
-      // 折りたたみの中へ。
-      const core = SECTIONS.filter(x=>x.tier==='core').map(renderSec).join('');
-      const more = SECTIONS.filter(x=>x.tier==='more').map(renderSec).join('');
-      $('sections').innerHTML = core +
-        '<details class="more"><summary>▸ 応用操作を表示（テスト・デプロイ・ブランチ・タグ・メタデータ取得）</summary>'+more+'</details>';
+      // 機能ごとのグループを明確なタイトルで全表示。まれにしか使わない
+      // スクラッチ環境だけ折りたたみに入れる。
+      const groups = SECTIONS.map(renderSec).join('');
+      const scratch = '<details class="more"><summary>▸ スクラッチ環境（使い捨ての開発環境）</summary>'+
+        '<div class="grid three">'+SCRATCH_SECTION.tiles.map(tileHtml).join('')+'</div></details>';
+      $('sections').innerHTML = groups + scratch;
     }
 
     // branch
@@ -709,6 +715,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       $('orgs').innerHTML = '<div class="empty">まだ環境がありません。「＋ 環境を追加」でログインします。</div>' + addBtn;
     } else {
       const colors = { Production:'#e5534b', Sandbox:'#4aa3df', DevHub:'#b07cf0', Scratch:'#3fb950', Other:'#888' };
+      // 種別を日本語の説明で表示（英語のカテゴリ名だと初心者に伝わらないため）。
+      const KIND = { Production:'本番（お客様が使う）', Sandbox:'検証用（本番のコピー）', DevHub:'スクラッチの親（使い捨て環境を作る元）', Scratch:'使い捨ての開発環境', Other:'その他' };
       const cards = s.orgs.map(o => {
         const action = o.connected
           ? '<button class="open" data-open="'+escapeAttr(o.username)+'">開く</button>'
@@ -717,7 +725,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
           '<span class="dot" style="background:'+(colors[o.category]||'#888')+'"></span>'+
           '<span class="name">'+(o.isDefault?'★ ':'')+escapeHtml(o.displayName)+
             (o.isProduction?' ⚠️':'')+(o.connected?'':' 🔌未接続')+
-            '<div class="cat">'+o.category+(o.expires?' · ⏳'+escapeHtml(o.expires):'')+'</div></span>'+
+            '<div class="cat">'+escapeHtml(KIND[o.category]||o.category)+(o.expires?' · ⏳'+escapeHtml(o.expires):'')+'</div></span>'+
           action+
         '</div>';
       }).join('');

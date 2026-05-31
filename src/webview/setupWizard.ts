@@ -5,6 +5,7 @@ import { OrgTreeProvider } from "../orgManager/orgTreeProvider.js";
 import { isGitRepo } from "../deploy/gitService.js";
 import {
   configExists,
+  loadConfig,
   readSfdxPackageDirs,
   saveConfig,
 } from "../config/configStore.js";
@@ -100,11 +101,29 @@ export class SetupWizard {
         .then(() => true)
         .catch(() => false);
     }
+    const alreadyConfigured = root ? await configExists(root) : false;
+    // 既に設定済みなら現在の環境を読み込み、ウィザードを「新規作成」ではなく
+    // 「編集」として開けるようフォームにプリフィルする。
+    let existingEnvironments: WizardEnvInput[] | undefined;
+    if (root && alreadyConfigured) {
+      const cfg = await loadConfig(root).catch(() => undefined);
+      if (cfg) {
+        existingEnvironments = cfg.environments.map((e) => ({
+          name: e.name,
+          type: e.type,
+          orgAlias: e.orgAlias,
+          branch: e.branch,
+          purpose: e.purpose ?? "",
+          enabled: true,
+        }));
+      }
+    }
     const payload = {
       hasRoot: Boolean(root),
       hasProject,
       hasRepo: root ? await isGitRepo(root) : false,
-      alreadyConfigured: root ? await configExists(root) : false,
+      alreadyConfigured,
+      environments: existingEnvironments,
       orgs: orgs.map((o) => ({
         value: o.alias || o.username,
         label: o.displayName,
@@ -370,7 +389,7 @@ export class SetupWizard {
         { cmd:'teamflow.createProject', label:'プロジェクトを作成' }) +
       line(s.hasRepo, 'バージョン管理(Git)が有効です', 'Gitはまだ無効です（後で開始できます）', null) +
       line(s.orgs.length>0, s.orgs.length+'個のOrgを認証済み', 'Orgが未認証です', {act:'authorize', label:'Orgを認証'}) +
-      (s.alreadyConfigured ? '<div class="check"><span class="ic warn">⚠️</span><span class="warn">既に設定済み — 作成すると上書きされます</span></div>' : '');
+      (s.alreadyConfigured ? '<div class="check"><span class="ic">✏️</span><span>現在の設定を読み込みました。編集して保存できます</span></div>' : '');
     $$('#checks [data-act]').forEach(b => b.addEventListener('click', ()=> vscode.postMessage({type:b.dataset.act})));
     $$('#checks [data-cmd]').forEach(b => b.addEventListener('click', ()=> vscode.postMessage({type:'command', command:b.dataset.cmd})));
   }
@@ -388,7 +407,15 @@ export class SetupWizard {
 
   window.addEventListener('message', (e)=>{
     const m = e.data;
-    if (m.type==='init') { ORGS = m.payload.orgs || []; renderChecks(m.payload); if ($('.page[data-page="2"]').classList.contains('show')) renderEnvs(); }
+    if (m.type==='init') {
+      ORGS = m.payload.orgs || [];
+      // 既存設定があれば現在の環境を読み込み、編集できるようにする（新規作成ではなく編集）。
+      if (m.payload.environments && m.payload.environments.length) {
+        ENVS = m.payload.environments.map(e => ({ name:e.name||'', type:e.type||'sandbox', orgAlias:e.orgAlias||'', branch:e.branch||'feature/*', purpose:e.purpose||'' }));
+      }
+      renderChecks(m.payload);
+      if ($('.page[data-page="2"]').classList.contains('show')) renderEnvs();
+    }
     else if (m.type==='error') { $('#err').textContent = '⚠️ ' + m.message; }
     else if (m.type==='done') {
       $('#create').disabled = true;
