@@ -165,6 +165,15 @@ test("codeowners references every package directory", () => {
   }
 });
 
+test("codeowners はプレースホルダをコメント化し『unknown owner』を避ける", () => {
+  const co = codeowners(defaultConfig());
+  // 有効な(行頭が#でない)所有者行が無いこと＝置き換えるまで無効
+  const activeOwnerLine = co
+    .split("\n")
+    .some((l) => !l.trimStart().startsWith("#") && l.includes("@your-team"));
+  assert.equal(activeOwnerLine, false, "プレースホルダ所有者は有効行にしない");
+});
+
 test("cicdFiles returns workflows + CODEOWNERS with non-empty content", () => {
   const files = cicdFiles(defaultConfig());
   const paths = files.map((f) => f.relativePath).sort();

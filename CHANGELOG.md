@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.2] - 2026-06-01
+
+- 👥 **生成CODEOWNERSのプレースホルダをコメント化**: `* @your-team` 等を有効行で出力していたため、push時にGitHubが「unknown owner @your-team」エラーを表示していた。行頭#でコメント化し、実在チーム記入まで無効化(エラー回避)。記入手順もコメントで明示。
+
 ## [0.72.1] - 2026-06-01
 
 - 🛟️ **資材取込(pull)にも未保存変更の警告を適用**: v0.72.0の上書き警告を、より使用頻度の高い「⬇️ 資材取込」(sourcePull)にも適用。pullも手元を上書きし得るため、取得系3コマンドで一貫してデータ損失を防止。
