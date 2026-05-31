@@ -2,6 +2,12 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.46.0] - 2026-05-31
+
+- 🐙 **「GitHubに接続」タイルを追加**: これまでホームに GitHub 公開(gitPublish)の入口が無く、Gitへの接続方法が分からなかった。③保存に「GitHubに接続」を追加（gh連携でリポジトリ作成＋公開）。
+- 🏷️ **テスト・リリースの文言を平易化**: 「テスト実行」→「テスト」、「ログ確認」→「ログ」、「検証（お試し）」→「デプロイ前チェック」（説明=本番に送らず送れるか確認するdry-run）。
+- 🔀 **資材反映とデプロイの違いを明示**: 「資材反映」の説明を「自分の開発環境へ直接反映」に、「環境へデプロイ」を「ステージング/本番など共有環境へ配布。※資材反映=自分の環境用 / デプロイ=共有環境用」に変更し混同を解消。
+
 ## [0.45.1] - 2026-05-31
 
 - 🔁 **開発時の自動リビルド**（拡張開発者向け）: F5（Run Extension）の preLaunchTask を `build`→`watch` に変更し、esbuild に watch 用の進捗マーカー(`[watch] build started/finished`)を出すプラグインを追加。tasks.json の watch を外部拡張不要の inline background problemMatcher に。これで **保存→自動リビルド→拡張ホストで Ctrl+R（ウィンドウ再読込）だけ**で反映でき、毎回の再パッケージ/再インストールが不要に。

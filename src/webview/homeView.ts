@@ -482,18 +482,19 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     { no: '②', title: '開発', three: true, tiles: [
       { c: 'teamflow.createComponent', em: '✨', label: '資材作成', need: 'project', desc: 'Apexクラス/トリガ/LWC/Aura を作成' },
       { c: 'teamflow.sourcePull', em: '⬇️', label: '資材取込', need: 'org', desc: '環境側の変更をローカルに取り込みます' },
-      { c: 'teamflow.sourcePush', em: '⬆️', label: '資材反映', need: 'org', desc: 'ローカルの変更を環境に反映（全部/資材選択）' },
+      { c: 'teamflow.sourcePush', em: '⬆️', label: '資材反映', need: 'org', desc: 'ローカルの変更を「自分の開発環境」へ直接反映して動作確認（共有環境へはデプロイ）' },
       { c: 'teamflow.retrieveMetadata', em: '📥', label: 'メタデータ取得', need: 'org', desc: '既存環境から種類を選んで取り込み' },
     ]},
     { no: '③', title: '保存', three: true, tiles: [
       { c: 'teamflow.gitCommitPush', em: '💾', label: 'バックアップ', need: 'project', badge: 'changes', desc: '変更を保存してGitHubに送ります（未管理なら自動でGit初期化を案内）' },
-      { c: 'teamflow.gitSync', em: '🔄', label: 'GitHub同期', need: 'remote', badge: 'ahead', desc: '取り込み→バックアップ' },
+      { c: 'teamflow.gitPublish', em: '🐙', label: 'GitHubに接続', need: 'project', desc: 'GitHubにリポジトリを作って公開（初回の接続。gh連携）' },
+      { c: 'teamflow.gitSync', em: '🔄', label: 'GitHub同期', need: 'remote', badge: 'ahead', desc: '取り込み→バックアップ（接続済みのとき）' },
     ]},
     { no: '④', title: 'テスト・リリース', hint: '品質確認', three: true, tiles: [
-      { c: 'teamflow.runTests', em: '🧪', label: 'テスト実行', need: 'org', desc: 'Apexテストを実行します' },
-      { c: 'teamflow.tailLog', em: '📜', label: 'ログ確認', need: 'org', desc: 'System.debug出力をリアルタイム表示' },
-      { c: 'teamflow.validateDiff', em: '✅', label: '検証（お試し）', need: 'repo', badge: 'deploy', desc: 'デプロイせず差分を検証' },
-      { c: 'teamflow.deployToEnvironment', em: '🚀', label: '環境へデプロイ', need: 'repo', badge: 'deploy', desc: '開発/ステージング/本番を選んでデプロイ' },
+      { c: 'teamflow.runTests', em: '🧪', label: 'テスト', need: 'org', desc: 'Apexテストを実行します' },
+      { c: 'teamflow.tailLog', em: '📜', label: 'ログ', need: 'org', desc: 'System.debug出力をリアルタイム表示' },
+      { c: 'teamflow.validateDiff', em: '✅', label: 'デプロイ前チェック', need: 'repo', badge: 'deploy', desc: '本番に送らず「問題なく送れるか」だけ確認（お試し・dry-run）' },
+      { c: 'teamflow.deployToEnvironment', em: '🚀', label: '環境へデプロイ', need: 'repo', badge: 'deploy', desc: 'ステージング/本番など「共有環境」へ配布。※資材反映=自分の環境用 / デプロイ=共有環境用' },
     ]},
     { no: '⑤', title: 'バージョン管理 (Git)', hint: 'ブランチ/PR/タグ', three: true, tiles: [
       { c: 'teamflow.manageBranches', em: '🌿', label: 'ブランチ管理', need: 'repo', desc: '切替/作成/削除' },
