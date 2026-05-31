@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import type { CommandContext } from "../commandContext.js";
 import { logger } from "../util/logger.js";
+import { run } from "../util/exec.js";
 import {
   commit,
   commitFiles,
@@ -601,11 +602,47 @@ export function registerGitCommands(
     if (!visibility) {
       return;
     }
-    ctx.runInTerminal(
-      `gh repo create ${name} ${visibility.value} --source=. --remote=origin --push`
+    const res = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: "GitHubに公開中…" },
+      () =>
+        run(
+          "gh",
+          ["repo", "create", name, visibility.value, "--source=.", "--remote=origin", "--push"],
+          { cwd: root, timeout: 120_000 }
+        )
     );
-    vscode.window.showInformationMessage(
-      "ターミナルでGitHubに公開しています（gh CLI のログインが必要です）。"
+    const out = `${res.stderr}\n${res.stdout}`;
+    if (res.code === 0) {
+      vscode.window.showInformationMessage("✅ GitHubに公開しました。以後は「GitHub同期」で送受信できます。");
+      ctx.refreshAll();
+      return;
+    }
+    // よくある失敗を分かりやすく案内する。
+    if (/workflow.{0,20}scope/i.test(out)) {
+      // リポジトリ作成・リモート追加は済み、CI/CDのworkflowファイルのpushだけが権限不足で拒否された。
+      const choice = await vscode.window.showWarningMessage(
+        "リポジトリは作成できましたが、CI/CD（.github/workflows）を送るには gh に「workflow」権限が必要です。権限を追加してから送り直します。",
+        { modal: true },
+        "権限を追加する"
+      );
+      if (choice === "権限を追加する") {
+        ctx.runInTerminal("gh auth refresh -h github.com -s workflow");
+        vscode.window.showInformationMessage(
+          "ターミナルでブラウザ認証を完了したら、「GitHub同期」を押す（または git push -u origin <ブランチ>）と送れます。"
+        );
+      }
+      return;
+    }
+    if (/already exists|name already/i.test(out)) {
+      vscode.window.showWarningMessage("同名のリポジトリが既に存在します。別名にするか、既存のものに接続してください。");
+      return;
+    }
+    if (res.code === 127 || /not found|認識されて|is not recognized/i.test(out)) {
+      vscode.window.showErrorMessage("GitHub CLI (gh) が見つかりません。インストールして再度お試しください。");
+      return;
+    }
+    vscode.window.showErrorMessage(
+      `GitHub公開に失敗しました: ${out.trim().split(/\r?\n/).filter(Boolean).slice(-3).join(" / ") || "不明なエラー"}`
     );
   });
 }

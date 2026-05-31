@@ -364,13 +364,26 @@ export function registerProjectCommands(
       return;
     }
     const dirs = await readSfdxPackageDirs(root);
-    const push = renderCommand(ctx.cliPath(), buildSourcePushArgs(org.username, dirs));
-    const test = renderCommand(
-      ctx.cliPath(),
-      buildRunTestsArgs({ orgUsername: org.username, level: "RunLocalTests" })
+    // 「push && test」をターミナルに送ると PowerShell で && が使えず失敗するため、
+    // 反映は run() で実行し、成功したときだけテストをターミナル（ライブ出力）で走らせる。
+    const res = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: `${org.displayName} へ反映中…` },
+      () => run(ctx.cliPath(), buildSourcePushArgs(org.username, dirs), { cwd: root, timeout: 300_000 })
     );
-    // Run sequentially in the terminal; tests only run if the deploy succeeds.
-    ctx.runInTerminal(`${push} && ${test}`);
+    if (res.code !== 0) {
+      const detail = (res.stderr || res.stdout || "")
+        .trim()
+        .split(/\r?\n/)
+        .filter((l) => l && !/update available/i.test(l))
+        .slice(-3)
+        .join(" / ");
+      vscode.window.showErrorMessage(`反映に失敗しました（テストは実行しません）: ${detail || "不明なエラー"}`);
+      ctx.recordActivity(`反映してテスト: ${org.displayName}`, "error");
+      return;
+    }
+    ctx.runInTerminal(
+      renderCommand(ctx.cliPath(), buildRunTestsArgs({ orgUsername: org.username, level: "RunLocalTests" }))
+    );
     ctx.recordActivity(`反映してテスト: ${org.displayName}`, "run");
   });
 
