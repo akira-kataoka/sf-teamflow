@@ -696,12 +696,15 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     //    the hero + checklist alone guide the first run.
     //  * otherwise: show the daily essentials (core) and tuck the rest behind
     //    a "もっと操作" expander so the screen is not a wall of buttons.
+    function tileEnabled(t) {
+      if (t.need==='project' && !s.hasProject) return false;
+      if (t.need==='repo' && !s.hasRepo) return false;
+      if (t.need==='remote' && !s.hasRemote) return false;
+      if (t.need==='org' && s.orgs.length===0) return false;
+      return true;
+    }
     function tileHtml(t) {
-      let disabled = false;
-      if (t.need==='project' && !s.hasProject) disabled = true;
-      if (t.need==='repo' && !s.hasRepo) disabled = true;
-      if (t.need==='remote' && !s.hasRemote) disabled = true;
-      if (t.need==='org' && s.orgs.length===0) disabled = true;
+      const disabled = !tileEnabled(t);
       let badge = '';
       if (t.badge==='changes' && s.changes>0) badge = '<span class="badge">'+s.changes+'</span>';
       if (t.badge==='ahead' && s.ahead>0) badge = '<span class="badge">'+s.ahead+'</span>';
@@ -712,7 +715,10 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     }
     function renderSec(sec) {
       const hint = sec.hint ? '<span class="sechint">'+sec.hint+'</span>' : '';
-      return '<details class="secfold" open><summary class="sechead"><span class="caret">▸</span><span class="stepno">'+sec.no+'</span>'+
+      // 今の状態で1つも使えないグループは初期状態で畳む（煩雑さ低減・段階的開示）。
+      // セットアップが進むと自然に開く。ユーザーはいつでも展開できる。
+      const open = sec.tiles.some(tileEnabled) ? ' open' : '';
+      return '<details class="secfold"'+open+'><summary class="sechead"><span class="caret">▸</span><span class="stepno">'+sec.no+'</span>'+
         '<span class="sectitle">'+sec.title+'</span>'+hint+'</summary>'+
         '<div class="grid '+(sec.three?'three':'')+'">'+sec.tiles.map(tileHtml).join('')+'</div></details>';
     }
