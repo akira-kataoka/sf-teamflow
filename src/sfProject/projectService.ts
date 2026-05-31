@@ -279,6 +279,21 @@ export function componentMainFile(outputDir: string, kind: ComponentKind, name: 
   }
 }
 
+/**
+ * Suggested scratch-org alias for a feature branch, so「1機能=1ブランチ=1スクラッチ」
+ * を名前で結びつけられる。`feature/account-search` → `scr-account-search`。
+ * 非ASCII（日本語ブランチ名など）は除去し、空になれば `scr-feature` にフォールバック。
+ * Pure & unit-tested.
+ */
+export function scratchAliasForBranch(branch: string): string {
+  const base = branch.replace(/^[^/]+\//, ""); // 先頭の "feature/" 等を落とす
+  const slug = base
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return "scr-" + (slug || "feature");
+}
+
 export interface PullRequestOptions {
   baseBranch: string;
   /** Open the PR form in the browser (true) or create non-interactively. */

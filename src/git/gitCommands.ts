@@ -29,7 +29,7 @@ import {
   switchBranch,
 } from "../deploy/gitService.js";
 import { suggestNextTag } from "./tagUtils.js";
-import { buildPullRequestArgs } from "../sfProject/projectService.js";
+import { buildPullRequestArgs, scratchAliasForBranch } from "../sfProject/projectService.js";
 import { renderCommand } from "../deploy/deployService.js";
 
 /**
@@ -369,6 +369,18 @@ export function registerGitCommands(
         }
         await createBranch(name.trim(), root);
         vscode.window.showInformationMessage(`✅ ブランチ ${name.trim()} を作成して切り替えました。`);
+        // #3 機能ブランチ↔スクラッチ連動: この機能専用の使い捨て環境を作るか提案。
+        const mk = await vscode.window.showInformationMessage(
+          "この機能用の使い捨て開発環境（スクラッチ）も作成しますか？（1機能=1環境で他と干渉しません）",
+          "スクラッチを作成",
+          "あとで"
+        );
+        if (mk === "スクラッチを作成") {
+          await vscode.commands.executeCommand(
+            "teamflow.createScratchOrg",
+            scratchAliasForBranch(name.trim())
+          );
+        }
       } else {
         const name = pick.replace(/^\$\([a-z-]+\)\s*/, "");
         if (name !== current) {
@@ -436,6 +448,21 @@ export function registerGitCommands(
         }
         await deleteBranch(name, root, false);
         vscode.window.showInformationMessage(`✅ ブランチ ${name} を削除しました。`);
+        // #3 連動: この機能用スクラッチが残っていれば一緒に掃除を提案。
+        const alias = scratchAliasForBranch(name);
+        const sc = ctx
+          .knownOrgs()
+          .find((o) => (o.alias === alias || o.username === alias) && o.category === "Scratch");
+        if (sc) {
+          const del = await vscode.window.showInformationMessage(
+            `この機能用のスクラッチ環境「${sc.displayName}」も削除しますか？`,
+            "削除する",
+            "残す"
+          );
+          if (del === "削除する") {
+            await vscode.commands.executeCommand("teamflow.deleteScratchOrg", sc.username);
+          }
+        }
       }
     } catch (err) {
       vscode.window.showErrorMessage(`ブランチ操作に失敗: ${String(err)}`);

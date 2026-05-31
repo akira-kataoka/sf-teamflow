@@ -13,6 +13,7 @@ import {
   buildTailLogArgs,
   componentOutputDir,
   componentMainFile,
+  scratchAliasForBranch,
   buildPullRequestArgs,
   COMMON_METADATA_TYPES,
   buildDevHubOpenArgs,
@@ -166,6 +167,13 @@ test("componentMainFile points at the primary editable file per kind", () => {
     componentMainFile("force-app/main/default/aura", "aura", "accountList"),
     "force-app/main/default/aura/accountList/accountList.cmp"
   );
+});
+
+test("scratchAliasForBranch derives a safe alias, drops prefix, falls back on non-ascii", () => {
+  assert.equal(scratchAliasForBranch("feature/account-search"), "scr-account-search");
+  assert.equal(scratchAliasForBranch("hotfix/Bug_123"), "scr-bug-123");
+  assert.equal(scratchAliasForBranch("main"), "scr-main");
+  assert.equal(scratchAliasForBranch("feature/取引先検索"), "scr-feature"); // 非ASCIIはフォールバック
 });
 
 test("buildPullRequestArgs targets a base branch with --fill", () => {

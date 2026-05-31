@@ -555,8 +555,8 @@ export function registerProjectCommands(
     }
   });
 
-  // スクラッチOrgを作成 (definition file 自動判定).
-  reg("teamflow.createScratchOrg", async () => {
+  // スクラッチOrgを作成 (definition file 自動判定). suggestedAlias はブランチ連動時の初期値。
+  reg("teamflow.createScratchOrg", async (suggestedAlias?: string) => {
     const root = ctx.workspaceRoot();
     if (!root) {
       vscode.window.showErrorMessage("フォルダを開いてください。");
@@ -602,7 +602,7 @@ export function registerProjectCommands(
     const alias = await vscode.window.showInputBox({
       title: "スクラッチOrgを作成",
       prompt: "エイリアス (分かりやすい名前)",
-      value: "scratch-dev",
+      value: typeof suggestedAlias === "string" && suggestedAlias.trim() ? suggestedAlias.trim() : "scratch-dev",
       validateInput: (v) => (v.trim() ? undefined : "分かりやすい名前を入力してください（例: scratch-dev）。"),
     });
     if (!alias) {

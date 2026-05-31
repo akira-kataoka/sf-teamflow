@@ -2,6 +2,13 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.57.0] - 2026-05-31
+
+- 🌿🌱 **機能ブランチ↔スクラッチ環境の連動（バックログ#3）**: GitHub Flow（1機能=1ブランチ=1使い捨て環境）を支援。
+  - **ブランチ作成時**: 続けて「この機能用のスクラッチ環境も作成しますか？」を提案 → 作成すると **ブランチ名から導いたエイリアス**（例: `feature/account-search` → `scr-account-search`）を初期値にスクラッチ作成。
+  - **ブランチ削除時**: 対応するスクラッチ環境が残っていれば「一緒に削除しますか？」と掃除を提案。
+  - `scratchAliasForBranch` 純関数（非ASCIIは `scr-feature` にフォールバック）＋テスト。`createScratchOrg` は alias 初期値を受け取れるよう拡張。
+
 ## [0.56.0] - 2026-05-31
 
 実環境で出た GitHub 接続/同期の2バグを修正。
