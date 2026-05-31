@@ -7,8 +7,41 @@ import {
   deployWorkflow,
   prValidationWorkflow,
   secretPrefix,
+  envSlug,
 } from "../src/cicd/templates.js";
 import { defaultConfig } from "../src/config/teamflowConfig.js";
+
+test("日本語のみの環境名でもjob id/secretが衝突しない(orgAliasへフォールバック)", () => {
+  const cfg = {
+    version: 1 as const,
+    defaultBaseRef: "origin/main",
+    testLevel: "RunLocalTests" as const,
+    packageDirectories: ["force-app"],
+    environments: [
+      { name: "開発環境", orgAlias: "scratch-dev", branch: "develop", type: "scratch" as const },
+      { name: "ステージング環境", orgAlias: "myDevOrg", branch: "release/*", type: "sandbox" as const },
+      { name: "本番環境", orgAlias: "mfg-dev", branch: "main", type: "production" as const },
+    ],
+  };
+  // envSlug は orgAlias 由来でユニーク
+  const slugs = cfg.environments.map(envSlug);
+  assert.deepEqual(slugs, ["scratch-dev", "mydevorg", "mfg-dev"]);
+  assert.equal(new Set(slugs).size, 3, "slug が一意");
+  // secretPrefix も一意
+  const prefixes = cfg.environments.map(secretPrefix);
+  assert.deepEqual(prefixes, ["SF_SCRATCH_DEV", "SF_MYDEVORG", "SF_MFG_DEV"]);
+  assert.equal(new Set(prefixes).size, 3, "secretPrefix が一意");
+  // deploy job id も一意（YAML破損しない）
+  const yml = deployWorkflow(cfg);
+  const jobIds = [...yml.matchAll(/^  (deploy-[^:]*):/gm)].map((m) => m[1]);
+  assert.equal(jobIds.length, 3);
+  assert.equal(new Set(jobIds).size, 3, "deploy job id が一意");
+});
+
+test("envSlug: ASCII名はそのまま / 非ASCIIはorgAliasへ", () => {
+  assert.equal(envSlug({ name: "uat-eu", orgAlias: "u", branch: "b", type: "sandbox" }), "uat-eu");
+  assert.equal(envSlug({ name: "開発", orgAlias: "scratch-dev", branch: "b", type: "scratch" }), "scratch-dev");
+});
 
 test("branchCondition emits exact vs startsWith for globs", () => {
   assert.equal(

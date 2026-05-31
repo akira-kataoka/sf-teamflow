@@ -13,8 +13,23 @@ import type { TeamEnvironment, TeamflowConfig } from "../config/teamflowConfig.j
  * and one variable SF_<ENV>_INSTANCE_URL (login URL).
  */
 
+/**
+ * ASCII-safe, environment-unique slug for job ids / secret names. Uses the
+ * environment name; but if the name has no ASCII (e.g. 日本語のみ「開発環境」),
+ * every env would collapse to the same slug and produce duplicate job ids /
+ * colliding secrets — so it falls back to the unique `orgAlias`. Pure & tested.
+ */
+export function envSlug(env: TeamEnvironment): string {
+  const nameSlug = env.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  if (/[a-z0-9]/.test(env.name.toLowerCase())) {
+    return nameSlug;
+  }
+  const aliasSlug = (env.orgAlias || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  return aliasSlug || "env";
+}
+
 export function secretPrefix(env: TeamEnvironment): string {
-  return `SF_${env.name.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`;
+  return `SF_${envSlug(env).toUpperCase().replace(/-/g, "_")}`;
 }
 
 /** A GH Actions `if:` expression matching this environment's branch. */
@@ -139,12 +154,12 @@ export function deployWorkflow(config: TeamflowConfig): string {
   const jobs = config.environments
     .map((env) => {
       const level = env.testLevel || config.testLevel;
-      return `  deploy-${env.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}:
+      return `  deploy-${envSlug(env)}:
     name: Deploy → ${env.name} (${env.orgAlias})
     if: ${branchCondition(env)}
     runs-on: ubuntu-latest
     concurrency:
-      group: deploy-${env.name}
+      group: deploy-${envSlug(env)}
       cancel-in-progress: false
     steps:
 ${SETUP_STEPS(dirs)}
