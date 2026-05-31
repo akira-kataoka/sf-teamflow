@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.65.1] - 2026-06-01
+
+- 🛡️ **バックアップのpushにもworkflow権限の事前検知を適用**: v0.63で公開/同期に入れた事前検知を「💾 バックアップ」のpushにも適用。ワークフロー編集後のバックアップでpush拒否される前に案内。コミット(ローカル保存)は必ず行い、pushのみ制御。
+
 ## [0.65.0] - 2026-06-01
 
 - 🔒 **Git開始時に認証情報の誤コミットを防止**: 「Gitを開始する」の初回コミット前に、ベースラインの .gitignore(.sf/ =org認証トークン / .sfdx/ / ci-keys/ =JWT秘密鍵 / node_modules/ / .DS_Store)を保証(既存は尊重し不足分のみ追記)。誤って認証情報や秘密鍵をGitHubに公開する事故を防ぐ。mergeGitignore 純関数+テスト。

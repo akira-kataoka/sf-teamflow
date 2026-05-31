@@ -195,10 +195,17 @@ export function registerGitCommands(
           await commit(message, root);
 
           if (await hasRemote(root)) {
-            progress.report({ message: "GitHubへバックアップ (push)" });
-            const branch = await currentBranch(root);
-            await push(root, true, branch);
-            vscode.window.showInformationMessage("✅ 保存してGitHubにバックアップしました。");
+            // コミットはローカルに保存済み。workflow権限が無ければpushは拒否されるので事前検知。
+            if (await ensureWorkflowScopeOk(root)) {
+              progress.report({ message: "GitHubへバックアップ (push)" });
+              const branch = await currentBranch(root);
+              await push(root, true, branch);
+              vscode.window.showInformationMessage("✅ 保存してGitHubにバックアップしました。");
+            } else {
+              vscode.window.showInformationMessage(
+                "✅ ローカルに保存しました。権限を追加したら「GitHub同期」でGitHubへ送れます。"
+              );
+            }
           } else {
             vscode.window.showInformationMessage(
               "✅ ローカルに保存しました。GitHubに公開するには「GitHubに公開」を実行してください。"
