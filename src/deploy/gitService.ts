@@ -287,26 +287,33 @@ export async function listTags(cwd: string): Promise<string[]> {
 export interface CommitInfo {
   hash: string;
   rel: string;
+  author: string;
   subject: string;
 }
 
-/** Parse `git log --pretty=%h\t%cr\t%s` output into commits. Pure & unit-tested. */
+/** Parse `git log --pretty=%h\t%cr\t%an\t%s` output. Pure & unit-tested. */
 export function parseCommitLog(stdout: string): CommitInfo[] {
   return stdout
     .split("\n")
     .map((l) => l.replace(/\r$/, ""))
     .filter(Boolean)
     .map((l) => {
-      const [hash, rel, ...rest] = l.split("\t");
-      return { hash: hash ?? "", rel: rel ?? "", subject: rest.join("\t") };
+      const [hash, rel, author, ...rest] = l.split("\t");
+      return { hash: hash ?? "", rel: rel ?? "", author: author ?? "", subject: rest.join("\t") };
     })
     .filter((c) => c.hash);
 }
 
 /** Most recent commits (newest first) for the rollback / history pickers. */
 export async function recentCommits(cwd: string, limit = 15): Promise<CommitInfo[]> {
-  const out = await git(["log", `-n${limit}`, "--pretty=format:%h%x09%cr%x09%s"], cwd);
+  const out = await git(["log", `-n${limit}`, "--pretty=format:%h%x09%cr%x09%an%x09%s"], cwd);
   return parseCommitLog(out);
+}
+
+/** Files changed in a single commit (name-status), for the history drill-down. */
+export async function commitFiles(hash: string, cwd: string): Promise<DiffEntry[]> {
+  const out = await git(["show", "--name-status", "--format=", hash], cwd);
+  return parseNameStatus(out);
 }
 
 /**

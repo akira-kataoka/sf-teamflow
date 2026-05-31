@@ -524,6 +524,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       { c: 'teamflow.createPullRequest', em: '🔀', label: 'Pull Request', need: 'repo', desc: 'レビュー依頼(develop等へ)' },
       { c: 'teamflow.manageTags', em: '🏷️', label: 'タグ管理', need: 'repo', desc: 'リリースの目印' },
       { c: 'teamflow.rollback', em: '⏪', label: '取り消し', need: 'repo', desc: '前の変更を取り消す（履歴を壊さない安全な取り消し。元に戻せます）' },
+      { c: 'teamflow.showHistory', em: '🕘', label: '変更履歴', need: 'repo', desc: '誰が・いつ・何を変えたかを一覧（選ぶと変更ファイルを確認）' },
     ]},
   ];
 

@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.54.0] - 2026-05-31
+
+- 🕘 **変更履歴ビュー（バックログD）**: ⑤に「変更履歴」タイル。直近30件のコミットを「👤誰が・いつ・件名」で一覧し、選ぶと**そのコミットの変更ファイル**（➕追加/✏️変更/🗑削除）にドリルダウン→ファイルを開ける。`commitFiles` 追加、`CommitInfo` に author を追加（ロールバックの選択肢にも作者表示）。
+
 ## [0.53.0] - 2026-05-31
 
 - 🐞 **重大修正: Git開始がPowerShellで失敗していた**: 「Gitを開始する」が `git init && git add -A && git commit` をターミナルに送っており、PowerShell(5.1)は `&&` 非対応で**パースエラーで失敗**していた。子プロセスで init→add→commit を順に実行し、そのまま元の操作を続行するように修正（`initRepo`追加）。

@@ -3,6 +3,7 @@ import type { CommandContext } from "../commandContext.js";
 import { logger } from "../util/logger.js";
 import {
   commit,
+  commitFiles,
   createBranch,
   createTag,
   currentBranch,
@@ -179,7 +180,7 @@ export function registerGitCommands(
     const pick = await vscode.window.showQuickPick(
       commits.map((c) => ({
         label: c.subject || "(メッセージなし)",
-        description: `${c.rel} · ${c.hash}`,
+        description: `${c.author} · ${c.rel} · ${c.hash}`,
         hash: c.hash,
       })),
       { title: "取り消す変更を選択（ロールバック）", placeHolder: "この変更を打ち消す“取り消しコミット”を作ります（元に戻せます）" }
@@ -218,6 +219,73 @@ export function registerGitCommands(
       vscode.window.showErrorMessage(`取り消しに失敗しました: ${res.message || "不明なエラー"}`);
       ctx.recordActivity(`取り消し: ${pick.label}`, "error");
     }
+  });
+
+  // 変更履歴: 「誰が・いつ・何を変えたか」を一覧 → 選ぶと変更ファイルにドリルダウン。
+  reg("teamflow.showHistory", async () => {
+    const root = ctx.workspaceRoot();
+    if (!root) {
+      vscode.window.showErrorMessage("フォルダを開いてください。");
+      return;
+    }
+    if (!(await isGitRepo(root))) {
+      vscode.window.showInformationMessage("まだGitで管理されていません。「💾 バックアップ」で開始できます。");
+      return;
+    }
+    let commits;
+    try {
+      commits = await recentCommits(root, 30);
+    } catch (err) {
+      vscode.window.showErrorMessage(`履歴を取得できませんでした: ${String(err)}`);
+      return;
+    }
+    if (commits.length === 0) {
+      vscode.window.showInformationMessage("まだ変更履歴（コミット）がありません。");
+      return;
+    }
+    const pick = await vscode.window.showQuickPick(
+      commits.map((c) => ({
+        label: c.subject || "(メッセージなし)",
+        description: `👤 ${c.author} · ${c.rel} · ${c.hash}`,
+        hash: c.hash,
+        subject: c.subject,
+      })),
+      { title: "変更履歴（新しい順）", placeHolder: "コミットを選ぶと、変更されたファイルを確認できます" }
+    );
+    if (!pick) {
+      return;
+    }
+    let files;
+    try {
+      files = await commitFiles(pick.hash, root);
+    } catch (err) {
+      vscode.window.showErrorMessage(`変更ファイルを取得できませんでした: ${String(err)}`);
+      return;
+    }
+    if (files.length === 0) {
+      vscode.window.showInformationMessage("このコミットに変更ファイルはありません（マージコミット等）。");
+      return;
+    }
+    const STATUS: Record<string, string> = { A: "➕ 追加", M: "✏️ 変更", D: "🗑 削除", R: "↪️ 改名", C: "📑 複製" };
+    const fpick = await vscode.window.showQuickPick(
+      files.map((f) => ({
+        label: `${STATUS[String(f.status)[0]] || f.status} ${f.path}`,
+        path: f.path,
+        status: String(f.status),
+      })),
+      { title: `「${pick.subject}」の変更ファイル（${files.length}件）`, placeHolder: "ファイルを選ぶと開きます（最新版）" }
+    );
+    if (!fpick) {
+      return;
+    }
+    if (fpick.status[0] === "D") {
+      vscode.window.showInformationMessage(`「${fpick.path}」はこのコミットで削除されています。`);
+      return;
+    }
+    const uri = vscode.Uri.file(`${root}/${fpick.path}`);
+    await vscode.window
+      .showTextDocument(uri)
+      .then(undefined, () => vscode.window.showWarningMessage(`ファイルを開けません: ${fpick.path}`));
   });
 
   // 同期: pull (--ff-only) then push.
