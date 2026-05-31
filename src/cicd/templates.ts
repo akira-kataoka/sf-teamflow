@@ -209,6 +209,27 @@ ${envCases}
           else
             echo "Prettier 設定が無いためスキップします。"
           fi
+
+  lint-lwc:
+    name: コード品質チェック (ESLint・LWC/Aura)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: ESLint 設定とLWCがあれば実行（レポートのみ）
+        run: |
+          if find ${dirs.join(" ")} -type d \\( -name lwc -o -name aura \\) 2>/dev/null | grep -q . \\
+            && { [ -f .eslintrc.json ] || [ -f .eslintrc.js ] || [ -f .eslintrc ] || [ -f eslint.config.js ] || grep -q '"eslintConfig"' package.json 2>/dev/null; }; then
+            npm ci || npm install
+            npm run lint --if-present \\
+              || echo "::warning::ESLintの指摘があります（npm run lint で確認できます）。"
+          else
+            echo "ESLint 設定 または LWC/Aura が無いためスキップします。"
+          fi
 `;
 }
 

@@ -81,6 +81,8 @@ test("prValidationWorkflow includes PMD static analysis and LWC Jest jobs", () =
   assert.ok(yml.includes("format-check:"), "Prettier format-check job present");
   assert.ok(yml.includes("prettier --check"), "runs prettier --check");
   assert.ok(yml.includes("cancel-in-progress: true"), "PR検証に並行制御(古い実行のキャンセル)");
+  assert.ok(yml.includes("lint-lwc:"), "ESLint job present");
+  assert.ok(yml.includes("npm run lint"), "runs eslint via npm run lint");
 });
 
 test("codeowners lists the package directories", () => {

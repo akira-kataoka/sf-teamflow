@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.66.0] - 2026-06-01
+
+- 🧹 **CI/CDにESLint(LWC/Aura)を追加**: PR検証に lint-lwc ジョブを追加。ESLint設定とLWC/Auraがあれば npm run lint を実行(レポートのみ/無ければスキップ)。これでPR時の品質スイートが「検証+Apexテスト+PMD+LWC Jest+Prettier+ESLint」に。CI(YAML)のみ・UI不変。
+
 ## [0.65.2] - 2026-06-01
 
 - 📝 README同期: 対応コマンド表に「変更を取り消す(ロールバック)/変更履歴/CI/CDシークレット設定」を追加。CI/CD説明にPMD/LWC Jestを明記。日々の流れを新ラベル(資材作成/資材反映/バックアップ)に更新。テスト件数48→110。doc同期のみ。
