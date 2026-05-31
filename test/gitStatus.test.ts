@@ -1,6 +1,18 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parsePorcelainV2, conflictedFiles } from "../src/deploy/gitService.js";
+import { parsePorcelainV2, conflictedFiles, parseCommitLog } from "../src/deploy/gitService.js";
+
+test("parseCommitLog parses hash/rel/subject (tab-separated; subject may contain tabs)", () => {
+  const out = [
+    "abc1234\t2 hours ago\tfeat: 取引先検索を追加",
+    "def5678\tyesterday\tfix: 不具合\tの修正",
+    "",
+  ].join("\n");
+  const c = parseCommitLog(out);
+  assert.equal(c.length, 2);
+  assert.deepEqual(c[0], { hash: "abc1234", rel: "2 hours ago", subject: "feat: 取引先検索を追加" });
+  assert.equal(c[1].subject, "fix: 不具合\tの修正");
+});
 
 test("parsePorcelainV2 reads branch and ahead/behind", () => {
   const out = [

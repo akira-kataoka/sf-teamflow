@@ -328,6 +328,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 13px; font-size: 11.5px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); }
   .chip.prod { background: var(--vscode-inputValidation-errorBackground, #5a1d1d); outline: 1px solid #e55; }
   .chip.dim { opacity: .6; }
+  .caption { font-size: 11px; font-weight: 600; opacity: .7; margin: 10px 2px 4px; }
   .stats { display: flex; gap: 6px; margin-bottom: 10px; }
   .stat { flex: 1; text-align: center; padding: 7px 4px; border: 1px solid var(--vscode-panel-border, #8884); border-radius: 8px; }
   .stat .n { font-size: 17px; font-weight: 700; line-height: 1.1; }
@@ -385,6 +386,13 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
 
   /* sections */
   section { border: 1px solid var(--vscode-panel-border, #8884); border-radius: 10px; padding: 8px 8px 10px; margin-bottom: 10px; }
+  /* 折りたたみ可能なワークフローのセクション。 */
+  .secfold { border: 1px solid var(--vscode-panel-border, #8884); border-radius: 10px; padding: 8px 8px 10px; margin-bottom: 10px; }
+  .secfold > summary { list-style: none; cursor: pointer; }
+  .secfold > summary::-webkit-details-marker { display: none; }
+  .secfold:not([open]) > summary.sechead { margin-bottom: 2px; }
+  .caret { display: inline-block; font-size: 10px; opacity: .6; transition: transform .12s; flex: 0 0 auto; }
+  .secfold[open] > summary .caret { transform: rotate(90deg); }
   .sechead { display: flex; align-items: center; gap: 8px; margin: 2px 2px 8px; }
   .stepno { width: 20px; height: 20px; border-radius: 50%; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); font-size: 11px; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; font-weight: 600; }
   .sectitle { font-size: 12.5px; font-weight: 600; }
@@ -452,7 +460,9 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
   <div id="status" class="chips"></div>
+  <div class="caption">📊 開発サマリ</div>
   <div id="stats" class="stats"></div>
+  <div class="caption" id="pipecap">🗺️ 環境構成</div>
   <div id="pipeline" class="pipeline"></div>
   <div id="hero"></div>
   <div id="situation" class="situation"></div>
@@ -463,7 +473,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   <div id="changedbox"></div>
   <div id="sections"></div>
   <section>
-    <div class="sechead"><span class="stepno">🌿</span><span class="sectitle">ブランチ</span><span class="sechint">作業の分岐（Git）</span></div>
+    <div class="sechead"><span class="stepno">🌿</span><span class="sectitle">ブランチ</span></div>
     <div id="branchbox"></div>
   </section>
   <section>
@@ -489,8 +499,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   const SECTIONS = [
     { no: '①', title: 'プロジェクト', three: true, tiles: [
       { c: 'teamflow.createProject', em: '📂', label: 'プロジェクト作成', desc: 'フォルダごと新規作成して自動で開きます（最初はこれ）' },
-      { c: 'teamflow.authorizeOrg', em: '🔌', label: '環境認証', desc: '開発するSalesforce環境にログインします' },
-      { c: 'teamflow.setupWizard', em: '🧭', label: '環境設定', need: 'project', desc: '開発/ステージング/本番を割り当て・編集します' },
+      { c: 'teamflow.setupWizard', em: '🧭', label: '環境設定', need: 'project', desc: '開発/ステージング/本番を割り当て・編集します（環境の認証・追加は下の「環境」から）' },
     ]},
     { no: '②', title: '開発', three: true, tiles: [
       { c: 'teamflow.createComponent', em: '✨', label: '資材作成', need: 'project', desc: 'Apexクラス/トリガ/LWC/Aura を作成' },
@@ -514,6 +523,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       { c: 'teamflow.manageBranches', em: '🌿', label: 'ブランチ管理', need: 'repo', desc: '切替/作成/削除' },
       { c: 'teamflow.createPullRequest', em: '🔀', label: 'Pull Request', need: 'repo', desc: 'レビュー依頼(develop等へ)' },
       { c: 'teamflow.manageTags', em: '🏷️', label: 'タグ管理', need: 'repo', desc: 'リリースの目印' },
+      { c: 'teamflow.rollback', em: '⏪', label: '取り消し', need: 'repo', desc: '前の変更を取り消す（履歴を壊さない安全な取り消し。元に戻せます）' },
     ]},
   ];
 
@@ -579,8 +589,10 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
           '<div class="po">'+escapeHtml(p.orgAlias)+(p.connected?'':' ❌')+'</div>'+purpose+'</div>';
       });
       $('pipeline').innerHTML = cells.join('<div class="arrow">→</div>');
+      $('pipecap').style.display = '';
     } else {
       $('pipeline').innerHTML = '';
+      $('pipecap').style.display = 'none';
     }
 
     // next-action hero
@@ -699,9 +711,9 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     }
     function renderSec(sec) {
       const hint = sec.hint ? '<span class="sechint">'+sec.hint+'</span>' : '';
-      return '<section><div class="sechead"><span class="stepno">'+sec.no+'</span>'+
-        '<span class="sectitle">'+sec.title+'</span>'+hint+'</div>'+
-        '<div class="grid '+(sec.three?'three':'')+'">'+sec.tiles.map(tileHtml).join('')+'</div></section>';
+      return '<details class="secfold" open><summary class="sechead"><span class="caret">▸</span><span class="stepno">'+sec.no+'</span>'+
+        '<span class="sectitle">'+sec.title+'</span>'+hint+'</summary>'+
+        '<div class="grid '+(sec.three?'three':'')+'">'+sec.tiles.map(tileHtml).join('')+'</div></details>';
     }
     {
       // 機能ごとのグループを明確なタイトルで全表示。スクラッチ作成系は

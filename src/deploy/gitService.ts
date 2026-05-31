@@ -284,8 +284,62 @@ export async function listTags(cwd: string): Promise<string[]> {
     .filter(Boolean);
 }
 
+export interface CommitInfo {
+  hash: string;
+  rel: string;
+  subject: string;
+}
+
+/** Parse `git log --pretty=%h\t%cr\t%s` output into commits. Pure & unit-tested. */
+export function parseCommitLog(stdout: string): CommitInfo[] {
+  return stdout
+    .split("\n")
+    .map((l) => l.replace(/\r$/, ""))
+    .filter(Boolean)
+    .map((l) => {
+      const [hash, rel, ...rest] = l.split("\t");
+      return { hash: hash ?? "", rel: rel ?? "", subject: rest.join("\t") };
+    })
+    .filter((c) => c.hash);
+}
+
+/** Most recent commits (newest first) for the rollback / history pickers. */
+export async function recentCommits(cwd: string, limit = 15): Promise<CommitInfo[]> {
+  const out = await git(["log", `-n${limit}`, "--pretty=format:%h%x09%cr%x09%s"], cwd);
+  return parseCommitLog(out);
+}
+
+/**
+ * Safely roll back by reverting a commit — creates a NEW "undo" commit, never
+ * rewrites history, so it's reversible. On conflict we abort and report it
+ * rather than leaving the tree half-reverted.
+ */
+export async function revertCommit(
+  hash: string,
+  cwd: string
+): Promise<{ ok: boolean; conflict: boolean; message: string }> {
+  const res = await run("git", ["--no-optional-locks", "revert", "--no-edit", hash], {
+    cwd,
+    timeout: 30_000,
+  });
+  if (res.code === 0) {
+    return { ok: true, conflict: false, message: res.stdout.trim() };
+  }
+  const out = (res.stderr + res.stdout).toLowerCase();
+  const conflict = out.includes("conflict");
+  if (conflict) {
+    // leave the tree clean — the user can resolve manually if they want
+    await run("git", ["--no-optional-locks", "revert", "--abort"], { cwd, timeout: 30_000 });
+  }
+  return { ok: false, conflict, message: (res.stderr || res.stdout).trim() };
+}
+
 /* ------------------------------- git mutations ---------------------------- */
 /* These wrap git and THROW on failure so command handlers can surface errors. */
+
+export async function initRepo(cwd: string): Promise<void> {
+  await git(["init"], cwd);
+}
 
 export async function stageAll(cwd: string): Promise<void> {
   await git(["add", "-A"], cwd);

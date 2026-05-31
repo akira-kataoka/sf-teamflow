@@ -9,6 +9,7 @@ import {
   deleteBranch,
   deleteTag,
   hasRemote,
+  initRepo,
   isGitRepo,
   listBranches,
   listTags,
@@ -16,6 +17,8 @@ import {
   push,
   pushDeleteTag,
   pushTag,
+  recentCommits,
+  revertCommit,
   stageAll,
   status,
   switchBranch,
@@ -48,10 +51,25 @@ export function registerGitCommands(
         "Gitを開始する"
       );
       if (init === "Gitを開始する") {
-        ctx.runInTerminal("git init && git add -A && git commit -m \"初回コミット\"");
-        vscode.window.showInformationMessage(
-          "ターミナルでGitを初期化しました。完了したらもう一度お試しください。"
-        );
+        // ターミナルに「git init && ...」を送ると PowerShell では && が使えず失敗する。
+        // 子プロセスで init→add→commit を順に実行し、そのまま元の操作を続行する。
+        try {
+          await vscode.window.withProgress(
+            { location: vscode.ProgressLocation.Notification, title: "Gitを開始中…" },
+            async () => {
+              await initRepo(root);
+              await stageAll(root);
+              await commit("初回コミット", root);
+            }
+          );
+          vscode.window.showInformationMessage("✅ Gitを開始しました（初回コミット作成）。");
+          ctx.refreshAll();
+          return root; // 初期化できたので元の操作を続行
+        } catch (err) {
+          logger.error("Git初期化に失敗", err);
+          vscode.window.showErrorMessage(`Git初期化に失敗しました: ${String(err)}`);
+          logger.show();
+        }
       }
       return undefined;
     }
@@ -139,6 +157,67 @@ export function registerGitCommands(
         }
       }
     );
+  });
+
+  // 取り消し(ロールバック): 選んだコミットの変更を revert（履歴を壊さない安全な取り消し）。
+  reg("teamflow.rollback", async () => {
+    const root = await ensureRepo();
+    if (!root) {
+      return;
+    }
+    let commits;
+    try {
+      commits = await recentCommits(root, 15);
+    } catch (err) {
+      vscode.window.showErrorMessage(`履歴を取得できませんでした: ${String(err)}`);
+      return;
+    }
+    if (commits.length === 0) {
+      vscode.window.showInformationMessage("取り消せる変更（コミット）がまだありません。");
+      return;
+    }
+    const pick = await vscode.window.showQuickPick(
+      commits.map((c) => ({
+        label: c.subject || "(メッセージなし)",
+        description: `${c.rel} · ${c.hash}`,
+        hash: c.hash,
+      })),
+      { title: "取り消す変更を選択（ロールバック）", placeHolder: "この変更を打ち消す“取り消しコミット”を作ります（元に戻せます）" }
+    );
+    if (!pick) {
+      return;
+    }
+    const ok = await vscode.window.showWarningMessage(
+      `「${pick.label}」の変更を取り消します。\n\n履歴は壊さず、打ち消す新しいコミットを作ります（後で元に戻せます）。続けますか？`,
+      { modal: true },
+      "取り消す"
+    );
+    if (ok !== "取り消す") {
+      return;
+    }
+    const res = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: "取り消し中…" },
+      () => revertCommit(pick.hash, root)
+    );
+    ctx.refreshAll();
+    if (res.ok) {
+      ctx.recordActivity(`取り消し: ${pick.label}`, "ok");
+      const next = await vscode.window.showInformationMessage(
+        "✅ 取り消しました。GitHubへ反映するなら「バックアップ」、環境へ反映するなら「環境へデプロイ」。",
+        "環境へデプロイ"
+      );
+      if (next === "環境へデプロイ") {
+        await vscode.commands.executeCommand("teamflow.deployToEnvironment");
+      }
+    } else if (res.conflict) {
+      vscode.window.showWarningMessage(
+        "競合が発生したため自動取り消しを中止しました（変更は元のままです）。手動での解消が必要です。"
+      );
+      ctx.recordActivity(`取り消し: ${pick.label}`, "error");
+    } else {
+      vscode.window.showErrorMessage(`取り消しに失敗しました: ${res.message || "不明なエラー"}`);
+      ctx.recordActivity(`取り消し: ${pick.label}`, "error");
+    }
   });
 
   // 同期: pull (--ff-only) then push.
