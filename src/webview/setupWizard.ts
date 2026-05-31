@@ -234,8 +234,14 @@ export class SetupWizard {
   .envhead .desc { font-size: 12px; opacity: .65; }
   .envhead label { margin-left: auto; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
   .envhead .enm { flex: 1; padding: 6px 8px; font-size: 14px; font-weight: 600; background: var(--vscode-input-background, #3c3c3c); color: var(--vscode-input-foreground, #fff); border: 1px solid var(--vscode-input-border, #8884); border-radius: 6px; }
-  .envhead .del { background: transparent; border: none; cursor: pointer; font-size: 15px; padding: 4px 6px; }
-  .envhead .del:hover { background: var(--vscode-toolbar-hoverBackground, #ffffff22); border-radius: 6px; }
+  .envhead .draghandle { cursor: grab; font-size: 16px; opacity: .55; padding: 2px 4px; user-select: none; }
+  .envhead .draghandle:hover { opacity: 1; }
+  .envhead .mv { background: transparent; border: 1px solid var(--vscode-panel-border, #8884); color: var(--vscode-foreground); cursor: pointer; font-size: 13px; line-height: 1; padding: 4px 7px; border-radius: 6px; }
+  .envhead .mv:hover { background: var(--vscode-toolbar-hoverBackground, #ffffff22); }
+  .envhead .del { background: transparent; border: 1px solid var(--vscode-inputValidation-errorBorder, #e5534b); color: var(--vscode-inputValidation-errorBorder, #e5534b); cursor: pointer; font-size: 12px; padding: 4px 9px; border-radius: 6px; }
+  .envhead .del:hover { background: var(--vscode-inputValidation-errorBorder, #e5534b); color: #fff; }
+  .envcard.dragging { opacity: .5; }
+  .envcard.dragover { border-color: var(--vscode-focusBorder, #4aa3df); box-shadow: 0 0 0 2px var(--vscode-focusBorder, #4aa3df) inset; }
   .field .epurpose { flex: 1; padding: 6px 8px; background: var(--vscode-input-background, #3c3c3c); color: var(--vscode-input-foreground, #fff); border: 1px solid var(--vscode-input-border, #8884); border-radius: 6px; font-size: 13px; }
   .addenv { width: 100%; padding: 10px; border: 1px dashed var(--vscode-panel-border, #8884); border-radius: 8px; background: transparent; color: var(--vscode-foreground); cursor: pointer; font-size: 13px; }
   .addenv:hover { background: var(--vscode-list-hoverBackground); }
@@ -281,7 +287,7 @@ export class SetupWizard {
 
   <!-- STEP 2 -->
   <div class="page" data-page="2">
-    <p class="hint">チームに合わせて環境を自由に定義できます。各環境に名前・種別・環境(Org)・ブランチ・用途を設定。「＋環境を追加」で何段でも作れます（例: 開発→結合→UAT→ステージング→本番）。</p>
+    <p class="hint">チームに合わせて環境を自由に定義できます。各環境に名前・種別・接続先・ブランチ・用途を設定。「＋環境を追加」で何個でも作れ（並列のスクラッチ環境などもOK）、⠿のドラッグや↑↓で並び替えできます（例: 開発→結合→UAT→ステージング→本番）。</p>
     <div id="envs"></div>
     <div class="row"><button class="secondary" id="back2">‹ 戻る</button><button class="primary" id="to3">次へ ›</button></div>
   </div>
@@ -355,11 +361,15 @@ export class SetupWizard {
   function renderEnvs() {
     const rows = ENVS.map((e,i) =>
       '<div class="envcard" data-env="'+i+'">'+
-        '<div class="envhead"><span class="emoji">'+emojiFor(e)+'</span>'+
+        '<div class="envhead">'+
+          '<span class="draghandle" draggable="true" data-i="'+i+'" title="ドラッグで並び替え">⠿</span>'+
+          '<span class="emoji">'+emojiFor(e)+'</span>'+
           '<input type="text" class="enm" data-i="'+i+'" value="'+esc(e.name)+'" placeholder="環境名（例: uat）">'+
-          '<button class="del" data-i="'+i+'" title="この環境を削除">🗑</button></div>'+
+          '<button class="mv up" data-i="'+i+'" title="上へ" '+(i===0?'disabled':'')+'>↑</button>'+
+          '<button class="mv down" data-i="'+i+'" title="下へ" '+(i===ENVS.length-1?'disabled':'')+'>↓</button>'+
+          '<button class="del" data-i="'+i+'" title="この環境を削除">🗑 削除</button></div>'+
         '<div class="field"><span class="lbl">種別</span><select class="etype" data-i="'+i+'">'+typeOptions(e.type)+'</select></div>'+
-        '<div class="field"><span class="lbl">Org</span><select class="org" data-i="'+i+'">'+orgOptions(e.orgAlias)+'</select></div>'+
+        '<div class="field"><span class="lbl">接続先</span><select class="org" data-i="'+i+'">'+orgOptions(e.orgAlias)+'</select></div>'+
         '<div class="field"><span class="lbl">ブランチ</span><select class="branch" data-i="'+i+'">'+branchOptions(e.branch)+'</select></div>'+
         '<div class="field"><span class="lbl">用途</span><input type="text" class="epurpose" data-i="'+i+'" value="'+esc(e.purpose||'')+'" placeholder="この環境の役割（任意）"></div>'+
       '</div>').join('');
@@ -369,8 +379,23 @@ export class SetupWizard {
     $$('.org').forEach(el => el.addEventListener('change', (ev)=>{ ENVS[ev.target.dataset.i].orgAlias = ev.target.value; }));
     $$('.branch').forEach(el => el.addEventListener('change', (ev)=>{ ENVS[ev.target.dataset.i].branch = ev.target.value; }));
     $$('.epurpose').forEach(el => el.addEventListener('input', (ev)=>{ ENVS[ev.target.dataset.i].purpose = ev.target.value; }));
-    $$('.del').forEach(el => el.addEventListener('click', (ev)=>{ ENVS.splice(Number(ev.target.dataset.i),1); renderEnvs(); }));
+    $$('.del').forEach(el => el.addEventListener('click', (ev)=>{ ENVS.splice(Number(ev.currentTarget.dataset.i),1); renderEnvs(); }));
     $('#addenv').addEventListener('click', ()=>{ ENVS.push({ name:'', type:'sandbox', orgAlias:'', branch:'feature/*', purpose:'' }); renderEnvs(); });
+    // 並び替え: ↑↓ボタン（確実）
+    const move = (from, to) => { if (to<0||to>=ENVS.length) return; const [m]=ENVS.splice(from,1); ENVS.splice(to,0,m); renderEnvs(); };
+    $$('.mv.up').forEach(b => b.addEventListener('click', (ev)=>{ const i=Number(ev.currentTarget.dataset.i); move(i,i-1); }));
+    $$('.mv.down').forEach(b => b.addEventListener('click', (ev)=>{ const i=Number(ev.currentTarget.dataset.i); move(i,i+1); }));
+    // 並び替え: ドラッグ&ドロップ（ハンドルを掴んでカード上にドロップ）
+    let dragFrom = null;
+    $$('.draghandle').forEach(h => {
+      h.addEventListener('dragstart', (ev)=>{ dragFrom = Number(ev.target.dataset.i); ev.dataTransfer.effectAllowed='move'; ev.target.closest('.envcard').classList.add('dragging'); });
+      h.addEventListener('dragend', ()=>{ dragFrom=null; $$('.envcard').forEach(c=>c.classList.remove('dragging','dragover')); });
+    });
+    $$('.envcard').forEach(card => {
+      card.addEventListener('dragover', (ev)=>{ if(dragFrom===null) return; ev.preventDefault(); card.classList.add('dragover'); });
+      card.addEventListener('dragleave', ()=> card.classList.remove('dragover'));
+      card.addEventListener('drop', (ev)=>{ if(dragFrom===null) return; ev.preventDefault(); const to=Number(card.dataset.env); if(dragFrom!==to) move(dragFrom,to); });
+    });
   }
 
   function collect() {
