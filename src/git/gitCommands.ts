@@ -18,6 +18,7 @@ import {
   mergeGitignore,
   BASELINE_GITIGNORE_ENTRIES,
   pushErrorHint,
+  branchNameError,
   isGitRepo,
   remoteUrl,
   removeRemote,
@@ -429,10 +430,7 @@ export function registerGitCommands(
           title: "新しい作業ブランチ",
           prompt: "機能ごとにブランチを分けるのが安全です。",
           value: "feature/",
-          validateInput: (v) =>
-            /^[A-Za-z0-9._\/-]+$/.test(v.trim())
-              ? undefined
-              : "ブランチ名を入力（例: feature/account-search）。英数字と / - _ . のみ、スペース・日本語は不可。",
+          validateInput: (v) => branchNameError(v),
         });
         if (!name) {
           return;

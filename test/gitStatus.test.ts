@@ -8,7 +8,31 @@ import {
   mergeGitignore,
   BASELINE_GITIGNORE_ENTRIES,
   pushErrorHint,
+  branchNameError,
 } from "../src/deploy/gitService.js";
+
+test("branchNameError: 妥当なブランチ名は undefined", () => {
+  assert.equal(branchNameError("feature/account-search"), undefined);
+  assert.equal(branchNameError("develop"), undefined);
+  assert.equal(branchNameError("release/v1.2.0"), undefined);
+  assert.equal(branchNameError("hotfix/bug_123"), undefined);
+  assert.equal(branchNameError("  feature/x  "), undefined, "前後空白はtrimして許容");
+});
+
+test("branchNameError: gitが弾く不正名を入力時点で検出する", () => {
+  assert.ok(branchNameError(""), "空");
+  assert.ok(branchNameError("   "), "空白のみ");
+  assert.ok(branchNameError("feature/アカウント"), "日本語");
+  assert.ok(branchNameError("feature branch"), "スペース");
+  assert.ok(branchNameError("feature~1"), "記号~");
+  assert.ok(branchNameError("feature/"), "末尾スラッシュ");
+  assert.ok(branchNameError("/feature"), "先頭スラッシュ");
+  assert.ok(branchNameError(".hidden"), "先頭ドット");
+  assert.ok(branchNameError("feature."), "末尾ドット");
+  assert.ok(branchNameError("feat//x"), "連続スラッシュ");
+  assert.ok(branchNameError("feat..x"), "連続ドット");
+  assert.ok(branchNameError("feature.lock"), "末尾.lock");
+});
 
 test("pushErrorHint maps common push failures to actionable hints", () => {
   assert.match(

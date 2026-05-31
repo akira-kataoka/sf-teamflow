@@ -426,6 +426,31 @@ export function mergeGitignore(current: string, entries: string[]): string {
 }
 
 /**
+ * Git のブランチ名として妥当かを検証し、NGなら日本語のエラー文を返す（OKは undefined）。
+ * git が後で弾く不正名（先頭/末尾の / や .、//、..、末尾 .lock 等）を入力時点で止める。
+ * Pure & unit-tested.
+ */
+export function branchNameError(name: string): string | undefined {
+  const v = (name || "").trim();
+  if (!v) {
+    return "ブランチ名を入力してください（例: feature/account-search）。";
+  }
+  if (!/^[A-Za-z0-9._/-]+$/.test(v)) {
+    return "使える文字は英数字と / - _ . のみです（スペース・日本語・記号は不可）。";
+  }
+  if (/^[/.]/.test(v) || /[/.]$/.test(v)) {
+    return "先頭・末尾を / や . にはできません（例: feature/account-search）。";
+  }
+  if (v.includes("//") || v.includes("..")) {
+    return "「//」や「..」は使えません。";
+  }
+  if (v.endsWith(".lock")) {
+    return "末尾を「.lock」にはできません。";
+  }
+  return undefined;
+}
+
+/**
  * push 失敗時のエラー文から、初心者向けの具体的な対処ヒントを返す（未知なら undefined）。
  * Pure & unit-tested.
  */
