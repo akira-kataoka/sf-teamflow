@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.68.1] - 2026-06-01
+
+- 🐞 **PR検証の差分取得バグを修正**: 生成された sf-validate.yml の base 取得が `git fetch origin <base> --depth=0` を使っていたが、git の depth は正の整数のみで 0 は不正→fetch失敗で base 差分が取れず検証が空振りする恐れ。depth指定を外して通常fetchに修正。
+
 ## [0.68.0] - 2026-06-01
 
 - 🛠️ **生成CDの初回デプロイ取りこぼしを修正**: 新規の環境ブランチへ初回pushしたとき、親コミットが無いと差分が空になり「何もデプロイされない」問題。github.event.before がゼロSHAや親無しの場合はパッケージ全体をデプロイするように(取りこぼし防止)。通常の差分デプロイは従来通り。

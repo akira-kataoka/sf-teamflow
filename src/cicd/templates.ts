@@ -120,7 +120,9 @@ ${authSteps}
         id: diff
         run: |
           BASE="\${{ github.base_ref }}"
-          git fetch origin "$BASE" --depth=0 || true
+          # baseブランチを取得（checkoutは fetch-depth:0 なので merge-base に十分な履歴が得られる）。
+          # 注: depth 指定は付けない（git の depth は正の整数のみで 0 は不正）。
+          git fetch origin "$BASE" || true
           CHANGED=$(git diff --name-only "origin/$BASE...HEAD" -- ${dirs.join(" ")} | tr '\\n' ' ')
           echo "Changed: $CHANGED"
           echo "files=$CHANGED" >> "$GITHUB_OUTPUT"

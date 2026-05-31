@@ -76,6 +76,9 @@ test("prValidationWorkflow validates (check-only) on pull_request", () => {
   const yml = prValidationWorkflow(defaultConfig());
   assert.ok(yml.includes("on:\n  pull_request:"));
   assert.ok(yml.includes("sf project deploy validate"));
+  // base取得に不正な --depth=0 を使わない（gitは正の整数のみ→fetch失敗で検証が空振り）。
+  assert.ok(!yml.includes("--depth=0"), "不正な --depth=0 を使わない");
+  assert.ok(yml.includes('git fetch origin "$BASE" || true'), "baseを通常fetchする");
 });
 
 test("prValidationWorkflow includes PMD static analysis and LWC Jest jobs", () => {
