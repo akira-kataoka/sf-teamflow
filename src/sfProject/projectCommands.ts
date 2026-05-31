@@ -37,6 +37,34 @@ export function registerProjectCommands(
   const reg = (id: string, fn: (...a: any[]) => unknown) =>
     context.subscriptions.push(vscode.commands.registerCommand(id, fn));
 
+  // メタデータ取得など「手元を上書きし得る」操作の前に、未保存のローカル変更を警告する。
+  // 続行してよければ true、ユーザーが中断したら false。
+  async function confirmNoUncommittedOverwrite(): Promise<boolean> {
+    const root = ctx.workspaceRoot();
+    if (!root) {
+      return true;
+    }
+    const dirs = await readSfdxPackageDirs(root).catch(() => ["force-app"]);
+    const st = await run("git", ["status", "--porcelain", "--", ...dirs], {
+      cwd: root,
+      timeout: 10_000,
+    });
+    if (st.code !== 0 || !st.stdout.trim()) {
+      return true; // gitでない or 変更なし → そのまま続行
+    }
+    const go = await vscode.window.showWarningMessage(
+      "未保存のローカル変更があります。取得すると手元のファイルが上書きされる可能性があります。先にバックアップしますか？",
+      { modal: true },
+      "先にバックアップ",
+      "このまま取得"
+    );
+    if (go === "先にバックアップ") {
+      await vscode.commands.executeCommand("teamflow.gitCommitPush");
+      return false; // バックアップ後、改めて取得してもらう
+    }
+    return go === "このまま取得";
+  }
+
   async function pickOrg(placeHolder: string, filter?: (o: OrgInfo) => boolean): Promise<OrgInfo | undefined> {
     const orgs = ctx.knownOrgs().filter((o) => (filter ? filter(o) : true));
     if (orgs.length === 0) {
@@ -266,6 +294,10 @@ export function registerProjectCommands(
     if (!org) {
       return;
     }
+    // 取得は手元のファイルを上書きし得る。未保存のローカル変更があれば警告する（データ損失防止）。
+    if (!(await confirmNoUncommittedOverwrite())) {
+      return;
+    }
     const metadata = await pickMetadataTypes(`「${org.displayName}」から取得する種類を選択`);
     if (!metadata || metadata.length === 0) {
       return;
@@ -278,6 +310,9 @@ export function registerProjectCommands(
   reg("teamflow.retrieveByManifest", async () => {
     const org = await pickOrg("取得元のOrgを選択");
     if (!org) {
+      return;
+    }
+    if (!(await confirmNoUncommittedOverwrite())) {
       return;
     }
     const found = await vscode.workspace.findFiles("**/*package*.xml", "**/node_modules/**", 20);
