@@ -85,7 +85,7 @@ flowchart LR
 1. SFDXプロジェクト（`sfdx-project.json`）を開く、または「新しいプロジェクトを作成」
 2. アクティビティバーの **Salesforce Dev Manager** を開く
 3. ホームの「次にやること」に従って **① Orgを認証 → ② 環境を設定**
-4. 日々は ✨新規作成 → ⬆️反映 → 🧪テスト → 💾保存 → 🔀PR → 🚀環境へデプロイ
+4. 日々は ✨資材作成 → ⬆️資材反映 → 🧪テスト → 💾バックアップ → 🔀Pull Request → 🚀環境へデプロイ
 
 ---
 
@@ -114,7 +114,8 @@ flowchart LR
 | 保存 | 作業ブランチを作成 / ブランチを管理 | feature運用・切替/作成/削除 |
 | 保存 | Pull Requestを作成 | `gh pr create`（マージ先選択） |
 | 保存 | リリースタグを作成 / タグを管理 | 次バージョン自動採番・push/削除 |
-| 設定 | チーム設定を開く / CI/CDを生成 / チーム開発ガイド / 設定 | sf-teamflow.json・GitHub Actions・ガイド |
+| 保存 | 変更を取り消す（ロールバック） / 変更履歴を見る | `git revert`（履歴を壊さない）/ 誰が・いつ・何を→変更ファイル |
+| 設定 | チーム設定を開く / CI/CDを生成 / CI/CDシークレットを設定 / チーム開発ガイド / 設定 | sf-teamflow.json・GitHub Actions（PR検証＋Apexテスト＋PMD＋LWC Jest／mergeで自動デプロイ）・JWT鍵生成＋シークレット登録・ガイド |
 
 > ほとんどの操作はサイドバーの「ホーム」からクリックだけで実行できます。
 
@@ -122,7 +123,7 @@ flowchart LR
 ```bash
 npm install
 npm run check-types      # tsc --noEmit
-npm test                 # ピュアロジックの単体テスト (node:test, 48件)
+npm test                 # ピュアロジックの単体テスト (node:test, 110件)
 npm run build            # esbuild
 npm run package          # .vsix 生成
 ```
