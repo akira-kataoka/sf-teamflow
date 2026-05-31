@@ -171,15 +171,22 @@ async function quickSettings(): Promise<void> {
     : vscode.ConfigurationTarget.Global;
   const level = cfg.get<string>("deploy.testLevel", "RunLocalTests");
   const confirmProd = cfg.get<boolean>("confirmProductionDeploy", true);
+  const baseRef = cfg.get<string>("deploy.baseRef", "origin/main");
+  const cliPathVal = cfg.get<string>("sfCliPath", "sf");
 
   const pick = await vscode.window.showQuickPick(
     [
-      { label: `🧪 デプロイ時のテストレベル`, description: level, action: "level" },
+      { label: "🧪 デプロイ時のテストレベル", description: level, detail: "デプロイ/検証で走らせるApexテストの範囲", action: "level" },
       {
-        label: `🛑 本番デプロイ前の確認`,
+        label: "🛑 本番デプロイ前の確認",
         description: confirmProd ? "ON（推奨）" : "OFF",
+        detail: "本番環境へ送る前に確認ダイアログを出す",
         action: "confirm",
       },
+      { label: "📐 差分の基準ブランチ", description: baseRef, detail: "「環境へデプロイ」で何との差分を送るかの基準", action: "baseref" },
+      { label: "🔧 sf CLI のパス", description: cliPathVal, detail: "sf が PATH に無いときに実行パスを指定", action: "clipath" },
+      { label: "🗂️ チーム設定 (sf-teamflow.json) を開く", detail: "環境とブランチの対応を直接編集", action: "openconfig" },
+      { label: "⚙️ VSCode設定で詳しく開く", detail: "teamflow のすべての設定を一覧で", action: "vscode" },
     ],
     { title: "Salesforce Dev Manager 設定" }
   );
@@ -189,7 +196,7 @@ async function quickSettings(): Promise<void> {
   if (pick.action === "level") {
     const lv = await vscode.window.showQuickPick(
       [
-        { label: "RunLocalTests", description: "自organizationのローカルテスト（推奨）" },
+        { label: "RunLocalTests", description: "自環境のローカルテスト（推奨）" },
         { label: "NoTestRun", description: "テストを実行しない（速いが本番不可）" },
         { label: "RunAllTestsInOrg", description: "全テスト（時間がかかる）" },
       ],
@@ -199,11 +206,37 @@ async function quickSettings(): Promise<void> {
       await cfg.update("deploy.testLevel", lv.label, target);
       vscode.window.showInformationMessage(`テストレベルを ${lv.label} にしました。`);
     }
-  } else {
+  } else if (pick.action === "confirm") {
     await cfg.update("confirmProductionDeploy", !confirmProd, target);
     vscode.window.showInformationMessage(
       `本番デプロイ前の確認を ${!confirmProd ? "ON" : "OFF"} にしました。`
     );
+  } else if (pick.action === "baseref") {
+    const v = await vscode.window.showInputBox({
+      title: "差分の基準ブランチ",
+      prompt: "例: origin/main, develop（sf-teamflow.json の環境設定があればそちらが優先）",
+      value: baseRef,
+    });
+    if (v && v.trim()) {
+      await cfg.update("deploy.baseRef", v.trim(), target);
+      vscode.window.showInformationMessage(`基準ブランチを ${v.trim()} にしました。`);
+    }
+  } else if (pick.action === "clipath") {
+    const v = await vscode.window.showInputBox({
+      title: "sf CLI のパス",
+      prompt: "PATH が通っていれば sf のままでOK。通っていない場合は実行ファイルの絶対パスを指定",
+      value: cliPathVal,
+    });
+    if (v && v.trim()) {
+      await cfg.update("sfCliPath", v.trim(), target);
+      vscode.window.showInformationMessage(`sf CLI のパスを ${v.trim()} にしました。`);
+    }
+  } else if (pick.action === "openconfig") {
+    await vscode.commands.executeCommand("teamflow.openConfig");
+    return;
+  } else if (pick.action === "vscode") {
+    await vscode.commands.executeCommand("workbench.action.openSettings", "teamflow");
+    return;
   }
   refreshAll();
 }
