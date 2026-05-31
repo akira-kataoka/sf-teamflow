@@ -103,6 +103,11 @@ ${filters}
     paths:
 ${dirs.map((d) => `      - "${d}/**"`).join("\n")}
 
+# 同じPRに新しいコミットが来たら、進行中の古い検証はキャンセルしてCI時間を節約。
+concurrency:
+  group: sf-validate-\${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest

@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.64.1] - 2026-06-01
+
+- ⚡ **PR検証に並行制御を追加**: 同じPRに新しいコミットが来たら進行中の古い検証を自動キャンセル(concurrency cancel-in-progress)。CI時間の節約・標準ベストプラクティス。CI(YAML)のみの変更。
+
 ## [0.64.0] - 2026-06-01
 
 - 💅 **CI/CDにPrettier整形チェックを追加**: PR検証に format-check ジョブを追加。.prettierrc 等の設定があれば `prettier --check` で整形を検査(レポートのみ/設定が無ければスキップ)。これでPRに「検証/Apexテスト/PMD/Jest/整形」が揃う。UIは増やさずCI(YAML)のみ拡張。
