@@ -520,7 +520,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     if (!s.configured) return { em:'🧭', t1:'はじめに（3）', t2:'環境を設定する（開発/ステージング/本番）', c:'teamflow.setupWizard' };
     if (s.changes > 0) return { em:'💾', t1:'次にやること', t2:'変更 '+s.changes+'件をバックアップ', c:'teamflow.gitCommitPush' };
     if (s.ahead > 0) return { em:'🔄', t1:'次にやること', t2:'未バックアップ '+s.ahead+'件をGitHubへ', c:'teamflow.gitSync' };
-    return { em:'✅', t1:'いまやる操作はありません', t2:'資材を変更すると、次にやることがここに出ます', calm:true };
+    return { em:'✅', t1:'準備OK', t2:'いまやる操作はありません', calm:true };
   }
 
   function render(s) {
@@ -549,9 +549,9 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     const st = s.stats || { deploys:0, tests:0, saves:0, orgs:0 };
     const u = '<span class="u">回</span>';
     $('stats').innerHTML =
-      '<div class="stat"><div class="n">'+st.deploys+u+'</div><div class="l">🚀 リリースした</div></div>'+
-      '<div class="stat"><div class="n">'+st.tests+u+'</div><div class="l">🧪 テストした</div></div>'+
-      '<div class="stat"><div class="n">'+st.saves+u+'</div><div class="l">💾 保存した</div></div>'+
+      '<div class="stat"><div class="n">'+st.deploys+u+'</div><div class="l">🚀 リリース</div></div>'+
+      '<div class="stat"><div class="n">'+st.tests+u+'</div><div class="l">🧪 テスト</div></div>'+
+      '<div class="stat"><div class="n">'+st.saves+u+'</div><div class="l">💾 保存</div></div>'+
       '<div class="stat env"><div class="n">'+st.orgs+'</div><div class="l">☁️ 環境</div></div>';
 
     // environment pipeline visual (dev → staging → prod)

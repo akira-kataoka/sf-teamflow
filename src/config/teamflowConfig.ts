@@ -179,7 +179,7 @@ export function testLevelFor(config: TeamflowConfig, env?: TeamEnvironment): Tes
 export function lintTeamflowConfig(config: TeamflowConfig, knownAliases: string[]): string[] {
   const warnings: string[] = [];
   if (config.environments.length === 0) {
-    warnings.push("環境が未定義です。セットアップウィザードで設定してください。");
+    warnings.push("環境が未定義です。「① 環境設定」から登録してください。");
     return warnings;
   }
   const counts = new Map<string, number>();
@@ -188,19 +188,19 @@ export function lintTeamflowConfig(config: TeamflowConfig, knownAliases: string[
   }
   for (const [branch, n] of counts) {
     if (n > 1) {
-      warnings.push(`ブランチ「${branch}」が${n}個の環境に重複して割り当てられています。`);
+      warnings.push(`ブランチ「${branch}」が${n}個の環境に重複しています。1ブランチ＝1環境にしてください。`);
     }
   }
   if (knownAliases.length > 0) {
     const set = new Set(knownAliases);
     for (const e of config.environments) {
       if (!set.has(e.orgAlias)) {
-        warnings.push(`環境「${e.name}」のOrg「${e.orgAlias}」が未認証です。`);
+        warnings.push(`環境「${e.name}」の接続先「${e.orgAlias}」が未認証です。「環境認証」してください。`);
       }
     }
   }
   if (!config.environments.some((e) => e.type === "production")) {
-    warnings.push("本番(production)環境が定義されていません。");
+    warnings.push("本番環境が定義されていません（任意。本番リリースを行う場合のみ設定）。");
   }
   return warnings;
 }
