@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.45.1] - 2026-05-31
+
+- 🔁 **開発時の自動リビルド**（拡張開発者向け）: F5（Run Extension）の preLaunchTask を `build`→`watch` に変更し、esbuild に watch 用の進捗マーカー(`[watch] build started/finished`)を出すプラグインを追加。tasks.json の watch を外部拡張不要の inline background problemMatcher に。これで **保存→自動リビルド→拡張ホストで Ctrl+R（ウィンドウ再読込）だけ**で反映でき、毎回の再パッケージ/再インストールが不要に。
+
 ## [0.45.0] - 2026-05-31
 
 - 📘 **ガイドを更新**: 新しいホームのタイル名（資材作成/資材反映/資材取込/バックアップ/環境）に用語を統一。冒頭に「**資材反映（自分の環境）とデプロイ（共有環境）は別物**」の表を追加し、スクラッチ/自分の環境からステージング・本番へ直接 push してはいけない（バックアップ→PR→検証→デプロイの順）ことを明示。スクラッチ活用を「機能ごとの使い捨て環境」の観点で説明。
