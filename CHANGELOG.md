@@ -2,6 +2,13 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.56.0] - 2026-05-31
+
+実環境で出た GitHub 接続/同期の2バグを修正。
+
+- 🐞 **GitHub同期の初回失敗**: 上流(tracking)未設定だと `git pull --ff-only` が「no tracking information」で失敗していた。初回は pull せず `push -u` で上流を確立し、2回目以降は pull→push する分岐に（`hasUpstream` 追加）。
+- 🐞 **GitHub公開「Unable to add remote origin」**: 既に origin がある状態で `gh repo create --remote=origin` が失敗。公開前に既存 origin を検知し「GitHub同期する／接続し直す（origin解除して新規作成）」を選べるように（`remoteUrl`/`removeRemote` 追加）。事後エラー検知も追加。
+
 ## [0.55.0] - 2026-05-31
 
 総点検で見つかった環境起因のバグを修正。

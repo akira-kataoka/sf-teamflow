@@ -262,6 +262,25 @@ export async function status(cwd: string): Promise<StatusSummary> {
   return parsePorcelainV2(out);
 }
 
+/** True when the current branch has an upstream (tracking) branch set. */
+export async function hasUpstream(cwd: string): Promise<boolean> {
+  const res = await run("git", ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], {
+    cwd,
+    timeout: 10_000,
+  });
+  return res.code === 0 && res.stdout.trim().length > 0;
+}
+
+/** URL of a named remote, or undefined if it doesn't exist. */
+export async function remoteUrl(cwd: string, name = "origin"): Promise<string | undefined> {
+  const res = await run("git", ["remote", "get-url", name], { cwd, timeout: 10_000 });
+  return res.code === 0 ? res.stdout.trim() : undefined;
+}
+
+export async function removeRemote(name: string, cwd: string): Promise<void> {
+  await git(["remote", "remove", name], cwd);
+}
+
 export async function hasRemote(cwd: string): Promise<boolean> {
   const res = await run("git", ["remote"], { cwd, timeout: 10_000 });
   return res.code === 0 && res.stdout.trim().length > 0;

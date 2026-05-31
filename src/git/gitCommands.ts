@@ -11,8 +11,11 @@ import {
   deleteBranch,
   deleteTag,
   hasRemote,
+  hasUpstream,
   initRepo,
   isGitRepo,
+  remoteUrl,
+  removeRemote,
   listBranches,
   listTags,
   pull,
@@ -303,11 +306,18 @@ export function registerGitCommands(
       { location: vscode.ProgressLocation.Notification, title: "GitHubと同期中…" },
       async (progress) => {
         try {
-          progress.report({ message: "取り込み (pull)" });
-          await pull(root);
-          progress.report({ message: "バックアップ (push)" });
           const branch = await currentBranch(root);
-          await push(root, true, branch);
+          // 上流(tracking)が未設定だと git pull --ff-only は失敗する。
+          // 初回は pull せず push -u で上流を確立し、2回目以降は pull→push。
+          if (await hasUpstream(root)) {
+            progress.report({ message: "取り込み (pull)" });
+            await pull(root);
+            progress.report({ message: "バックアップ (push)" });
+            await push(root, false, branch);
+          } else {
+            progress.report({ message: "初回アップロード (push -u)" });
+            await push(root, true, branch);
+          }
           vscode.window.showInformationMessage("✅ GitHubと同期しました。");
           ctx.recordActivity("GitHubと同期", "ok");
         } catch (err) {
@@ -584,6 +594,30 @@ export function registerGitCommands(
     if (!root) {
       return;
     }
+    // 既に origin がある場合 gh repo create --remote=origin は「Unable to add remote」で失敗する。
+    const existingOrigin = await remoteUrl(root, "origin");
+    if (existingOrigin) {
+      const choice = await vscode.window.showWarningMessage(
+        `既にGitHubに接続済みです（origin: ${existingOrigin}）。\n\n・このまま送るなら「GitHub同期」\n・別のリポジトリに作り直すなら、今の接続を解除してから新規作成します。`,
+        { modal: true },
+        "GitHub同期する",
+        "接続し直す（新規作成）"
+      );
+      if (choice === "GitHub同期する") {
+        await vscode.commands.executeCommand("teamflow.gitSync");
+        return;
+      }
+      if (choice === "接続し直す（新規作成）") {
+        try {
+          await removeRemote("origin", root);
+        } catch (err) {
+          vscode.window.showErrorMessage(`既存の接続を解除できませんでした: ${String(err)}`);
+          return;
+        }
+      } else {
+        return;
+      }
+    }
     const name = await vscode.window.showInputBox({
       title: "GitHubに公開",
       prompt: "リポジトリ名",
@@ -631,6 +665,12 @@ export function registerGitCommands(
           "ターミナルでブラウザ認証を完了したら、「GitHub同期」を押す（または git push -u origin <ブランチ>）と送れます。"
         );
       }
+      return;
+    }
+    if (/unable to add remote|remote .*already exists/i.test(out)) {
+      vscode.window.showWarningMessage(
+        "リモート(origin)が既にあるため追加できませんでした。「接続し直す（新規作成）」で解除してから、または「GitHub同期」で送ってください。"
+      );
       return;
     }
     if (/already exists|name already/i.test(out)) {
