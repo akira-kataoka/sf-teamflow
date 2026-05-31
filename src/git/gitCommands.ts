@@ -81,6 +81,36 @@ export function registerGitCommands(
     return root;
   }
 
+  /**
+   * リポジトリに .github/workflows のファイルがあり、かつ gh に workflow 権限が無いと
+   * push が「workflow scope」で拒否される。push前に事前検知して、権限追加を案内する。
+   * 続行してよければ true、ユーザーが権限追加を選んで中断したら false を返す。
+   */
+  async function ensureWorkflowScopeOk(root: string): Promise<boolean> {
+    const ls = await run("git", ["ls-files", ".github/workflows"], { cwd: root, timeout: 10_000 });
+    if (ls.code !== 0 || !ls.stdout.trim()) {
+      return true; // workflowファイルが無ければ問題なし
+    }
+    const st = await run("gh", ["auth", "status"], { cwd: root, timeout: 15_000 });
+    const hasScope = /workflow/i.test(`${st.stdout}\n${st.stderr}`);
+    if (hasScope) {
+      return true;
+    }
+    const choice = await vscode.window.showWarningMessage(
+      "このリポジトリにはCI/CDのワークフロー(.github/workflows)があり、送信には GitHub CLI の『workflow』権限が必要です。先に権限を追加しますか？",
+      "権限を追加する",
+      "このまま試す"
+    );
+    if (choice === "権限を追加する") {
+      ctx.runInTerminal("gh auth refresh -h github.com -s workflow");
+      vscode.window.showInformationMessage(
+        "ターミナルでブラウザ認証を完了したら、もう一度お試しください。"
+      );
+      return false;
+    }
+    return true; // 「このまま試す」→続行（失敗時は事後ハンドラが案内）
+  }
+
   // 保存してバックアップ: stage all → commit → push.
   reg("teamflow.gitCommitPush", async () => {
     const root = await ensureRepo();
@@ -300,6 +330,9 @@ export function registerGitCommands(
     }
     if (!(await hasRemote(root))) {
       vscode.window.showInformationMessage("リモートがありません。先に「GitHubに公開」してください。");
+      return;
+    }
+    if (!(await ensureWorkflowScopeOk(root))) {
       return;
     }
     await vscode.window.withProgress(
@@ -619,6 +652,9 @@ export function registerGitCommands(
   reg("teamflow.gitPublish", async () => {
     const root = await ensureRepo();
     if (!root) {
+      return;
+    }
+    if (!(await ensureWorkflowScopeOk(root))) {
       return;
     }
     // 既に origin がある場合 gh repo create --remote=origin は「Unable to add remote」で失敗する。

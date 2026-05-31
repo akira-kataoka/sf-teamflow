@@ -666,20 +666,9 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     }
     $('activity').innerHTML = actHtml;
 
-    // setup progress strip (non-clickable) — the hero above is the single CTA,
-    // so there is no duplicate "始める" button to confuse. Shows where you are
-    // in the 2-step setup. Git is NOT a step here; it starts automatically the
-    // first time you press 保存してバックアップ.
-    if (!s.hasProject || s.orgs.length===0 || !s.configured) {
-      const d0 = s.hasProject, d1 = s.orgs.length>0, d2 = s.configured;
-      const cls = (done, prevDone) => done ? 'done' : (prevDone ? 'now' : '');
-      $('setup').innerHTML = '<div class="setupbar">'+
-        '<span class="'+(d0?'done':'now')+'">'+(d0?'✓':'①')+' プロジェクト作成</span><span class="sep">→</span>'+
-        '<span class="'+cls(d1,d0)+'">'+(d1?'✓':'②')+' 環境を認証</span><span class="sep">→</span>'+
-        '<span class="'+cls(d2,d1)+'">'+(d2?'✓':'③')+' 環境を設定</span></div>';
-    } else {
-      $('setup').innerHTML = '';
-    }
+    // セットアップ進捗バーは「次にやること（ヒーロー）」と役割が重複するため廃止。
+    // 初手はヒーローが、全体像は番号付きグループ(①〜)が示す。
+    $('setup').innerHTML = '';
 
     // changed-files preview (what "保存してバックアップ" will save) — collapsed by default
     if (s.hasRepo && s.files && s.files.length>0) {

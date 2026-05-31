@@ -2,6 +2,11 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.63.0] - 2026-06-01
+
+- 🧹 **セットアップ進捗バーを廃止（優先度#2・煩雑さ低減）**: 「次にやること（ヒーロー）」と役割が重複していた「①作成→②認証→③設定」バーを削除。初手はヒーロー、全体像は番号付きグループが示す。
+- 🛡️ **GitHubの「workflow」権限を事前検知（優先度#3・事故防止）**: `.github/workflows` を含むリポジトリで gh に workflow 権限が無い場合、**GitHub公開/同期の前に**検知して「権限を追加する（`gh auth refresh -s workflow`）」を案内。これまで push が拒否されてから気づく流れだったのを、事前に回避できるように（`ensureWorkflowScopeOk`）。
+
 ## [0.62.0] - 2026-06-01
 
 - 🔑 **CI/CDシークレット設定支援を追加（優先度#1）**: 生成したCI/CDを“実際に動く”状態にする最後のピース。新コマンド `teamflow.setupCicdSecrets`（④に「CI/CD設定」タイル）:
