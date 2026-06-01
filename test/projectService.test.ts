@@ -14,6 +14,7 @@ import {
   componentOutputDir,
   componentMainFile,
   componentNameError,
+  testClassNamesError,
   scratchAliasForBranch,
   prBaseCandidates,
   isReleaseLikeBranch,
@@ -199,6 +200,22 @@ test("componentNameError: Salesforce API名の40文字上限を検証する", ()
   assert.ok(componentNameError(lwc41, "lwc"), "LWCも41文字はNG");
   // 形式エラーが先に出る場合は40文字判定より前(日本語など)
   assert.ok(componentNameError("あ".repeat(50), "apexClass"), "日本語は形式エラー");
+});
+
+test("testClassNamesError: 妥当なクラス名（カンマ区切り）はundefined", () => {
+  assert.equal(testClassNamesError("AccountServiceTest"), undefined);
+  assert.equal(testClassNamesError("AccountServiceTest, ContactServiceTest"), undefined);
+  assert.equal(testClassNamesError("  A_Test , B_Test  "), undefined, "前後/トークンの空白は許容");
+});
+
+test("testClassNamesError: 空・不正トークンを検出する", () => {
+  assert.ok(testClassNamesError(""), "空");
+  assert.ok(testClassNamesError("   "), "空白のみ");
+  assert.ok(testClassNamesError("AccountServiceTest.cls"), ".cls 付きはNG");
+  assert.ok(testClassNamesError("取引先Test"), "日本語はNG");
+  // 1つでもNGなら全体NG（該当名をメッセージに含む）
+  const msg = testClassNamesError("Good_Test, bad name");
+  assert.ok(msg && msg.includes("bad name"), "NGのトークン名を示す");
 });
 
 test("scratchAliasForBranch derives a safe alias, drops prefix, falls back on non-ascii", () => {

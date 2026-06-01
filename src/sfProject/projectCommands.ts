@@ -20,6 +20,7 @@ import {
   componentOutputDir,
   componentMainFile,
   componentNameError,
+  testClassNamesError,
   buildTailLogArgs,
   buildDevHubOpenArgs,
   buildScratchOrgInfoProbeArgs,
@@ -362,6 +363,8 @@ export function registerProjectCommands(
         title: "テストクラス名",
         prompt: "カンマ区切りで複数可",
         placeHolder: "AccountServiceTest, ContactServiceTest",
+        // 入力時点で不正なクラス名（.cls付き・日本語・記号など）を弾き、CLIの不可解な失敗を防ぐ。
+        validateInput: (v) => testClassNamesError(v),
       });
       if (!input) {
         return;

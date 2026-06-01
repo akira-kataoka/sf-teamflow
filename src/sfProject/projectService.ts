@@ -282,6 +282,25 @@ export function componentNameError(name: string, kind: ComponentKind): string | 
 }
 
 /**
+ * 「クラスを指定してテスト実行」のカンマ区切り入力を検証する。各トークンを Apex
+ * クラス名として検証し、最初のNGに対する日本語メッセージを返す（全てOKは undefined）。
+ * `.cls` 付き・日本語・記号などをCLIに渡す前に弾く。Pure & unit-tested.
+ */
+export function testClassNamesError(input: string): string | undefined {
+  const names = (input || "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (names.length === 0) {
+    return "テストクラス名を入力してください（例: AccountServiceTest）。";
+  }
+  for (const n of names) {
+    const err = componentNameError(n, "apexClass");
+    if (err) {
+      return `「${n}」: ${err}`;
+    }
+  }
+  return undefined;
+}
+
+/**
  * Path (relative to the workspace root) of the primary editable file a scaffold
  * produces, so the command can open it right after creation — confirming to the
  * user that the file really exists. Pure & unit-tested.
