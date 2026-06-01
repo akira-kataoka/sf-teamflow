@@ -16,6 +16,7 @@ import {
 import { configExists, loadConfig, readSfdxPackageDirs } from "../config/configStore.js";
 import { baseRefFor, lintTeamflowConfig, resolveEnvironment } from "../config/teamflowConfig.js";
 import { envSlugCollisions } from "../cicd/templates.js";
+import { isProtectedBranch } from "../sfProject/projectService.js";
 import { runSf } from "../util/cli.js";
 import { logger } from "../util/logger.js";
 import { relativeTime, computeStats, type ActivityEntry } from "../activityLog.js";
@@ -44,6 +45,8 @@ interface HomeState {
   defaultOrg: HomeOrg | null;
   orgs: HomeOrg[];
   branch: string;
+  /** 現在ブランチが共有の基準ブランチ(main/master/develop や release・hotfix 系)か。 */
+  onBaseBranch: boolean;
   branches: string[];
   env: { name: string; type: string } | null;
   changes: number;
@@ -300,6 +303,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       defaultOrg: orgs.find((o) => o.isDefault) ?? null,
       orgs,
       branch,
+      onBaseBranch: !!branch && isProtectedBranch(branch),
       branches,
       env,
       changes,
@@ -573,8 +577,9 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     }
     if (s.hasRepo) {
       let b = '🌿 ' + escapeHtml(s.branch || '(なし)');
+      if (s.onBaseBranch) b += '（基準）';
       if (s.env) b += ' → ' + escapeHtml(s.env.name);
-      chips.push('<span class="chip">' + b + '</span>');
+      chips.push('<span class="chip"'+(s.onBaseBranch?' title="共有の基準ブランチです。機能開発は feature/* ブランチで行うのが安全です。"':'')+'>' + b + '</span>');
     }
     $('status').innerHTML = chips.join('');
 
