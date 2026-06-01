@@ -625,13 +625,23 @@ export function registerGitCommands(
     if (!root) {
       return;
     }
-    const existing = await listTags(root).catch(() => []);
+    const existing = await listTags(root).catch((): string[] => []);
     const suggested = suggestNextTag(existing);
     const name = await vscode.window.showInputBox({
       title: "リリースタグを作成",
       prompt: "バージョンの目印（例: v1.0.0）。このままEnterでもOK。",
       value: suggested,
-      validateInput: (v) => tagNameError(v),
+      validateInput: (v) => {
+        const err = tagNameError(v);
+        if (err) {
+          return err;
+        }
+        // 既存タグ名は付け直せない。先に弾いて別バージョンを促す。
+        if (existing.includes(v.trim())) {
+          return "そのタグは既にあります。別のバージョン名にしてください。";
+        }
+        return undefined;
+      },
     });
     if (!name) {
       return;
