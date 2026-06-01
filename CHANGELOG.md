@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.31] - 2026-06-01
+
+- 🪪 **Git名前/メール未設定エラーを日本語で案内**: 初回コミット時に Git の identity（user.name / user.email）が未設定だと「Author identity unknown / Please tell me who you are」という英語エラーで止まり、初心者が最もよく詰まる箇所だった。`commitErrorHint` を新設し、初回コミット（Gitを開始する）と「バックアップ」の失敗時に、設定コマンド（`git config --global user.name/…email`）を日本語で提示。「コミットする変更がありません」も拾う。単体テスト1件追加（計153件pass）。
+
 ## [0.72.30] - 2026-06-01
 
 - 🪟 **Windowsでスペース入りCLIパスでも起動できるように**: Windowsでは内部の `run()` がシェル経由でCLIを呼ぶため、`sfCliPath` に「C:\Program Files\…」のようなスペースを含むフルパスを設定したり、OneDrive配下（パスにスペース）の実行ファイルを指すと、引用符無しで cmd がパスを途中で切って起動できなかった。スペースを含む場合のみ実行ファイルパスを引用符で囲む純関数 `quoteExecutable` を新設（スペース無しの "sf"/"git" 等は完全に従来どおりで一般ケースは不変、POSIXは何もしない）。単体テスト3件追加（計152件pass）。

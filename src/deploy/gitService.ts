@@ -506,6 +506,25 @@ export function tagNameError(name: string): string | undefined {
 }
 
 /**
+ * commit 失敗時のエラー文から、初心者向けの具体的な対処ヒントを返す（未知なら undefined）。
+ * 初回ユーザーが最もよく詰まる「Git の名前/メール未設定」を日本語で案内する。Pure & unit-tested.
+ */
+export function commitErrorHint(errText: string): string | undefined {
+  const t = (errText || "").toLowerCase();
+  if (/please tell me who you are|empty ident|author identity unknown|user\.name|user\.email|unable to auto-detect email/.test(t)) {
+    return (
+      "Git に名前とメールが未設定です。ターミナルで次を一度だけ実行してください:\n" +
+      '  git config --global user.name "あなたの名前"\n' +
+      '  git config --global user.email "you@example.com"'
+    );
+  }
+  if (/nothing to commit|no changes added to commit/.test(t)) {
+    return "コミットする変更がありません。";
+  }
+  return undefined;
+}
+
+/**
  * push 失敗時のエラー文から、初心者向けの具体的な対処ヒントを返す（未知なら undefined）。
  * Pure & unit-tested.
  */

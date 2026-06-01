@@ -19,6 +19,7 @@ import {
   BASELINE_GITIGNORE_ENTRIES,
   BASELINE_GITATTRIBUTES,
   pushErrorHint,
+  commitErrorHint,
   branchNameError,
   tagNameError,
   repoNameError,
@@ -123,7 +124,10 @@ export function registerGitCommands(
           return root; // 初期化できたので元の操作を続行
         } catch (err) {
           logger.error("Git初期化に失敗", err);
-          vscode.window.showErrorMessage(`Git初期化に失敗しました: ${String(err)}`);
+          const hint = commitErrorHint(String(err));
+          vscode.window.showErrorMessage(
+            hint ? `Git初期化に失敗しました。${hint}` : `Git初期化に失敗しました: ${String(err)}`
+          );
           logger.show();
         }
       }
@@ -242,7 +246,8 @@ export function registerGitCommands(
           ctx.recordActivity("保存してバックアップ", "ok");
         } catch (err) {
           logger.error("commit/push 失敗", err);
-          const hint = pushErrorHint(String(err));
+          // commit段階(Git identity未設定 等)とpush段階の両方を拾う。
+          const hint = commitErrorHint(String(err)) ?? pushErrorHint(String(err));
           vscode.window.showErrorMessage(
             hint ? `保存に失敗しました。${hint}` : `保存に失敗: ${String(err)}`
           );

@@ -8,11 +8,27 @@ import {
   mergeGitignore,
   BASELINE_GITIGNORE_ENTRIES,
   pushErrorHint,
+  commitErrorHint,
   branchNameError,
   tagNameError,
   repoNameError,
   BASELINE_GITATTRIBUTES,
 } from "../src/deploy/gitService.js";
+
+test("commitErrorHint: Git identity未設定を日本語で案内する", () => {
+  assert.match(
+    commitErrorHint("Author identity unknown\n*** Please tell me who you are.") || "",
+    /git config --global user\.name/,
+    "名前/メール設定を案内"
+  );
+  assert.match(
+    commitErrorHint("fatal: unable to auto-detect email address") || "",
+    /user\.email/,
+    "メール未設定も拾う"
+  );
+  assert.match(commitErrorHint("nothing to commit, working tree clean") || "", /変更がありません/);
+  assert.equal(commitErrorHint("some unrelated error"), undefined, "未知はヒント無し");
+});
 
 test("repoNameError: 妥当なGitHubリポジトリ名は undefined", () => {
   assert.equal(repoNameError("my-sf-project"), undefined);
