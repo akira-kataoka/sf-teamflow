@@ -1,8 +1,8 @@
 {
   "name": "sf-teamflow",
   "displayName": "Salesforce Dev Manager",
-  "description": "これ1つでSalesforce開発サイクルを完結。Org/環境管理・各環境への簡単デプロイ(開発→ステージング→本番)・Git/GitHub・テスト・CI/CDを、初心者でもクリック操作で。",
-  "version": "0.74.0",
+  "description": "これ1つでSalesforce開発サイクルを完結。環境管理・各環境への簡単デプロイ(開発→ステージング→本番)・Git/GitHub・テスト・CI/CDを、初心者でもクリック操作で。",
+  "version": "0.74.1",
   "publisher": "akira-kataoka",
   "license": "MIT",
   "engines": {
@@ -61,7 +61,7 @@
       {
         "id": "teamflow.gettingStarted",
         "title": "Salesforce Dev Manager ではじめるチーム開発",
-        "description": "プロジェクト作成からOrg認証・環境設定・CI/CD・バックアップまで、順番に進めましょう。",
+        "description": "プロジェクト作成から環境認証・環境設定・CI/CD・バックアップまで、順番に進めましょう。",
         "steps": [
           {
             "id": "project",
@@ -73,8 +73,8 @@
           },
           {
             "id": "auth",
-            "title": "Orgを認証する",
-            "description": "開発・ステージング・本番などのOrgにログインします。\n[Orgを認証](command:teamflow.authorizeOrg)",
+            "title": "環境を認証する",
+            "description": "開発・ステージング・本番などの環境にログインします。\n[環境を認証](command:teamflow.authorizeOrg)",
             "media": {
               "markdown": "media/walkthrough/auth.md"
             }
@@ -82,7 +82,7 @@
           {
             "id": "config",
             "title": "チーム設定を作る",
-            "description": "環境⇔ブランチ⇔Orgの対応を定義します (sf-teamflow.json)。\n[チーム設定を初期化](command:teamflow.initTeamProject)",
+            "description": "環境⇔ブランチ⇔接続先の対応を定義します (sf-teamflow.json)。\n[チーム設定を初期化](command:teamflow.initTeamProject)",
             "media": {
               "markdown": "media/walkthrough/config.md"
             }
@@ -109,37 +109,37 @@
     "commands": [
       {
         "command": "teamflow.refreshOrgs",
-        "title": "SFDevManager: 環境(Org)一覧を更新",
+        "title": "SFDevManager: 環境一覧を更新",
         "icon": "$(refresh)"
       },
       {
         "command": "teamflow.authorizeOrg",
-        "title": "SFDevManager: 新しい環境(Org)を認証",
+        "title": "SFDevManager: 新しい環境を認証",
         "icon": "$(add)"
       },
       {
         "command": "teamflow.setDefaultOrg",
-        "title": "SFDevManager: この環境(Org)を既定に設定",
+        "title": "SFDevManager: この環境を既定に設定",
         "icon": "$(star)"
       },
       {
         "command": "teamflow.openOrg",
-        "title": "SFDevManager: ブラウザで環境(Org)を開く",
+        "title": "SFDevManager: ブラウザで環境を開く",
         "icon": "$(globe)"
       },
       {
         "command": "teamflow.logoutOrg",
-        "title": "SFDevManager: 環境(Org)の認証を解除",
+        "title": "SFDevManager: 環境の認証を解除",
         "icon": "$(sign-out)"
       },
       {
         "command": "teamflow.reconnectOrg",
-        "title": "SFDevManager: この環境(Org)に再接続",
+        "title": "SFDevManager: この環境に再接続",
         "icon": "$(debug-restart)"
       },
       {
         "command": "teamflow.copyOrgId",
-        "title": "SFDevManager: 環境(Org) IDをコピー"
+        "title": "SFDevManager: 組織IDをコピー"
       },
       {
         "command": "teamflow.deployDiff",
@@ -188,12 +188,12 @@
       },
       {
         "command": "teamflow.createScratchOrg",
-        "title": "SFDevManager: スクラッチ環境(Org)を作成",
+        "title": "SFDevManager: スクラッチ環境を作成",
         "icon": "$(beaker)"
       },
       {
         "command": "teamflow.deleteScratchOrg",
-        "title": "SFDevManager: スクラッチ環境(Org)を削除",
+        "title": "SFDevManager: スクラッチ環境を削除",
         "icon": "$(trash)"
       },
       {
@@ -233,12 +233,12 @@
       },
       {
         "command": "teamflow.sourcePush",
-        "title": "SFDevManager: 環境(Org)に反映 (push・全部/資材選択)",
+        "title": "SFDevManager: 環境に反映 (push・全部/資材選択)",
         "icon": "$(arrow-up)"
       },
       {
         "command": "teamflow.sourcePull",
-        "title": "SFDevManager: 環境(Org)から取り込み (pull)",
+        "title": "SFDevManager: 環境から取り込み (pull)",
         "icon": "$(arrow-down)"
       },
       {
@@ -248,7 +248,7 @@
       },
       {
         "command": "teamflow.pushAndTest",
-        "title": "SFDevManager: 環境(Org)へ反映してテスト",
+        "title": "SFDevManager: 環境へ反映してテスト",
         "icon": "$(debug-rerun)"
       },
       {
@@ -448,7 +448,7 @@
         "teamflow.confirmProductionDeploy": {
           "type": "boolean",
           "default": true,
-          "description": "本番Orgへのデプロイ前に確認ダイアログを表示する。"
+          "description": "本番環境へのデプロイ前に確認ダイアログを表示する。"
         },
         "teamflow.sfCliPath": {
           "type": "string",

@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.74.1] - 2026-06-02
+
+- 🗣️ **コマンドパレット/ウォークスルーの「Org」表記も「環境」に統一**: 以前のUI文言統一（v0.72.20）で本体は「環境」に揃えたが、コマンドパレットのタイトル（例:「環境(Org)一覧を更新」）やウォークスルー説明に「Org」が残っていた。これらを「環境」（ID コピーは UI トーストと揃え「組織ID」、設定マッピングは「接続先」）に統一。コマンドID（`teamflow.*Org`）は不変。表示文字列のみで挙動・コマンド不変（計170件pass、package.json はJSON妥当性も確認）。
+
 ## [0.74.0] - 2026-06-02
 
 - 🤖 **「CI状況」ボタンを追加（GitHub Actionsをワンクリックで開く）**: CI/CD を生成して push した後、「CIが通ったか」を確認するにはGitHubを手で開く必要があった。ホーム下部のフッターに「🤖 CI状況」リンクを追加し、`gh repo view` で取得したリポジトリの GitHub Actions ページ（`<repo>/actions`）をブラウザで開けるようにした（コマンド `teamflow.openActions` も追加）。GitHub未接続のときは「先にGitHubに接続してください」と案内。タイルは増やさずフッターリンクのみ。コマンド登録・package.json・ホーム参照の3点整合を確認（計170件pass）。
