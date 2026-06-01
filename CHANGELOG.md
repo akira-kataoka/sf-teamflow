@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.24] - 2026-06-01
+
+- ⏱️ **生成CIの全ジョブに `timeout-minutes` を付与（ランナー暴走の安全網）**: GitHub Actions のジョブは既定タイムアウトが6時間で、デプロイや検証がハングするとランナー時間を大量消費する恐れがあった。生成する sf-validate.yml / sf-deploy.yml の全ジョブ（validate/PMD/Jest/Prettier/ESLint/各環境deploy）に `timeout-minutes: 45` を付与（通常実行を誤って打ち切らない余裕を持たせつつ暴走を防止）。回帰テスト1件追加（全ジョブ数＝timeout宣言数を固定）。計143件pass。
+
 ## [0.72.23] - 2026-06-01
 
 - 🔀 **GitHub同期の「履歴の分岐」失敗に具体的な案内を追加**: `pull --ff-only` がローカルとリモートの履歴分岐で失敗（`Not possible to fast-forward` / `have diverged`）した際、これまでは「コンフリクトの可能性があります」という曖昧なメッセージだった。`pushErrorHint` に分岐検出を追加し「ソース管理ビューでプルしてマージ→競合解消」を案内するようにした（非fast-forwardのpush拒否＝『先にGitHub同期』とは別物として区別）。単体テスト1件追加（計142件pass）。

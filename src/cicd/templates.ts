@@ -136,6 +136,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
 ${SETUP_STEPS(dirs)}
 
@@ -177,6 +178,7 @@ ${envCases}
   apex-pmd:
     name: Apex 静的解析 (PMD)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -201,6 +203,7 @@ ${envCases}
   lwc-jest:
     name: LWC 単体テスト (Jest)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -220,6 +223,7 @@ ${envCases}
   format-check:
     name: コード整形チェック (Prettier)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -240,6 +244,7 @@ ${envCases}
   lint-lwc:
     name: コード品質チェック (ESLint・LWC/Aura)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -274,6 +279,7 @@ export function deployWorkflow(config: TeamflowConfig): string {
     name: Deploy → ${env.name} (${env.orgAlias})
     if: ${branchCondition(env)}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     concurrency:
       group: deploy-${envSlug(env)}
       cancel-in-progress: false

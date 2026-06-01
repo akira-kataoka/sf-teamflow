@@ -134,6 +134,18 @@ test("envSlugCollisions: 既定設定など一意なら空配列", () => {
   assert.deepEqual(envSlugCollisions(defaultConfig()), []);
 });
 
+test("両ワークフローの全ジョブに timeout-minutes（ハング暴走の安全網）がある", () => {
+  for (const [name, yml] of [
+    ["validate", prValidationWorkflow(defaultConfig())],
+    ["deploy", deployWorkflow(defaultConfig())],
+  ] as const) {
+    const runsOn = (yml.match(/^ {4}runs-on:/gm) || []).length;
+    const timeouts = (yml.match(/^ {4}timeout-minutes:/gm) || []).length;
+    assert.ok(runsOn > 0, `${name}: ジョブがある`);
+    assert.equal(timeouts, runsOn, `${name}: 全ジョブに timeout-minutes がある`);
+  }
+});
+
 test("両ワークフローは最小権限(permissions: contents: read)を宣言する", () => {
   const pr = prValidationWorkflow(defaultConfig());
   const dep = deployWorkflow(defaultConfig());
