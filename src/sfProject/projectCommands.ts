@@ -383,6 +383,10 @@ export function registerProjectCommands(
       return;
     }
     ctx.runInTerminal(renderCommand(ctx.cliPath(), buildTailLogArgs(org.username)));
+    // 何も出ないときの一番多い原因（デバッグログ未設定）を先に案内しておく。
+    vscode.window.showInformationMessage(
+      "デバッグログをリアルタイム表示します。出力が出ないときは、対象環境でデバッグログ(TraceFlag)の設定が必要なことがあります（設定→デバッグログ）。"
+    );
     ctx.recordActivity(`ログ確認: ${org.displayName}`, "run");
   });
 
