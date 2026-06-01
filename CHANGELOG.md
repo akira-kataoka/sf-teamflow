@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.28] - 2026-06-01
+
+- 📚 **テストシナリオ文書（docs/TEST_SCENARIOS.md）を実装に追従**: 自動改善で積み上げた挙動が文書に反映されておらず、検証時に古い前提を見てしまう恐れがあった。PR マージ先のGitHub Flow順（`prBaseCandidates`）、環境デプロイのブランチ不一致警告（`matchBranch`）、入力検証（プロジェクト名/リポジトリ名/資材40字上限）、push/同期のエラー別案内（`pushErrorHint`：SSH鍵/不在/ネットワーク/履歴分岐）、CI堅牢化（permissions/timeout/衝突検出4箇所/CODEOWNERSコメント化）、CLI未インストール時の明示を反映。コードは精査の結果バグなしで文書のみ更新（計147件pass維持）。
+
 ## [0.72.27] - 2026-06-01
 
 - 🧰 **CLI未インストール時のエラーを分かりやすく**: 外部CLI（sf/git/gh/openssl）が未インストールだと、内部の `run()` は終了コードのみで `error.message` を捨てており、呼び出し側が「原因不明の失敗」になっていた。spawn 失敗時に原因を stderr へ載せ、特に `ENOENT` は「コマンド『X』が見つかりません（未インストール／PATH未設定の可能性）」と明示するようにした。各コマンドのエラーメッセージに具体的な原因が出るようになる。単体テスト2件追加（exec.test.ts 新設・計147件pass）。

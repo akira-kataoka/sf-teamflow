@@ -18,7 +18,7 @@
 - 操作: 📂 プロジェクト作成
 - 内部: `sf project generate --name <名> ...`
 - 期待: SFDXプロジェクト一式が生成され、`hasProject=true` に。①の他タイルが点灯
-- 確認観点: 生成後ホームが自動更新されるか／`sfdx-project.json` が出来るか
+- 確認観点: 生成後ホームが自動更新されるか／`sfdx-project.json` が出来るか／名前検証（`projectNameError`: 英数字始まり必須。`..`や`.hidden`等のフォルダ事故を防ぐ）
 
 ---
 
@@ -42,8 +42,8 @@
 - 操作: ✨ 資材作成 → 種類 → 名前
 - 内部: `sf apex generate class --name X --output-dir force-app/main/default/classes`（✅実行確認済）
 - 期待: 雛形ファイル生成→自動で開く。失敗時はCLIエラー表示（共有ターミナル経由の無言失敗を解消済）
-- 確認観点: 名前バリデーション（英字始まり・**日本語/記号不可**）。LWCは小文字始まり
-- エッジ: ターミナルがビジーでも `run()` 実行なので確実に成否が出る
+- 確認観点: 名前バリデーション（`componentNameError`: 英字始まり・**日本語/記号不可**・**Salesforce API名40字上限**）。LWCは小文字始まりcamelCase
+- エッジ: ターミナルがビジーでも `run()` 実行なので確実に成否が出る。CLI未インストール時は「コマンドが見つかりません」を明示（`run()` がENOENTをstderrへ）
 
 ### S1-4. 資材反映（自分の環境へ push）
 - 操作: ⬆️ 資材反映
@@ -74,6 +74,7 @@
   - 既に origin がある → 「GitHub同期する／接続し直す」を選択（**Unable to add remote バグ修正**）
   - CI/CDのworkflowファイルがある → **workflow scope 不足を検知**し `gh auth refresh -s workflow` を案内
   - 同名リポジトリ存在 / gh未インストール → 個別メッセージ
+  - リポジトリ名検証（`repoNameError`: ASCII英数字と `. - _` のみ、`.`/`..`単体不可）／push失敗は原因別に案内（`pushErrorHint`: 非fast-forward / SSH鍵 / リポジトリ不在 / ネットワーク / 認証）
 
 ### S2-3. バックアップ（commit & push）
 - 操作: 💾 バックアップ → 種別選択 → メモ
@@ -83,7 +84,7 @@
 ### S2-4. GitHubと同期 ✅(分岐検証)
 - 操作: 🔄 GitHub同期
 - 内部: 上流ありなら `pull --ff-only`→`push`、**上流無し（初回）は `push -u`**（✅ no-tracking バグ修正）
-- 確認観点: 初回でも失敗しないこと／コンフリクト時のメッセージ
+- 確認観点: 初回でも失敗しないこと／**履歴分岐（ff-only失敗）時は「ソース管理ビューでプル→マージ」を案内**（`pushErrorHint`、push拒否＝『先に同期』とは区別）
 
 ### S2-5. ブランチ管理 ✅
 - 操作: 🌿 ブランチ管理（切替/作成/削除）
@@ -92,8 +93,8 @@
 
 ### S2-6. Pull Request作成
 - 操作: 🔀 Pull Request
-- 内部: `gh pr create --base develop --fill --web`
-- 確認観点: ベースブランチ選択／ブラウザで内容確認
+- 内部: `gh pr create --base <選択> --fill --web`
+- 確認観点: マージ先候補はGitHub Flow順（`prBaseCandidates`：release/hotfixからは**main優先**、それ以外は**develop優先**。「おすすめ」ラベルも追従）／ブラウザで内容確認
 
 ### S2-7. 変更履歴 ✅
 - 操作: 🕘 変更履歴
@@ -122,12 +123,14 @@
 - 確認観点: 失敗時に実行ログで原因行が分かる
 
 ### S3-3. 環境へデプロイ（共有環境）
-- 内部: 環境選択→`sf project deploy start`（git差分）
-- 確認観点: **本番は確認ダイアログ**／資材反映との違いが説明で分かる
+- 内部: 環境選択→`sf project deploy start`（git差分。基準refは `resolveBaseRef` で実在refへフォールバック）
+- 確認観点: **本番は確認ダイアログ**／資材反映との違いが説明で分かる／未認証は認証へ誘導
+- エッジ: **現在ブランチが環境の想定ブランチと不一致なら警告**（`matchBranch`。例 feature のまま本番＝レビュー迂回を防ぐ・続行可）／差分が全てパッケージ外なら「パッケージ外のみ」と補足
 
 ### S3-4. CI/CD生成
 - 内部: `.github/workflows/sf-validate.yml`（PRで検証）/`sf-deploy.yml`（mergeでデプロイ）/`CODEOWNERS` 生成
 - 確認観点: GitHub Flow（feature→develop→main）に対応／要 `workflow` scope（S2-2参照）
+- 堅牢化（✅）: 全ジョブ`permissions: contents: read`＋`timeout-minutes: 45`／環境名が同じslugへ衝突するとCIが壊れるため**生成・シークレット設定・ウィザード・ホーム警告の4箇所で衝突検出**（`envSlugCollisions`）／CODEOWNERSのプレースホルダはコメント化
 
 ---
 
