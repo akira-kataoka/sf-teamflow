@@ -185,6 +185,20 @@ test("componentNameError: LWCは小文字camelCase必須・Apex/Auraは英字始
   assert.ok(componentNameError("", "lwc"));
 });
 
+test("componentNameError: Salesforce API名の40文字上限を検証する", () => {
+  const ok40 = "A" + "a".repeat(39); // ちょうど40文字(英字始まり)
+  assert.equal(ok40.length, 40);
+  assert.equal(componentNameError(ok40, "apexClass"), undefined, "40文字ちょうどはOK");
+  const over41 = "A" + "a".repeat(40); // 41文字
+  assert.ok(componentNameError(over41, "apexClass"), "41文字はNG");
+  // LWC(小文字始まり)でも上限を超えたらNG
+  const lwc41 = "a" + "b".repeat(40);
+  assert.equal(lwc41.length, 41);
+  assert.ok(componentNameError(lwc41, "lwc"), "LWCも41文字はNG");
+  // 形式エラーが先に出る場合は40文字判定より前(日本語など)
+  assert.ok(componentNameError("あ".repeat(50), "apexClass"), "日本語は形式エラー");
+});
+
 test("scratchAliasForBranch derives a safe alias, drops prefix, falls back on non-ascii", () => {
   assert.equal(scratchAliasForBranch("feature/account-search"), "scr-account-search");
   assert.equal(scratchAliasForBranch("hotfix/Bug_123"), "scr-bug-123");
