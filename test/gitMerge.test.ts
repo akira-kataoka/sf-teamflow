@@ -42,6 +42,16 @@ test("mergeBranch: 競合しない取り込みは ok（feature の変更を main
   assert.ok(fs.existsSync(path.join(dir, "feature.txt")), "featureの変更が取り込まれる");
 });
 
+test("mergeBranch: 存在しないブランチは ok=false・conflict=false（mergeErrorHintで案内できる失敗）", async () => {
+  const dir = initRepo();
+  const r = await mergeBranch("no-such-branch", dir);
+  assert.equal(r.ok, false);
+  assert.equal(r.conflict, false, "競合ではなく通常の失敗");
+  assert.match(r.message.toLowerCase(), /not something we can merge|did not match|merge/, "原因がmessageに入る");
+  // マージは始まっていない（MERGE_HEAD は無い）
+  assert.equal(fs.existsSync(path.join(dir, ".git", "MERGE_HEAD")), false);
+});
+
 test("mergeBranch: 同一行の衝突は conflict=true でマージ状態を維持（abortしない）", async () => {
   const dir = initRepo();
   git(dir, "switch", "-c", "feature/y");
