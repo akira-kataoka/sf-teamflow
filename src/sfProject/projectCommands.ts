@@ -188,8 +188,9 @@ export function registerProjectCommands(
         if (res.code !== 0) {
           // 失敗時は同じコマンドをターミナルにも出して、原因を見えるようにする。
           ctx.runInTerminal(renderCommand(ctx.cliPath(), args));
+          const detail = summarizeCliError(res.stderr, res.stdout);
           vscode.window.showErrorMessage(
-            `プロジェクト作成に失敗しました。ターミナルの出力を確認してください: ${res.stderr || res.stdout}`
+            `プロジェクト作成に失敗しました（詳細はターミナル）: ${detail || "不明なエラー"}`
           );
           throw new Error("createProject failed");
         }
