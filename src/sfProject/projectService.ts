@@ -106,6 +106,19 @@ export function buildScratchDeleteArgs(orgUsername: string): string[] {
   return ["org", "delete", "scratch", "--target-org", orgUsername, "--no-prompt"];
 }
 
+/**
+ * 検出されたスクラッチ定義ファイル候補から実際に使うパスを決める。
+ * 候補があれば先頭（空文字は無視）、無ければ既定パスを返し found=false を立てる。
+ * found=false のときは呼び出し側で「定義ファイルが無い」と警告でき、sf の不可解な失敗を防ぐ。
+ * Pure & unit-tested.
+ */
+export function resolveScratchDefinitionFile(candidates: string[]): { file: string; found: boolean } {
+  const first = (candidates || []).find((c) => typeof c === "string" && c.trim() !== "");
+  return first
+    ? { file: first, found: true }
+    : { file: "config/project-scratch-def.json", found: false };
+}
+
 /* ------------------------------- Dev Hub -------------------------------- */
 //
 // A "Dev Hub" is not a special org you create from scratch — it is the Dev Hub

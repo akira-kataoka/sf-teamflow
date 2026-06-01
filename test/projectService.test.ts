@@ -6,6 +6,7 @@ import {
   buildRunTestsArgs,
   buildScratchCreateArgs,
   buildScratchDeleteArgs,
+  resolveScratchDefinitionFile,
   buildSourcePullArgs,
   buildSourcePushArgs,
   buildDeployMetadataArgs,
@@ -225,6 +226,25 @@ test("scratchAliasForBranch derives a safe alias, drops prefix, falls back on no
   assert.equal(scratchAliasForBranch("hotfix/Bug_123"), "scr-bug-123");
   assert.equal(scratchAliasForBranch("main"), "scr-main");
   assert.equal(scratchAliasForBranch("feature/取引先検索"), "scr-feature"); // 非ASCIIはフォールバック
+});
+
+test("resolveScratchDefinitionFile: 候補があれば先頭・無ければ既定でfound=false", () => {
+  assert.deepEqual(resolveScratchDefinitionFile(["config/project-scratch-def.json"]), {
+    file: "config/project-scratch-def.json",
+    found: true,
+  });
+  // 空配列 → 既定パス + found=false（呼び出し側で警告できる）
+  assert.deepEqual(resolveScratchDefinitionFile([]), {
+    file: "config/project-scratch-def.json",
+    found: false,
+  });
+  // 空文字のみ → found=false
+  assert.equal(resolveScratchDefinitionFile(["", "  "]).found, false);
+  // 複数候補は先頭の有効値
+  assert.equal(
+    resolveScratchDefinitionFile(["", "config/dev.json", "config/qa.json"]).file,
+    "config/dev.json"
+  );
 });
 
 test("sobjectNameError: 空は任意でOK・標準/カスタムオブジェクト名もOK", () => {

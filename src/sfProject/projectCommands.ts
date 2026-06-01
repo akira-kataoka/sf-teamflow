@@ -12,6 +12,7 @@ import {
   buildRetrieveArgs,
   buildScratchCreateArgs,
   buildScratchDeleteArgs,
+  resolveScratchDefinitionFile,
   buildSourcePullArgs,
   buildSourcePushArgs,
   buildRunTestsArgs,
@@ -667,13 +668,23 @@ export function registerProjectCommands(
       "**/node_modules/**",
       5
     );
-    const definitionFile =
-      defCandidates.length > 0
-        ? vscode.workspace.asRelativePath(defCandidates[0])
-        : "config/project-scratch-def.json";
+    const def = resolveScratchDefinitionFile(
+      defCandidates.map((u) => vscode.workspace.asRelativePath(u))
+    );
+    if (!def.found) {
+      // 定義ファイルがどこにも無い＝既定パスも存在しないので sf は確実に失敗する。事前に案内。
+      const cont = await vscode.window.showWarningMessage(
+        "スクラッチ定義ファイル(*scratch-def.json)が見つかりません。通常は config/project-scratch-def.json にあり、プロジェクト作成時に生成されます。このまま作成を試しますか？",
+        { modal: true },
+        "このまま試す"
+      );
+      if (cont !== "このまま試す") {
+        return;
+      }
+    }
     const args = buildScratchCreateArgs({
       alias: alias.trim(),
-      definitionFile,
+      definitionFile: def.file,
       durationDays: Number(days),
       setDefault: true,
       devhubUsername,
