@@ -63,6 +63,20 @@ test("classifyChanges with no entries returns all-empty", () => {
   assert.deepEqual(cs, { toDeploy: [], toDelete: [], ignored: [] });
 });
 
+test("classifyChanges: 変更がパッケージ外のみだと toDeploy 空・ignored に集まる(デプロイ補足メッセージの根拠)", () => {
+  const cs = classifyChanges(
+    [
+      { path: "README.md", status: "M" },
+      { path: "docs/guide.md", status: "A" },
+      { path: ".github/workflows/sf-deploy.yml", status: "M" },
+    ],
+    ["force-app"]
+  );
+  assert.deepEqual(cs.toDeploy, [], "デプロイ対象は無い");
+  assert.deepEqual(cs.toDelete, []);
+  assert.equal(cs.ignored.length, 3, "全てパッケージ外として ignored に入る");
+});
+
 test("classifyChanges keeps both source and -meta.xml companions", () => {
   const cs = classifyChanges(
     [

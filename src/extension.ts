@@ -631,8 +631,12 @@ async function executeDeploy(ctx: DeployContext, validateOnly: boolean): Promise
   // 実際に diff に使われた基準ref（設定値が無ければ origin/master 等にフォールバック）を表示する。
   const usedBase = (await resolveBaseRef(ctx.baseRef, ctx.root)) ?? ctx.baseRef;
   if (cs.toDeploy.length === 0) {
+    // 変更自体はあるがすべてパッケージ外(README等)のときは、その旨を補足して混乱を防ぐ。
+    const extra = cs.ignored.length
+      ? ` 変更 ${cs.ignored.length}件はパッケージ外(README等)のため対象外です。`
+      : "";
     vscode.window.showInformationMessage(
-      `デプロイ対象の差分がありません (基準: ${usedBase})。`
+      `デプロイ対象の差分がありません (基準: ${usedBase})。${extra}`
     );
     return;
   }
