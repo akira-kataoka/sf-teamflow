@@ -98,6 +98,7 @@ test("mergeGitignore appends only missing entries; preserves existing; no-op whe
   const a = mergeGitignore("", BASELINE_GITIGNORE_ENTRIES);
   assert.ok(a.includes(".sf/"), ".sf/ を追加");
   assert.ok(a.includes("ci-keys/"), "ci-keys/ を追加");
+  assert.ok(a.includes("coverage/"), "coverage/（Jest出力）を追加");
   // 既存に一部あり: 重複させず不足分だけ追記
   const b = mergeGitignore("node_modules/\n.sf/\n", BASELINE_GITIGNORE_ENTRIES);
   assert.equal((b.match(/^\.sf\/$/gm) || []).length, 1, ".sf/ は重複しない");

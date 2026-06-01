@@ -403,6 +403,8 @@ export const BASELINE_GITIGNORE_ENTRIES = [
   ".sfdx/", // 旧CLIの認証/キャッシュ
   "ci-keys/", // CI用のJWT秘密鍵
   "node_modules/",
+  "coverage/", // LWC Jest（生成CIの test:unit）のカバレッジ出力
+  "*.log", // sf CLI 等のログ
   ".DS_Store",
 ];
 

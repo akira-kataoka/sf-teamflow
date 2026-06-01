@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.19] - 2026-06-01
+
+- 🙈 **gitignoreベースラインに `coverage/` と `*.log` を追加**: 本ツールが生成するLWC Jest CI（`npm run test:unit`）はカバレッジを `coverage/` に出力するが、ローカルでJestを動かすとこれが誤ってコミットされやすかった。Git開始時のベースライン `.gitignore` に `coverage/`（Jest出力）と `*.log`（sf CLI等のログ）を追加（既存は尊重・不足分のみ追記）。挙動・UI不変、新規Git開始時の追記のみ。テスト1件追加（計135件pass）。
+
 ## [0.72.18] - 2026-06-01
 
 - 🔑 **push失敗の案内に「SSH鍵拒否・リポジトリ不在・ネットワーク不通」を追加**: `pushErrorHint` は非fast-forward/workflow権限/汎用認証失敗のみ案内していたが、実際によくある `Permission denied (publickey)`・`Repository not found`・`Could not resolve host` は未対応で具体策が出なかった。各原因に応じた対処（SSH公開鍵登録かHTTPS切替／`git remote -v`でURL確認／ネットワーク・プロキシ確認）を返すよう追加。これらは git の出力に「could not read from remote repository」を伴うため、汎用の認証失敗判定より**先に**具体原因を判定するよう順序も修正（テストで順序を固定）。単体テスト1件追加（計135件pass）。
