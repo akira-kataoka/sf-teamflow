@@ -144,7 +144,7 @@ export class SetupWizard {
     if (enabled.length === 0) {
       this.panel?.webview.postMessage({
         type: "error",
-        message: "少なくとも1つの環境にOrgとブランチを設定してください。",
+        message: "少なくとも1つの環境に接続先とブランチを設定してください。",
       });
       return;
     }
@@ -288,7 +288,7 @@ export class SetupWizard {
   <!-- STEP 1 -->
   <div class="page show" data-page="1">
     <div class="panel" id="checks"></div>
-    <p class="hint">Org が未認証でも先に進めます（後でホーム画面から追加できます）。</p>
+    <p class="hint">環境が未認証でも先に進めます（後でホーム画面から追加できます）。</p>
     <div class="row"><span></span><button class="primary" id="to2">次へ ›</button></div>
   </div>
 
@@ -431,7 +431,7 @@ export class SetupWizard {
       line(s.hasProject, 'Salesforceプロジェクトが準備できています', 'プロジェクト(sfdx-project.json)がありません',
         { cmd:'teamflow.createProject', label:'プロジェクトを作成' }) +
       line(s.hasRepo, 'バージョン管理(Git)が有効です', 'Gitはまだ無効です（後で開始できます）', null) +
-      line(s.orgs.length>0, s.orgs.length+'個のOrgを認証済み', 'Orgが未認証です', {act:'authorize', label:'Orgを認証'}) +
+      line(s.orgs.length>0, s.orgs.length+'個の環境を認証済み', '環境が未認証です', {act:'authorize', label:'環境を認証'}) +
       (s.alreadyConfigured ? '<div class="check"><span class="ic">✏️</span><span>現在の設定を読み込みました。編集して保存できます</span></div>' : '');
     $$('#checks [data-act]').forEach(b => b.addEventListener('click', ()=> vscode.postMessage({type:b.dataset.act})));
     $$('#checks [data-cmd]').forEach(b => b.addEventListener('click', ()=> vscode.postMessage({type:'command', command:b.dataset.cmd})));

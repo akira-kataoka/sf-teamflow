@@ -153,7 +153,7 @@ export function activate(context: vscode.ExtensionContext): void {
   register("teamflow.authorizeOrg", () => {
     runInTerminal(`${cliPath()} org login web`);
     vscode.window.showInformationMessage(
-      "ブラウザでログインしてください。完了後、Org一覧を更新します。"
+      "ブラウザでログインしてください。完了後、環境一覧を更新します。"
     );
   });
 
@@ -299,7 +299,7 @@ async function resolveOrgFromNode(node?: TreeNode): Promise<OrgInfo | undefined>
   }
   const orgs = orgTree.knownOrgs;
   if (orgs.length === 0) {
-    vscode.window.showInformationMessage("認証済みのOrgがありません。");
+    vscode.window.showInformationMessage("認証済みの環境がありません。");
     return undefined;
   }
   const pick = await vscode.window.showQuickPick(
@@ -309,7 +309,7 @@ async function resolveOrgFromNode(node?: TreeNode): Promise<OrgInfo | undefined>
       detail: o.username,
       org: o,
     })),
-    { placeHolder: "Orgを選択" }
+    { placeHolder: "環境を選択" }
   );
   return pick?.org;
 }
@@ -324,11 +324,11 @@ async function setDefaultOrg(node?: TreeNode): Promise<void> {
       cliPath: cliPath(),
       cwd: workspaceRoot(),
     });
-    vscode.window.showInformationMessage(`既定Orgを ${org.displayName} に設定しました。`);
+    vscode.window.showInformationMessage(`既定の環境を ${org.displayName} に設定しました。`);
     refreshAll();
   } catch (err) {
-    logger.error("既定Org設定に失敗", err);
-    vscode.window.showErrorMessage(`既定Org設定に失敗: ${String(err)}`);
+    logger.error("既定の環境設定に失敗", err);
+    vscode.window.showErrorMessage(`既定の環境設定に失敗: ${String(err)}`);
   }
 }
 
@@ -343,7 +343,7 @@ async function openOrg(node?: TreeNode): Promise<void> {
   });
   if (res.code !== 0) {
     logger.error(`org open 失敗: ${res.stderr || res.stdout}`);
-    vscode.window.showErrorMessage(`Orgを開けませんでした: ${org.displayName}`);
+    vscode.window.showErrorMessage(`環境を開けませんでした: ${org.displayName}`);
   }
 }
 
@@ -369,7 +369,7 @@ async function reconnectOrg(arg?: string | TreeNode): Promise<void> {
   }
   runInTerminal(renderCommand(cliPath(), args));
   vscode.window.showInformationMessage(
-    `${org.displayName} に再接続します。ブラウザでログイン後、「Org一覧を更新」してください。`
+    `${org.displayName} に再接続します。ブラウザでログイン後、「環境一覧を更新」してください。`
   );
 }
 
@@ -383,7 +383,7 @@ async function openOrgByUsername(username?: string): Promise<void> {
   });
   if (res.code !== 0) {
     logger.error(`org open 失敗: ${res.stderr || res.stdout}`);
-    vscode.window.showErrorMessage("Orgを開けませんでした。");
+    vscode.window.showErrorMessage("環境を開けませんでした。");
   }
 }
 
@@ -419,7 +419,7 @@ async function copyOrgId(node?: TreeNode): Promise<void> {
     return;
   }
   await vscode.env.clipboard.writeText(org.orgId);
-  vscode.window.showInformationMessage(`Org ID をコピーしました: ${org.orgId}`);
+  vscode.window.showInformationMessage(`組織ID をコピーしました: ${org.orgId}`);
 }
 
 /* ------------------------------ deploy commands --------------------------- */
@@ -604,10 +604,10 @@ async function deployToEnvironment(): Promise<void> {
   const matched = orgs.find((o) => o.alias === env.orgAlias || o.username === env.orgAlias);
   if (!matched) {
     const go = await vscode.window.showWarningMessage(
-      `環境「${env.name}」のOrg「${env.orgAlias}」は未認証です。認証しますか？`,
-      "Orgを認証"
+      `環境「${env.name}」の接続先「${env.orgAlias}」は未認証です。認証しますか？`,
+      "環境を認証"
     );
-    if (go === "Orgを認証") {
+    if (go === "環境を認証") {
       await vscode.commands.executeCommand("teamflow.authorizeOrg");
     }
     return;
@@ -800,7 +800,7 @@ async function initTeamProject(): Promise<void> {
   const doc = await vscode.workspace.openTextDocument(configPath(root));
   await vscode.window.showTextDocument(doc);
   const next = await vscode.window.showInformationMessage(
-    `${CONFIG_FILENAME} を作成しました。環境とOrgエイリアスを編集してください。`,
+    `${CONFIG_FILENAME} を作成しました。環境と接続先（エイリアス）を編集してください。`,
     "CI/CDも生成する"
   );
   if (next === "CI/CDも生成する") {

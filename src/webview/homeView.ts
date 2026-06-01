@@ -172,8 +172,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       await this.orgTree.ensureOrgsLoaded(true);
       await this.postState();
     } catch (err) {
-      logger.error("既定Org設定に失敗", err);
-      vscode.window.showErrorMessage(`既定Org設定に失敗: ${String(err)}`);
+      logger.error("既定の環境設定に失敗", err);
+      vscode.window.showErrorMessage(`既定の環境設定に失敗: ${String(err)}`);
     }
   }
 
@@ -539,7 +539,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   // スクラッチ環境の作成系。「環境」セクションの操作として一緒に見せる。
   const SCRATCH_SECTION = { three: true, tiles: [
     { c: 'teamflow.setupDevHub', em: '🌳', label: 'Dev Hub 準備', desc: 'スクラッチ作成の前に親組織(Dev Hub)を用意（複数可）' },
-    { c: 'teamflow.createScratchOrg', em: '🌱', label: 'スクラッチ作成', need: 'project', desc: '使い捨て開発Org（Dev Hubから作成）' },
+    { c: 'teamflow.createScratchOrg', em: '🌱', label: 'スクラッチ作成', need: 'project', desc: '使い捨て開発環境（Dev Hubから作成）' },
   ]};
 
   function nextAction(s) {

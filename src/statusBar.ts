@@ -30,19 +30,19 @@ export class StatusBar {
     if (def && !def.connected) {
       // Default org is disconnected — surface it prominently for re-connect.
       this.orgItem.text = `$(debug-disconnect) ${def.displayName} 未接続`;
-      this.orgItem.tooltip = `既定Org「${def.username}」に接続できません。\nクリックでホームから再接続できます。`;
+      this.orgItem.tooltip = `既定の環境「${def.username}」に接続できません。\nクリックでホームから再接続できます。`;
       this.orgItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
       this.orgItem.show();
     } else if (def) {
       this.orgItem.text = `$(cloud) ${def.isProduction ? "⚠️ " : ""}${def.displayName}`;
-      this.orgItem.tooltip = `既定Org: ${def.username}${def.isProduction ? "（⚠️本番）" : ""}\nクリックで切替`;
+      this.orgItem.tooltip = `既定の環境: ${def.username}${def.isProduction ? "（⚠️本番）" : ""}\nクリックで切替`;
       this.orgItem.backgroundColor = def.isProduction
         ? new vscode.ThemeColor("statusBarItem.warningBackground")
         : undefined;
       this.orgItem.show();
     } else {
-      this.orgItem.text = "$(cloud) Org未設定";
-      this.orgItem.tooltip = "既定Orgが未設定です。クリックで選択。";
+      this.orgItem.text = "$(cloud) 環境未設定";
+      this.orgItem.tooltip = "既定の環境が未設定です。クリックで選択。";
       this.orgItem.backgroundColor = undefined;
       this.orgItem.show();
     }

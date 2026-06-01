@@ -69,7 +69,7 @@ export function registerProjectCommands(
   async function pickOrg(placeHolder: string, filter?: (o: OrgInfo) => boolean): Promise<OrgInfo | undefined> {
     const orgs = ctx.knownOrgs().filter((o) => (filter ? filter(o) : true));
     if (orgs.length === 0) {
-      vscode.window.showInformationMessage("対象のOrgがありません。先に認証してください。");
+      vscode.window.showInformationMessage("対象の環境がありません。先に認証してください。");
       return undefined;
     }
     const def = orgs.find((o) => o.isDefaultUsername);
@@ -291,7 +291,7 @@ export function registerProjectCommands(
 
   // メタデータを取得 (種類を選んで sf project retrieve).
   reg("teamflow.retrieveMetadata", async () => {
-    const org = await pickOrg("取得元のOrgを選択");
+    const org = await pickOrg("取得元の環境を選択");
     if (!org) {
       return;
     }
@@ -309,7 +309,7 @@ export function registerProjectCommands(
 
   // package.xml (manifest) で取得.
   reg("teamflow.retrieveByManifest", async () => {
-    const org = await pickOrg("取得元のOrgを選択");
+    const org = await pickOrg("取得元の環境を選択");
     if (!org) {
       return;
     }
@@ -341,7 +341,7 @@ export function registerProjectCommands(
 
   // Apexテストを実行（既定: ローカルテスト全件）.
   reg("teamflow.runTests", async () => {
-    const org = await pickOrg("テストを実行するOrgを選択");
+    const org = await pickOrg("テストを実行する環境を選択");
     if (!org) {
       return;
     }
@@ -381,7 +381,7 @@ export function registerProjectCommands(
 
   // デバッグログを確認（System.debug出力をリアルタイム表示）.
   reg("teamflow.tailLog", async () => {
-    const org = await pickOrg("ログを確認するOrgを選択");
+    const org = await pickOrg("ログを確認する環境を選択");
     if (!org) {
       return;
     }
@@ -395,7 +395,7 @@ export function registerProjectCommands(
     if (!root) {
       return;
     }
-    const org = await pickOrg("反映＆テストするOrg（スクラッチ/Sandbox）");
+    const org = await pickOrg("反映＆テストする環境（スクラッチ/Sandbox）");
     if (!org) {
       return;
     }
@@ -429,7 +429,7 @@ export function registerProjectCommands(
     if (!root) {
       return;
     }
-    const org = await pickOrg("反映先の環境(Org)を選択");
+    const org = await pickOrg("反映先の環境を選択");
     if (!org) {
       return;
     }
@@ -459,7 +459,7 @@ export function registerProjectCommands(
 
   // 環境(Org) の変更をローカルに取り込む (pull).
   reg("teamflow.sourcePull", async () => {
-    const org = await pickOrg("取り込み元の環境(Org)を選択");
+    const org = await pickOrg("取り込み元の環境を選択");
     if (!org) {
       return;
     }
@@ -479,7 +479,7 @@ export function registerProjectCommands(
     const how = await vscode.window.showQuickPick(
       [
         {
-          label: "$(server) 認証済みのOrgをDev Hubにする",
+          label: "$(server) 認証済みの環境をDev Hubにする",
           detail: "開発者組織/本番組織などでDev Hubを有効化します（おすすめ）",
           action: "existing" as const,
         },
@@ -640,7 +640,7 @@ export function registerProjectCommands(
     }
 
     const alias = await vscode.window.showInputBox({
-      title: "スクラッチOrgを作成",
+      title: "スクラッチ環境を作成",
       prompt: "エイリアス (分かりやすい名前)",
       value: typeof suggestedAlias === "string" && suggestedAlias.trim() ? suggestedAlias.trim() : "scratch-dev",
       validateInput: (v) => (v.trim() ? undefined : "分かりやすい名前を入力してください（例: scratch-dev）。"),
@@ -680,7 +680,7 @@ export function registerProjectCommands(
     });
     ctx.runInTerminal(renderCommand(ctx.cliPath(), args));
     vscode.window.showInformationMessage(
-      "スクラッチOrgを作成中です。完了後「Org一覧を更新」してください。"
+      "スクラッチ環境を作成中です。完了後「環境一覧を更新」してください。"
     );
   });
 
@@ -692,13 +692,13 @@ export function registerProjectCommands(
         ? ctx.knownOrgs().find((o) => o.username === usernameArg && o.category === "Scratch")
         : undefined;
     if (!org) {
-      org = await pickOrg("削除するスクラッチOrg", (o) => o.category === "Scratch");
+      org = await pickOrg("削除するスクラッチ環境", (o) => o.category === "Scratch");
     }
     if (!org) {
       return;
     }
     const ok = await vscode.window.showWarningMessage(
-      `スクラッチOrg「${org.displayName}」を削除しますか？`,
+      `スクラッチ環境「${org.displayName}」を削除しますか？`,
       { modal: true },
       "削除する"
     );
@@ -725,13 +725,13 @@ export function registerProjectCommands(
         },
       },
       {
-        label: "$(plug) 2. Orgを認証",
-        detail: "開発/本番などのOrgにログイン",
+        label: "$(plug) 2. 環境を認証",
+        detail: "開発/本番などの環境にログイン",
         action: () => vscode.commands.executeCommand("teamflow.authorizeOrg"),
       },
       {
         label: "$(settings-gear) 3. 環境を設定（開発/ステージング/本番）",
-        detail: "ウィザードで環境⇔ブランチ⇔Orgを定義 (sf-teamflow.json)",
+        detail: "ウィザードで環境⇔ブランチ⇔接続先を定義 (sf-teamflow.json)",
         action: () => vscode.commands.executeCommand("teamflow.setupWizard"),
       },
       {
