@@ -99,6 +99,19 @@ test("deployWorkflow/prValidation: 複数パッケージdirでも全dirをスコ
   assert.ok(pr.includes('"force-app/**"') && pr.includes('"shared/**"'), "pathsフィルタも全dir");
 });
 
+test("prValidation: JS系ジョブ(Jest/ESLint/Prettier)はLWC/設定が無ければスキップ(Apex専用でCIが失敗しない)", () => {
+  const yml = prValidationWorkflow(defaultConfig());
+  // Jest: LWC ディレクトリが無ければスキップ
+  assert.ok(yml.includes("-name lwc"), "Jestは lwc ディレクトリ有無で分岐");
+  assert.ok(yml.includes("LWC コンポーネントが無いためスキップします"), "LWC無しはJestスキップ");
+  // Prettier: 設定が無ければスキップ
+  assert.ok(yml.includes("Prettier 設定が無いためスキップします"), "設定無しはPrettierスキップ");
+  // ESLint: LWC/Aura かつ設定が無ければスキップ
+  assert.ok(yml.includes("ESLint 設定 または LWC/Aura が無いためスキップします"), "条件未満はESLintスキップ");
+  // いずれも「設定/対象があるときだけ npm 実行」で、無条件 npm run はしない
+  assert.ok(!/^\s*- name: .*\n\s*run: npm run (lint|test:unit)\s*$/m.test(yml), "無条件のnpm run は無い");
+});
+
 test("deployWorkflow contains a job per environment with its org + auth secrets", () => {
   const c = defaultConfig();
   const yml = deployWorkflow(c);
