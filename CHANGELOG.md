@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.22] - 2026-06-01
+
+- 📁 **新規プロジェクト名の検証を強化（`..`・隠しフォルダ等の事故を防止）**: プロジェクト名はフォルダ名になり `path.join(親, 名前)` で解決されるが、従来の検証は `..`（親ディレクトリに解決）や `.hidden`（隠しフォルダ）、先頭が記号の名前を通していた。純関数 `projectNameError` を新設し「英数字始まり」を必須化（英数字と `- _ .` のみ）。入力時点で具体的な日本語メッセージを表示。単体テスト2件追加（計141件pass）。
+
 ## [0.72.21] - 2026-06-01
 
 - 📑 **sf-teamflow.json スキーマを強化（手編集の補完・タイポ検出）**: 設定を手で編集する際、`additionalProperties: false` を未設定だったためキー名のタイポ（例: `orgAlias`→`orgalias`）がエディタで検出されず、黙って既定動作になっていた。ルートと各環境項目に `additionalProperties: false` を追加してタイポを赤線で警告。あわせて version/testLevel/packageDirectories/type/baseRef/requireValidation 等に日本語の説明文を補強しホバーヘルプを充実。スキーマ構造の回帰テスト4件を新設（TeamEnvironment全フィールド網羅・enum一致・JSON妥当性を固定）。計139件pass。

@@ -261,6 +261,22 @@ export function buildGenerateComponentArgs(
 }
 
 /**
+ * 新規プロジェクト名（＝作成されるフォルダ名）の妥当性を検証する（OKは undefined）。
+ * 英数字始まりを必須にすることで、`..`（親ディレクトリに解決）や `.hidden`（隠しフォルダ）、
+ * 先頭が記号の名前といった事故を入力時点で防ぐ。Pure & unit-tested.
+ */
+export function projectNameError(name: string): string | undefined {
+  const v = (name || "").trim();
+  if (!v) {
+    return "プロジェクト名を入力してください（例: my-sf-project）。";
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(v)) {
+    return "英数字で始まり、英数字と - _ . のみ使えます（例: my-sf-project）。スペース・日本語・先頭の記号は不可。";
+  }
+  return undefined;
+}
+
+/**
  * コンポーネント名の妥当性を種別ごとに検証し、NGなら日本語のエラー文を返す（OKは undefined）。
  * LWC は小文字始まりの camelCase（英数字のみ）、それ以外（Apex/Aura）は英字始まりの英数字_。
  * 加えて Salesforce の API 名上限（40文字）も検証する。

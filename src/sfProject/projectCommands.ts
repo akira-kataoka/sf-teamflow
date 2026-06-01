@@ -20,6 +20,7 @@ import {
   componentOutputDir,
   componentMainFile,
   componentNameError,
+  projectNameError,
   testClassNamesError,
   buildTailLogArgs,
   buildDevHubOpenArgs,
@@ -136,10 +137,7 @@ export function registerProjectCommands(
       title: "新しいSalesforceプロジェクト (1/3)",
       prompt: "プロジェクト名 (フォルダ名になります)",
       placeHolder: "my-sf-project",
-      validateInput: (v) =>
-        /^[A-Za-z0-9._-]+$/.test(v.trim())
-          ? undefined
-          : "英数字と - _ . のみ使えます（例: my-sf-project）。スペース・日本語は使えません。",
+      validateInput: (v) => projectNameError(v),
     });
     if (!name) {
       return;

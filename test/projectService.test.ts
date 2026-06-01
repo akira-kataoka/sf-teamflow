@@ -14,6 +14,7 @@ import {
   componentOutputDir,
   componentMainFile,
   componentNameError,
+  projectNameError,
   testClassNamesError,
   scratchAliasForBranch,
   prBaseCandidates,
@@ -223,6 +224,24 @@ test("scratchAliasForBranch derives a safe alias, drops prefix, falls back on no
   assert.equal(scratchAliasForBranch("hotfix/Bug_123"), "scr-bug-123");
   assert.equal(scratchAliasForBranch("main"), "scr-main");
   assert.equal(scratchAliasForBranch("feature/取引先検索"), "scr-feature"); // 非ASCIIはフォールバック
+});
+
+test("projectNameError: 妥当なプロジェクト名はundefined", () => {
+  assert.equal(projectNameError("my-sf-project"), undefined);
+  assert.equal(projectNameError("Project_1"), undefined);
+  assert.equal(projectNameError("app.v2"), undefined);
+  assert.equal(projectNameError("  my-app  "), undefined, "前後空白はtrim");
+});
+
+test("projectNameError: 事故になる名前を弾く(.. / .hidden / 先頭記号 / 空 / 日本語)", () => {
+  assert.ok(projectNameError(""), "空");
+  assert.ok(projectNameError(".."), "親ディレクトリに解決する .. は不可");
+  assert.ok(projectNameError("."), ". は不可");
+  assert.ok(projectNameError(".hidden"), "先頭ドット(隠しフォルダ)は不可");
+  assert.ok(projectNameError("-foo"), "先頭ハイフンは不可");
+  assert.ok(projectNameError("_foo"), "先頭アンダースコアは不可");
+  assert.ok(projectNameError("my project"), "スペースは不可");
+  assert.ok(projectNameError("プロジェクト"), "日本語は不可");
 });
 
 test("isReleaseLikeBranch: release/hotfix のみ true", () => {
