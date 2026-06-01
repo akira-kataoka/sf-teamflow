@@ -30,7 +30,7 @@ import {
   readSfdxPackageDirs,
   saveConfig,
 } from "./config/configStore.js";
-import { cicdFiles, secretPrefix } from "./cicd/templates.js";
+import { cicdFiles, envSlugCollisions, secretPrefix } from "./cicd/templates.js";
 import { writeScaffold } from "./cicd/scaffolder.js";
 import { schemaJson } from "./config/schema.js";
 import { registerGitCommands } from "./git/gitCommands.js";
@@ -808,6 +808,23 @@ async function scaffoldCICD(): Promise<void> {
     if (init === "初期化する") {
       await initTeamProject();
     }
+    return;
+  }
+
+  // 環境名/別名が同じslugへ collapse するとjob ID重複・シークレット上書きでCIが壊れる。生成前に止める。
+  const collisions = envSlugCollisions(config);
+  if (collisions.length > 0) {
+    const lines = collisions.map((c) => `・${c.envs.join(" / ")}（同じ識別子 ${c.slug} になります）`);
+    await vscode.window.showErrorMessage(
+      "環境名が CI 上で重複します。名前を変えてから生成してください。",
+      {
+        modal: true,
+        detail:
+          "次の環境は CI のジョブID/シークレット名が同じになり、ワークフローが壊れます:\n\n" +
+          lines.join("\n") +
+          "\n\n「① 環境設定」で名前を区別できるよう変更してください。",
+      }
+    );
     return;
   }
 

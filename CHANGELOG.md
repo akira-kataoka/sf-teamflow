@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.11] - 2026-06-01
+
+- 🚧 **CI生成前に環境名の衝突を検出して中止**: 別々の環境名でも CI 上の識別子（job ID・シークレット接頭辞）へ同じ slug に collapse すると（例: 「UAT EU」と「UAT-EU」がどちらも `uat-eu`→`SF_UAT_EU`）、YAMLの重複ジョブIDやシークレット上書きでワークフローが壊れる。CI/CD生成時に `envSlugCollisions` で事前検出し、衝突する環境名を具体的に示して「名前を変えてから生成して」と中止するようにした（壊れたYAMLを生成しない）。純関数として単体テスト2件追加（計130件pass）。
+
 ## [0.72.10] - 2026-06-01
 
 - ↩️ **Git開始時に `.gitattributes`（改行正規化）を自動用意**: Windows環境で `.gitattributes` が無いと改行コード(CRLF/LF)の揺れで「実質変更なしの巨大差分」が起きやすい。「Gitを開始する」初期化時（まだコミットが無く再正規化churnが起きないタイミング）に `* text=auto` を含むベースライン `.gitattributes` を作成（既存ファイルがあれば尊重して何もしない／checkout時のeolは強制せず副作用を最小化）。挙動・UI不変、新規プロジェクト向けの追加のみ。単体テスト1件追加（計128件pass）。

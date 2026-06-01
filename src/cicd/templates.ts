@@ -33,6 +33,26 @@ export function secretPrefix(env: TeamEnvironment): string {
   return `SF_${envSlug(env).toUpperCase().replace(/-/g, "_")}`;
 }
 
+/**
+ * 複数環境が同じ envSlug に collapse して衝突するかを検出する。
+ * envSlug は deploy の job id とシークレット接頭辞(secretPrefix)の両方の根なので、
+ * 衝突すると「YAMLの重複ジョブID」「同名シークレットの上書き」でCIが壊れる。
+ * 例: "UAT EU" と "UAT-EU" はどちらも slug "uat-eu" → SF_UAT_EU。
+ * 衝突した slug ごとに影響環境名の配列を返す（衝突なしなら空配列）。Pure & unit-tested.
+ */
+export function envSlugCollisions(config: TeamflowConfig): { slug: string; envs: string[] }[] {
+  const bySlug = new Map<string, string[]>();
+  for (const env of config.environments) {
+    const slug = envSlug(env);
+    const list = bySlug.get(slug) ?? [];
+    list.push(env.name);
+    bySlug.set(slug, list);
+  }
+  return [...bySlug.entries()]
+    .filter(([, envs]) => envs.length > 1)
+    .map(([slug, envs]) => ({ slug, envs }));
+}
+
 /** A GH Actions `if:` expression matching this environment's branch. */
 export function branchCondition(env: TeamEnvironment): string {
   if (env.branch.includes("*")) {

@@ -8,6 +8,7 @@ import {
   prValidationWorkflow,
   secretPrefix,
   envSlug,
+  envSlugCollisions,
 } from "../src/cicd/templates.js";
 import { defaultConfig } from "../src/config/teamflowConfig.js";
 
@@ -108,6 +109,29 @@ test("prValidationWorkflow includes PMD static analysis and LWC Jest jobs", () =
   assert.ok(yml.includes("cancel-in-progress: true"), "PR検証に並行制御(古い実行のキャンセル)");
   assert.ok(yml.includes("lint-lwc:"), "ESLint job present");
   assert.ok(yml.includes("npm run lint"), "runs eslint via npm run lint");
+});
+
+test("envSlugCollisions: 同じslugへcollapseする環境を検出する", () => {
+  // "UAT EU" と "UAT-EU" はどちらも slug "uat-eu" → 衝突
+  const colliding = {
+    version: 1 as const,
+    defaultBaseRef: "origin/main",
+    testLevel: "RunLocalTests" as const,
+    packageDirectories: ["force-app"],
+    environments: [
+      { name: "UAT EU", orgAlias: "a", branch: "develop", type: "sandbox" as const },
+      { name: "UAT-EU", orgAlias: "b", branch: "release/*", type: "sandbox" as const },
+      { name: "prod", orgAlias: "p", branch: "main", type: "production" as const },
+    ],
+  };
+  const hits = envSlugCollisions(colliding);
+  assert.equal(hits.length, 1, "1つの衝突グループ");
+  assert.equal(hits[0].slug, "uat-eu");
+  assert.deepEqual(hits[0].envs.sort(), ["UAT EU", "UAT-EU"]);
+});
+
+test("envSlugCollisions: 既定設定など一意なら空配列", () => {
+  assert.deepEqual(envSlugCollisions(defaultConfig()), []);
 });
 
 test("両ワークフローは最小権限(permissions: contents: read)を宣言する", () => {
