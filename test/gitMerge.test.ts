@@ -42,6 +42,24 @@ test("mergeBranch: 競合しない取り込みは ok（feature の変更を main
   assert.ok(fs.existsSync(path.join(dir, "feature.txt")), "featureの変更が取り込まれる");
 });
 
+test("mergeBranch: fast-forward（自分のブランチを最新に追従）も ok で取り込める", async () => {
+  const dir = initRepo();
+  // feature を base から作成（まだ何もしない）
+  git(dir, "switch", "-c", "feature/z");
+  // main 側が進む（feature は遅れる＝diverge していない）
+  git(dir, "switch", "main");
+  fs.writeFileSync(path.join(dir, "newfile.txt"), "from main\n");
+  git(dir, "add", "-A");
+  git(dir, "commit", "-m", "main advances");
+  // feature に戻り、main を取り込む → fast-forward で追従
+  git(dir, "switch", "feature/z");
+  assert.ok(!fs.existsSync(path.join(dir, "newfile.txt")), "取り込み前はmainの新ファイルは無い");
+  const r = await mergeBranch("main", dir);
+  assert.equal(r.ok, true, "fast-forwardは成功");
+  assert.equal(r.conflict, false);
+  assert.ok(fs.existsSync(path.join(dir, "newfile.txt")), "mainの最新が取り込まれる");
+});
+
 test("mergeBranch: 存在しないブランチは ok=false・conflict=false（mergeErrorHintで案内できる失敗）", async () => {
   const dir = initRepo();
   const r = await mergeBranch("no-such-branch", dir);
