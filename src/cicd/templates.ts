@@ -53,6 +53,46 @@ export function envSlugCollisions(config: TeamflowConfig): { slug: string; envs:
     .map(([slug, envs]) => ({ slug, envs }));
 }
 
+/* --------------------- CI 認証情報の入力バリデータ ----------------------- */
+/* gh secret/variable へ登録する前に、空や明らかに不正な値で CI を静かに壊さない */
+/* ための簡易チェック。showInputBox の validateInput に渡す。Pure & unit-tested. */
+
+/** 接続アプリの Consumer Key (Client ID)。空・空白文字を弾く（未知なら undefined）。 */
+export function consumerKeyError(v: string): string | undefined {
+  const t = (v ?? "").trim();
+  if (!t) {
+    return "Consumer Key を入力してください（接続アプリの Consumer Key）。";
+  }
+  if (/\s/.test(t)) {
+    return "Consumer Key に空白は含められません。値をそのまま貼り付けてください。";
+  }
+  return undefined;
+}
+
+/** CI 連携ユーザー名。空・内部の空白を弾く（未知なら undefined）。 */
+export function integrationUsernameError(v: string): string | undefined {
+  const t = (v ?? "").trim();
+  if (!t) {
+    return "連携ユーザーのユーザー名を入力してください（例: ci@example.com）。";
+  }
+  if (/\s/.test(t)) {
+    return "ユーザー名に空白は含められません。";
+  }
+  return undefined;
+}
+
+/** ログインURL。https:// で始まる形式のみ許可（未知なら undefined）。 */
+export function loginUrlError(v: string): string | undefined {
+  const t = (v ?? "").trim();
+  if (!t) {
+    return "ログインURLを入力してください（例: https://login.salesforce.com）。";
+  }
+  if (!/^https:\/\/[^\s]+$/i.test(t)) {
+    return "https:// で始まるURLを入力してください（例: https://login.salesforce.com / https://test.salesforce.com）。";
+  }
+  return undefined;
+}
+
 /** A GH Actions `if:` expression matching this environment's branch. */
 export function branchCondition(env: TeamEnvironment): string {
   if (env.branch.includes("*")) {

@@ -31,7 +31,14 @@ import {
   readSfdxPackageDirs,
   saveConfig,
 } from "./config/configStore.js";
-import { cicdFiles, envSlugCollisions, secretPrefix } from "./cicd/templates.js";
+import {
+  cicdFiles,
+  consumerKeyError,
+  envSlugCollisions,
+  integrationUsernameError,
+  loginUrlError,
+  secretPrefix,
+} from "./cicd/templates.js";
 import { writeScaffold } from "./cicd/scaffolder.js";
 import { schemaJson } from "./config/schema.js";
 import { registerGitCommands } from "./git/gitCommands.js";
@@ -1037,6 +1044,7 @@ async function setupCicdSecrets(): Promise<void> {
       title: `${env.name}: Consumer Key`,
       prompt: "接続アプリの Consumer Key (Client ID)",
       ignoreFocusOut: true,
+      validateInput: (v) => consumerKeyError(v),
     });
     if (clientId === undefined) {
       return;
@@ -1045,6 +1053,7 @@ async function setupCicdSecrets(): Promise<void> {
       title: `${env.name}: 連携ユーザー`,
       prompt: "CIが使う連携ユーザーのユーザー名（例: ci@example.com）",
       ignoreFocusOut: true,
+      validateInput: (v) => integrationUsernameError(v),
     });
     if (username === undefined) {
       return;
@@ -1053,6 +1062,7 @@ async function setupCicdSecrets(): Promise<void> {
       title: `${env.name}: ログインURL`,
       value: env.type === "production" ? "https://login.salesforce.com" : "https://test.salesforce.com",
       ignoreFocusOut: true,
+      validateInput: (v) => loginUrlError(v),
     });
     if (instanceUrl === undefined) {
       return;

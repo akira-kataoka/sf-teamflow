@@ -4,7 +4,10 @@ import {
   branchCondition,
   cicdFiles,
   codeowners,
+  consumerKeyError,
   deployWorkflow,
+  integrationUsernameError,
+  loginUrlError,
   prValidationWorkflow,
   secretPrefix,
   envSlug,
@@ -268,4 +271,30 @@ test("cicdFiles returns workflows + CODEOWNERS with non-empty content", () => {
     ".github/workflows/sf-validate.yml",
   ]);
   assert.ok(files.every((f) => f.content.length > 0));
+});
+
+test("consumerKeyError は空・空白文字を弾き、正常値は通す", () => {
+  assert.ok(consumerKeyError(""));
+  assert.ok(consumerKeyError("   "));
+  assert.ok(consumerKeyError("3MVG9 abc")); // 内部空白はNG
+  assert.equal(consumerKeyError("3MVG9aBcDeF0123456789"), undefined);
+  assert.equal(consumerKeyError("  3MVG9key  "), undefined); // 前後空白はtrimされOK
+});
+
+test("integrationUsernameError は空・空白入りを弾き、正常値は通す", () => {
+  assert.ok(integrationUsernameError(""));
+  assert.ok(integrationUsernameError("   "));
+  assert.ok(integrationUsernameError("ci user@example.com"));
+  assert.equal(integrationUsernameError("ci@example.com"), undefined);
+  assert.equal(integrationUsernameError("ci@example.com.sandbox"), undefined);
+});
+
+test("loginUrlError は https:// 以外を弾き、正しいログインURLは通す", () => {
+  assert.ok(loginUrlError(""));
+  assert.ok(loginUrlError("login.salesforce.com")); // スキームなし
+  assert.ok(loginUrlError("http://login.salesforce.com")); // httpはNG
+  assert.ok(loginUrlError("https://my domain.salesforce.com")); // 空白入りはNG
+  assert.equal(loginUrlError("https://login.salesforce.com"), undefined);
+  assert.equal(loginUrlError("https://test.salesforce.com"), undefined);
+  assert.equal(loginUrlError("https://mycompany.my.salesforce.com"), undefined);
 });

@@ -133,6 +133,11 @@
 - 確認観点: GitHub Flow（feature→develop→main）に対応／要 `workflow` scope（S2-2参照）
 - 堅牢化（✅）: 全ジョブ`permissions: contents: read`＋`timeout-minutes: 45`／環境名が同じslugへ衝突するとCIが壊れるため**生成・シークレット設定・ウィザード・ホーム警告の4箇所で衝突検出**（`envSlugCollisions`）／CODEOWNERSのプレースホルダはコメント化
 
+### S3-5. CI/CDシークレット設定（JWT鍵生成→接続アプリ→gh登録）
+- 内部: `ci-keys/server.key|crt` を openssl で生成（`.gitignore` 済）→ 接続アプリ作成チェックリスト（手動）→ 環境ごとに `gh secret/variable set`（`<PREFIX>_CLIENT_ID/USERNAME/JWT_KEY`＋変数 `_INSTANCE_URL`）→ ブランチ保護へ誘導
+- 確認観点: gh未ログイン/未接続/鍵未生成の各前提を事前ガード／slug衝突を事前検出
+- 堅牢化（✅）: **入力検証**で空値の登録を阻止（`validateInput`）— Consumer Key＝空/内部空白を拒否（`consumerKeyError`）、ユーザー名＝空/空白入りを拒否（`integrationUsernameError`）、ログインURL＝`https://`形式のみ許可（`loginUrlError`）。空のままEnterしてもキャンセル扱いにならず空シークレットが登録されCIが静かに壊れる問題への対処
+
 ---
 
 ## フェーズ4: 設定・運用
