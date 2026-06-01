@@ -3,7 +3,7 @@ import * as path from "node:path";
 import type { CommandContext } from "../commandContext.js";
 import { renderCommand } from "../deploy/deployService.js";
 import { run } from "../util/exec.js";
-import { runSf } from "../util/cli.js";
+import { runSf, summarizeCliError } from "../util/cli.js";
 import { readSfdxPackageDirs } from "../config/configStore.js";
 import type { OrgInfo } from "../orgManager/orgService.js";
 import { refreshDevHubAuthFlag } from "../orgManager/devHubAuth.js";
@@ -265,12 +265,7 @@ export function registerProjectCommands(
       () => run(ctx.cliPath(), args, { cwd: root, timeout: 120_000 })
     );
     if (res.code !== 0) {
-      const detail = (res.stderr || res.stdout || "")
-        .trim()
-        .split(/\r?\n/)
-        .filter((l) => l && !/update available/i.test(l))
-        .slice(-3)
-        .join(" / ");
+      const detail = summarizeCliError(res.stderr, res.stdout);
       vscode.window.showErrorMessage(
         `作成に失敗しました: ${detail || "不明なエラー（sf CLI が見つからない可能性）"}`
       );
@@ -408,12 +403,7 @@ export function registerProjectCommands(
       () => run(ctx.cliPath(), buildSourcePushArgs(org.username, dirs), { cwd: root, timeout: 300_000 })
     );
     if (res.code !== 0) {
-      const detail = (res.stderr || res.stdout || "")
-        .trim()
-        .split(/\r?\n/)
-        .filter((l) => l && !/update available/i.test(l))
-        .slice(-3)
-        .join(" / ");
+      const detail = summarizeCliError(res.stderr, res.stdout);
       vscode.window.showErrorMessage(`反映に失敗しました（テストは実行しません）: ${detail || "不明なエラー"}`);
       ctx.recordActivity(`反映してテスト: ${org.displayName}`, "error");
       return;

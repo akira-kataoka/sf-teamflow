@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.38] - 2026-06-01
+
+- ♻️ **sf CLIエラー要約を共通化（DRY＋テスト）**: 資材作成と「反映してテスト」で重複していた「sf 出力からノイズ(`update available`)を除き末尾3行を要約する」ロジックを純関数 `summarizeCliError` に集約。挙動は不変で重複を解消し、未テストだった要約ロジックに単体テスト（stderr優先/ノイズ除去/末尾3行/空入力）を追加した。計161件pass。全13テストファイルがグロブで確実に実行されていることも確認済み。
+
 ## [0.72.37] - 2026-06-01
 
 - ✅ **複数パッケージディレクトリ構成のCI生成に回帰テストを追加（テスト強化のみ）**: `packageDirectories` が複数（例: force-app + shared）のとき、生成CIが全ディレクトリを取りこぼさないこと（初回デプロイの `CHANGED="force-app shared"`、差分deploy/PR検証diffの全dirスコープ、PMDスキャナの `--target`、paths フィルタ、デプロイは diff ファイルを `-d` で個別指定）を固定する回帰テストを追加。マルチパッケージは実在のSalesforce構成で、取りこぼすと一部メタデータが未デプロイになる。実装は精査の結果すべて正しく、コード変更なし（計160件pass）。

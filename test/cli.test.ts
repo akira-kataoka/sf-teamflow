@@ -1,6 +1,25 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseSfJson, SfCliError, parseSfVersion, isSfVersionOutdated } from "../src/util/cli.js";
+import {
+  parseSfJson,
+  SfCliError,
+  parseSfVersion,
+  isSfVersionOutdated,
+  summarizeCliError,
+} from "../src/util/cli.js";
+
+test("summarizeCliError: stderr優先・update availableノイズ除去・末尾3行を連結", () => {
+  assert.equal(summarizeCliError("ERR a", "OUT b"), "ERR a", "stderr優先");
+  assert.equal(summarizeCliError("", "OUT only"), "OUT only", "stderr空ならstdout");
+  assert.equal(
+    summarizeCliError("Warning: update available 2.99\nReal error here", ""),
+    "Real error here",
+    "update available行は除去"
+  );
+  assert.equal(summarizeCliError("l1\nl2\nl3\nl4\nl5", ""), "l3 / l4 / l5", "末尾3行のみ");
+  assert.equal(summarizeCliError("", ""), "", "空入力は空文字");
+  assert.equal(summarizeCliError("   ", ""), "", "空白のみは空文字");
+});
 
 test("parseSfVersion extracts version; isSfVersionOutdated flags old CLIs", () => {
   const out = "@salesforce/cli/2.25.7 win32-x64 node-v20.10.0";

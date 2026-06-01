@@ -28,6 +28,19 @@ export function isSfVersionOutdated(out: string, floorMajor = 2, floorMinor = 40
   return v.major < floorMajor || (v.major === floorMajor && v.minor < floorMinor);
 }
 
+/**
+ * sf CLI のエラー出力（stderr 優先、無ければ stdout）から初心者向けに簡潔な要約を作る。
+ * 「update available」等のノイズ行を除き、末尾3行を「 / 」で連結する。空なら ""。Pure & unit-tested.
+ */
+export function summarizeCliError(stderr: string, stdout: string): string {
+  return (stderr || stdout || "")
+    .trim()
+    .split(/\r?\n/)
+    .filter((l) => l && !/update available/i.test(l))
+    .slice(-3)
+    .join(" / ");
+}
+
 /** Shape of every `sf ... --json` envelope. */
 export interface SfJson<T> {
   status: number;
