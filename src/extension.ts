@@ -18,6 +18,7 @@ import { buildDeployArgs, renderCommand } from "./deploy/deployService.js";
 import {
   baseRefFor,
   defaultConfig,
+  matchBranch,
   resolveEnvironment,
   testLevelFor,
   type TeamflowConfig,
@@ -610,6 +611,26 @@ async function deployToEnvironment(): Promise<void> {
       await vscode.commands.executeCommand("teamflow.authorizeOrg");
     }
     return;
+  }
+
+  // GitHub Flow 安全策: 今いるブランチが環境の想定ブランチと食い違う場合は注意喚起（不一致時のみ）。
+  // 例: feature/* のまま本番(main)へ反映＝レビュー/CIを迂回してしまう。続行は可能。
+  const current = await currentBranch(root).catch(() => "");
+  if (current && !matchBranch(env.branch, current)) {
+    const proceed = env.type === "production" ? "本番に反映する" : "このまま反映する";
+    const ans = await vscode.window.showWarningMessage(
+      `現在のブランチ「${current}」は環境「${env.name}」の想定ブランチ（${env.branch}）と一致しません。`,
+      {
+        modal: true,
+        detail:
+          `通常は ${env.branch} に取り込んでから反映します（レビューやCIを通すため）。\n` +
+          "今いるブランチの内容をそのまま反映しますか？",
+      },
+      proceed
+    );
+    if (ans !== proceed) {
+      return;
+    }
   }
 
   const ctx: DeployContext = {
