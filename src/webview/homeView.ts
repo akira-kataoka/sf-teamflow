@@ -15,6 +15,7 @@ import {
 } from "../deploy/gitService.js";
 import { configExists, loadConfig, readSfdxPackageDirs } from "../config/configStore.js";
 import { baseRefFor, lintTeamflowConfig, resolveEnvironment } from "../config/teamflowConfig.js";
+import { envSlugCollisions } from "../cicd/templates.js";
 import { runSf } from "../util/cli.js";
 import { logger } from "../util/logger.js";
 import { relativeTime, computeStats, type ActivityEntry } from "../activityLog.js";
@@ -269,6 +270,12 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
             cfg2,
             orgsRaw.map((o) => o.alias || o.username)
           );
+          // CI生成より前に、環境名がCI上で同じ識別子へ collapse する衝突を知らせる。
+          for (const c of envSlugCollisions(cfg2)) {
+            warnings.push(
+              `環境「${c.envs.join("」「")}」はCI上で同じ識別子（${c.slug}）になります。CI生成前に名前を区別してください。`
+            );
+          }
           pipeline = cfg2.environments.map((e) => ({
             name: e.name,
             type: e.type,
