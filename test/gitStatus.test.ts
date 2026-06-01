@@ -10,7 +10,14 @@ import {
   pushErrorHint,
   branchNameError,
   tagNameError,
+  BASELINE_GITATTRIBUTES,
 } from "../src/deploy/gitService.js";
+
+test("BASELINE_GITATTRIBUTES: 改行正規化(* text=auto)を含み、eolは強制しない", () => {
+  assert.ok(BASELINE_GITATTRIBUTES.includes("* text=auto"), "text=auto を含む");
+  assert.ok(!BASELINE_GITATTRIBUTES.includes("eol="), "eol は強制しない（副作用を小さく）");
+  assert.ok(BASELINE_GITATTRIBUTES.endsWith("\n"), "末尾は改行で終わる");
+});
 
 test("tagNameError: 妥当なタグ名は undefined", () => {
   assert.equal(tagNameError("v1.0.0"), undefined);

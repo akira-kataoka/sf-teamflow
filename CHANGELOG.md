@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.10] - 2026-06-01
+
+- ↩️ **Git開始時に `.gitattributes`（改行正規化）を自動用意**: Windows環境で `.gitattributes` が無いと改行コード(CRLF/LF)の揺れで「実質変更なしの巨大差分」が起きやすい。「Gitを開始する」初期化時（まだコミットが無く再正規化churnが起きないタイミング）に `* text=auto` を含むベースライン `.gitattributes` を作成（既存ファイルがあれば尊重して何もしない／checkout時のeolは強制せず副作用を最小化）。挙動・UI不変、新規プロジェクト向けの追加のみ。単体テスト1件追加（計128件pass）。
+
 ## [0.72.9] - 2026-06-01
 
 - 🔒 **生成CI/CDワークフローに最小権限(`permissions: contents: read`)を宣言**: GitHub Actions の `GITHUB_TOKEN` は既定で広い書き込み権限を持つ。生成する sf-validate.yml / sf-deploy.yml はリポジトリ読み取り（checkout）と secrets 経由の外部Orgデプロイしか行わないため、`permissions: contents: read` を宣言して最小権限化（サプライチェーン保護のベストプラクティス）。挙動・UI不変、生成YAMLにブロック追加のみ。単体テスト1件追加（計127件pass）。

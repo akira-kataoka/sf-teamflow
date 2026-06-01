@@ -17,6 +17,7 @@ import {
   initRepo,
   mergeGitignore,
   BASELINE_GITIGNORE_ENTRIES,
+  BASELINE_GITATTRIBUTES,
   pushErrorHint,
   branchNameError,
   tagNameError,
@@ -65,6 +66,22 @@ async function ensureBaselineGitignore(root: string): Promise<void> {
   }
 }
 
+/**
+ * ベースラインの .gitattributes を保証する。既存ファイルがあれば尊重して何もしない
+ * （ユーザー設定を上書きしない）。無い場合のみ作成。git init 直後（コミット前）に呼ぶことで
+ * 既存ファイルの再正規化による余計な差分を避ける。
+ */
+async function ensureBaselineGitattributes(root: string): Promise<void> {
+  const ga = path.join(root, ".gitattributes");
+  try {
+    await fsp.access(ga);
+    return; // 既にある → 触らない
+  } catch {
+    /* まだ無い → 作成する */
+  }
+  await fsp.writeFile(ga, BASELINE_GITATTRIBUTES, "utf8");
+}
+
 export function registerGitCommands(
   context: vscode.ExtensionContext,
   ctx: CommandContext
@@ -94,6 +111,8 @@ export function registerGitCommands(
               // 初回コミットで .sf/（認証トークンを含む）や ci-keys/（秘密鍵）等を
               // 誤って公開しないよう、ベースラインの .gitignore を先に用意する。
               await ensureBaselineGitignore(root);
+              // 改行コードの揺れによる無駄な差分を防ぐ .gitattributes も用意（既存は尊重）。
+              await ensureBaselineGitattributes(root);
               await stageAll(root);
               await commit("初回コミット", root);
             }
