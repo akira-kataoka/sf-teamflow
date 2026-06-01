@@ -15,6 +15,7 @@ import {
   componentMainFile,
   componentNameError,
   scratchAliasForBranch,
+  prBaseCandidates,
   buildPullRequestArgs,
   COMMON_METADATA_TYPES,
   buildDevHubOpenArgs,
@@ -204,6 +205,29 @@ test("scratchAliasForBranch derives a safe alias, drops prefix, falls back on no
   assert.equal(scratchAliasForBranch("hotfix/Bug_123"), "scr-bug-123");
   assert.equal(scratchAliasForBranch("main"), "scr-main");
   assert.equal(scratchAliasForBranch("feature/取引先検索"), "scr-feature"); // 非ASCIIはフォールバック
+});
+
+test("prBaseCandidates: feature系は develop 優先・release/hotfix は main 優先", () => {
+  // feature ブランチ → develop が先頭
+  assert.deepEqual(prBaseCandidates("feature/x", ["feature/x", "develop", "main"]), [
+    "develop",
+    "main",
+  ]);
+  // release ブランチ → main が先頭
+  assert.deepEqual(prBaseCandidates("release/1.0", ["release/1.0", "develop", "main"]), [
+    "main",
+    "develop",
+  ]);
+  // hotfix も main 優先
+  assert.equal(prBaseCandidates("hotfix/bug", [])[0], "main");
+});
+
+test("prBaseCandidates: current除外・develop/mainは常に含む・残りを後ろに重複なく", () => {
+  const got = prBaseCandidates("feature/x", ["feature/x", "develop", "main", "release/2.0", "qa"]);
+  assert.deepEqual(got, ["develop", "main", "release/2.0", "qa"]);
+  assert.ok(!got.includes("feature/x"), "current は候補に出さない");
+  // ブランチ一覧が空でも標準名は出す
+  assert.deepEqual(prBaseCandidates("feature/y", []), ["develop", "main"]);
 });
 
 test("buildPullRequestArgs targets a base branch with --fill", () => {

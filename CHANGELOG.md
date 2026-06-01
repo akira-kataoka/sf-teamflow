@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.7] - 2026-06-01
+
+- 🔀 **Pull Requestのマージ先候補をGitHub Flowに合わせて並べ替え**: これまでマージ先候補は常に `develop` 優先で、`release/*`・`hotfix/*` ブランチからPRを作るときも develop が先頭に来ていた（本来は `main` がマージ先）。現在のブランチが release/hotfix なら `main` を、それ以外（feature 等）は `develop` を先頭に出すように変更。並び順の改善のみで選択肢・UI・挙動は不変。純関数 `prBaseCandidates` に切り出し単体テスト2件追加（計125件pass）。
+
 ## [0.72.6] - 2026-06-01
 
 - 💬 **「差分がありません」メッセージを分かりやすく**: デプロイ/検証時に変更自体はあるのに全てパッケージ外(README・docs・.github等)だと、「デプロイ対象の差分がありません」だけ出て「変更したのになぜ?」と混乱しやすかった。パッケージ外の変更件数がある場合は「変更N件はパッケージ外(README等)のため対象外です。」と補足するように変更（挙動・UIは不変、メッセージ追記のみ）。回帰テスト1件追加（計123件pass）。

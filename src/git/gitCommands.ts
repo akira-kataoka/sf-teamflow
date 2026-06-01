@@ -36,7 +36,7 @@ import {
   switchBranch,
 } from "../deploy/gitService.js";
 import { suggestNextTag } from "./tagUtils.js";
-import { buildPullRequestArgs, scratchAliasForBranch } from "../sfProject/projectService.js";
+import { buildPullRequestArgs, prBaseCandidates, scratchAliasForBranch } from "../sfProject/projectService.js";
 import { renderCommand } from "../deploy/deployService.js";
 
 /**
@@ -647,10 +647,9 @@ export function registerGitCommands(
       return;
     }
     const current = await currentBranch(root).catch(() => "");
-    // Suggest sensible base branches; default to develop if it exists.
-    const branches = (await listBranches(root)).filter((b) => b !== current);
-    const candidates = ["develop", "main", ...branches.filter((b) => b !== "develop" && b !== "main")];
-    const uniq = [...new Set(candidates)];
+    // GitHub Flow に沿ってマージ先候補を並べる（release/hotfix は main 優先、他は develop 優先）。
+    const branches = await listBranches(root);
+    const uniq = prBaseCandidates(current, branches);
     const desc: Record<string, string> = {
       develop: "開発の合流先（おすすめ）",
       main: "本番リリース用（通常は release から）",
