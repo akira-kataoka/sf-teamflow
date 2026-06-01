@@ -15,7 +15,7 @@ import {
   type TeamEnvironment,
 } from "../config/teamflowConfig.js";
 import { schemaJson } from "../config/schema.js";
-import { cicdFiles } from "../cicd/templates.js";
+import { cicdFiles, envSlugCollisions } from "../cicd/templates.js";
 import { writeScaffold } from "../cicd/scaffolder.js";
 import { logger } from "../util/logger.js";
 
@@ -184,8 +184,15 @@ export class SetupWizard {
       );
       let ciResult = "";
       if (generateCI) {
-        const res = await writeScaffold(root, cicdFiles(config), false);
-        ciResult = `CI/CD: 作成 ${res.written.length} / スキップ ${res.skipped.length}`;
+        // 環境名がCI上で同じ識別子に collapse すると壊れたYAMLになるため、衝突時はCI生成を見送る。
+        const collisions = envSlugCollisions(config);
+        if (collisions.length > 0) {
+          const names = collisions.map((c) => c.envs.join("/")).join("、");
+          ciResult = `CI/CDは未生成: 環境名が重複（${names}）。名前を区別してから「CI/CD生成」で作成してください。`;
+        } else {
+          const res = await writeScaffold(root, cicdFiles(config), false);
+          ciResult = `CI/CD: 作成 ${res.written.length} / スキップ ${res.skipped.length}`;
+        }
       }
       this.requestRefresh();
       this.panel?.webview.postMessage({
