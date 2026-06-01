@@ -49,15 +49,25 @@ export function run(
         shell: process.platform === "win32",
       },
       (error, stdout, stderr) => {
+        const errno = error as NodeJS.ErrnoException | null;
         const code =
-          error && typeof (error as NodeJS.ErrnoException).code === "number"
-            ? ((error as unknown as { code: number }).code as number)
+          errno && typeof errno.code === "number"
+            ? (errno.code as number)
             : error
             ? 1
             : 0;
+        let errText = stderr?.toString() ?? "";
+        // spawn 自体の失敗（コマンド未インストール等）は stderr が空になりがちで、
+        // 呼び出し側が「原因不明の失敗」になる。原因を stderr に載せて拾えるようにする。
+        if (error && !errText) {
+          errText =
+            errno?.code === "ENOENT"
+              ? `コマンド「${file}」が見つかりません（未インストール、または PATH 未設定の可能性があります）。`
+              : error.message ?? "";
+        }
         resolve({
           stdout: stdout?.toString() ?? "",
-          stderr: stderr?.toString() ?? "",
+          stderr: errText,
           code,
         });
       }
