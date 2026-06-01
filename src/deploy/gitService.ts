@@ -506,6 +506,24 @@ export function tagNameError(name: string): string | undefined {
 }
 
 /**
+ * merge 失敗（競合以外）のエラー文から、初心者向けの対処ヒントを返す（未知なら undefined）。
+ * よくあるのは「未コミットの変更で git がマージを拒否」「ブランチ名が見つからない」。Pure & unit-tested.
+ */
+export function mergeErrorHint(errText: string): string | undefined {
+  const t = (errText || "").toLowerCase();
+  if (/local changes.*would be overwritten|please commit your changes or stash|overwritten by merge|cannot merge.*unstashed/.test(t)) {
+    return "未コミットの変更があるため取り込めません。先に「💾 バックアップ」で変更を保存してから、もう一度お試しください。";
+  }
+  if (/not something we can merge|did not match any|merge: .* - not something/.test(t)) {
+    return "そのブランチが見つかりません。ブランチ名を確認してください（「環境一覧を更新」で最新化できます）。";
+  }
+  if (/you have not concluded your merge|you have unmerged files|exiting because of unfinished merge/.test(t)) {
+    return "前回のマージが未完了です。ホーム画面の競合一覧で解決して「バックアップ」で完了してから、もう一度お試しください。";
+  }
+  return undefined;
+}
+
+/**
  * commit 失敗時のエラー文から、初心者向けの具体的な対処ヒントを返す（未知なら undefined）。
  * 初回ユーザーが最もよく詰まる「Git の名前/メール未設定」を日本語で案内する。Pure & unit-tested.
  */

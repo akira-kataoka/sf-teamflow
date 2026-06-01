@@ -9,11 +9,35 @@ import {
   BASELINE_GITIGNORE_ENTRIES,
   pushErrorHint,
   commitErrorHint,
+  mergeErrorHint,
   branchNameError,
   tagNameError,
   repoNameError,
   BASELINE_GITATTRIBUTES,
 } from "../src/deploy/gitService.js";
+
+test("mergeErrorHint: 未コミット変更/ブランチ不在/未完了マージを案内する", () => {
+  assert.match(
+    mergeErrorHint("error: Your local changes to the following files would be overwritten by merge:") || "",
+    /バックアップ/,
+    "未コミット変更はバックアップを促す"
+  );
+  assert.match(
+    mergeErrorHint("Please commit your changes or stash them before you merge.") || "",
+    /バックアップ/
+  );
+  assert.match(
+    mergeErrorHint("merge: nosuch - not something we can merge") || "",
+    /ブランチが見つかりません/,
+    "不在ブランチを案内"
+  );
+  assert.match(
+    mergeErrorHint("error: You have not concluded your merge (MERGE_HEAD exists).") || "",
+    /前回のマージが未完了/,
+    "未完了マージを案内"
+  );
+  assert.equal(mergeErrorHint("some unrelated error"), undefined, "未知はヒント無し");
+});
 
 test("commitErrorHint: Git identity未設定を日本語で案内する", () => {
   assert.match(

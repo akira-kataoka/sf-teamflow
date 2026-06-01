@@ -13,6 +13,7 @@ import {
   deleteBranch,
   deleteTag,
   mergeBranch,
+  mergeErrorHint,
   hasRemote,
   hasUpstream,
   initRepo,
@@ -552,7 +553,10 @@ export function registerGitCommands(
             `⚠️ 「${name}」の取り込みで競合が発生しました。ホーム画面の競合一覧で各ファイルを解決し、「バックアップ」で完了してください。`
           );
         } else {
-          vscode.window.showErrorMessage(`取り込みに失敗しました: ${r.message || "不明なエラー"}`);
+          const hint = mergeErrorHint(r.message);
+          vscode.window.showErrorMessage(
+            hint ? `取り込めませんでした。${hint}` : `取り込みに失敗しました: ${r.message || "不明なエラー"}`
+          );
         }
         ctx.recordActivity(`ブランチ取り込み: ${name}→${current}`, r.ok ? "ok" : "error");
         ctx.refreshAll();
