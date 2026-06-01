@@ -42,6 +42,7 @@ import { suggestNextTag } from "./tagUtils.js";
 import {
   buildPullRequestArgs,
   isReleaseLikeBranch,
+  isProtectedBranch,
   prBaseCandidates,
   scratchAliasForBranch,
 } from "../sfProject/projectService.js";
@@ -539,7 +540,12 @@ export function registerGitCommands(
       } else {
         const ok = await vscode.window.showWarningMessage(
           `ブランチ「${name}」を削除しますか？`,
-          { modal: true, detail: "未マージの変更がある場合は失敗します（安全のため）。" },
+          {
+            modal: true,
+            detail: isProtectedBranch(name)
+              ? "⚠️ これは共有の基準ブランチ（main/develop/release等）の可能性があります。ローカルでの削除は通常不要です。\n未マージの変更がある場合は失敗します（安全のため）。"
+              : "未マージの変更がある場合は失敗します（安全のため）。",
+          },
           "削除する"
         );
         if (ok !== "削除する") {

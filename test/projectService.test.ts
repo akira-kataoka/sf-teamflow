@@ -21,6 +21,7 @@ import {
   scratchAliasForBranch,
   prBaseCandidates,
   isReleaseLikeBranch,
+  isProtectedBranch,
   buildPullRequestArgs,
   COMMON_METADATA_TYPES,
   buildDevHubOpenArgs,
@@ -278,6 +279,16 @@ test("projectNameError: 事故になる名前を弾く(.. / .hidden / 先頭記�
   assert.ok(projectNameError("_foo"), "先頭アンダースコアは不可");
   assert.ok(projectNameError("my project"), "スペースは不可");
   assert.ok(projectNameError("プロジェクト"), "日本語は不可");
+});
+
+test("isProtectedBranch: 共有基準ブランチ(main/master/develop/release*/hotfix*)を保護対象とする", () => {
+  for (const b of ["main", "master", "develop", "release/1.0", "hotfix/x"]) {
+    assert.equal(isProtectedBranch(b), true, `${b} は保護対象`);
+  }
+  assert.equal(isProtectedBranch("  develop  "), true, "前後空白はtrim");
+  for (const b of ["feature/x", "wip", "my-branch", ""]) {
+    assert.equal(isProtectedBranch(b), false, `${b} は保護対象でない`);
+  }
 });
 
 test("isReleaseLikeBranch: release/hotfix のみ true", () => {

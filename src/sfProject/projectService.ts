@@ -388,6 +388,16 @@ export function isReleaseLikeBranch(branch: string): boolean {
 }
 
 /**
+ * 共有の基準ブランチ（誤ってローカル削除すると混乱の元）か。
+ * `main`/`master`/`develop` と `release/*`・`hotfix/*` を保護対象とみなす。
+ * 削除時に強めの注意喚起を出すために使う。Pure & unit-tested.
+ */
+export function isProtectedBranch(branch: string): boolean {
+  const n = (branch || "").trim();
+  return n === "main" || n === "master" || n === "develop" || isReleaseLikeBranch(n);
+}
+
+/**
  * PR のマージ先候補を GitHub Flow に沿って並べる。
  * `release/*`・`hotfix/*` からは `main` を優先、それ以外（feature 等）は `develop` を優先。
  * develop/main は標準名なので常に候補に含め、残りの既存ブランチを後ろに付ける（current は除外・重複排除）。
