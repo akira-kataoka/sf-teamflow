@@ -464,7 +464,17 @@ export function registerGitCommands(
           title: "新しい作業ブランチ",
           prompt: "機能ごとにブランチを分けるのが安全です。",
           value: "feature/",
-          validateInput: (v) => branchNameError(v),
+          validateInput: (v) => {
+            const err = branchNameError(v);
+            if (err) {
+              return err;
+            }
+            // 既存ブランチ名は作成できない（一覧から選べば切替できる）。先に弾いて誘導する。
+            if (branches.includes(v.trim())) {
+              return "そのブランチは既にあります。作成せず、一覧から選ぶと切り替えられます。";
+            }
+            return undefined;
+          },
         });
         if (!name) {
           return;
