@@ -706,6 +706,23 @@ export function registerGitCommands(
       vscode.window.showInformationMessage("先に「GitHubに公開」してください。");
       return;
     }
+    // 未コミットの変更はPRに入らない（push済みコミットだけが対象）。先にバックアップを促す。
+    const prStatus = await status(root);
+    if (prStatus.changed > 0) {
+      const go = await vscode.window.showWarningMessage(
+        `未コミットの変更が ${prStatus.changed} 件あります。このままPRを作ると、これらは含まれません（コミット済みの内容のみ）。`,
+        { modal: true },
+        "先にバックアップ",
+        "このままPRを作成"
+      );
+      if (go === "先にバックアップ") {
+        await vscode.commands.executeCommand("teamflow.gitCommitPush");
+        return; // バックアップ後、改めてPRを作成してもらう
+      }
+      if (go !== "このままPRを作成") {
+        return;
+      }
+    }
     const current = await currentBranch(root).catch(() => "");
     // GitHub Flow に沿ってマージ先候補を並べる（release/hotfix は main 優先、他は develop 優先）。
     const branches = await listBranches(root);
