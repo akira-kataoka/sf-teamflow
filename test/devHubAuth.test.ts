@@ -57,6 +57,18 @@ test("refreshDevHubAuthFlag returns false when no auth record exists", async () 
   assert.equal(await refreshDevHubAuthFlag("missing@e.com", home), false);
 });
 
+test("refreshDevHubAuthFlag: 壊れたJSONの認証ファイルでクラッシュせず false を返す", async () => {
+  const home = tmpHome();
+  const dir = path.join(home, ".sfdx");
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, "u@e.com.json");
+  fs.writeFileSync(file, "{ this is not valid json", "utf8");
+  // 例外を投げず false（呼び出し側は再認証へフォールバックできる）。
+  assert.equal(await refreshDevHubAuthFlag("u@e.com", home), false);
+  // 壊れたファイルは書き換えない
+  assert.equal(fs.readFileSync(file, "utf8"), "{ this is not valid json");
+});
+
 test("refreshDevHubAuthFlag leaves a mismatched username file alone", async () => {
   const home = tmpHome();
   const dir = path.join(home, ".sfdx");
