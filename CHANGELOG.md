@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.30] - 2026-06-01
+
+- 🪟 **Windowsでスペース入りCLIパスでも起動できるように**: Windowsでは内部の `run()` がシェル経由でCLIを呼ぶため、`sfCliPath` に「C:\Program Files\…」のようなスペースを含むフルパスを設定したり、OneDrive配下（パスにスペース）の実行ファイルを指すと、引用符無しで cmd がパスを途中で切って起動できなかった。スペースを含む場合のみ実行ファイルパスを引用符で囲む純関数 `quoteExecutable` を新設（スペース無しの "sf"/"git" 等は完全に従来どおりで一般ケースは不変、POSIXは何もしない）。単体テスト3件追加（計152件pass）。
+
 ## [0.72.29] - 2026-06-01
 
 - 🧬 **Apexトリガの対象オブジェクト名を検証**: トリガ作成時の「対象オブジェクト」入力が無検証で、スペース・日本語・記号を入れると `sf apex generate trigger` が失敗していた。任意入力（空でOK）を保ちつつ、非空ならオブジェクトAPI名（英字始まり・`Account`/`MyObject__c` 等、`__c` 可）を要求する純関数 `sobjectNameError` を新設し入力時点で表示。単体テスト2件追加（計149件pass）。これで作成系の入力検証が出そろった（プロジェクト名/リポジトリ名/ブランチ/タグ/資材名/テストクラス名/sObject名）。

@@ -15,6 +15,20 @@ export interface ExecOptions {
 }
 
 /**
+ * win32 では `run` が shell 経由で実行する（.cmd シム対応）。その際、実行ファイルパスに
+ * スペースが含まれる（例: ユーザーが sfCliPath に "C:\Program Files\..." を設定／OneDrive配下）と
+ * 引用符なしでは cmd がパスを途中で切ってしまい起動できない。スペースを含む場合のみ引用符で囲む。
+ * スペースの無い "sf"/"git" 等は **そのまま返す**（従来動作と完全一致＝一般ケースは不変）。
+ * POSIX は shell:false でパスがそのまま argv[0] になるため何もしない。Pure & unit-tested.
+ */
+export function quoteExecutable(file: string, platform: NodeJS.Platform): string {
+  if (platform !== "win32" || !/\s/.test(file) || file.startsWith('"')) {
+    return file;
+  }
+  return `"${file}"`;
+}
+
+/**
  * Thin promise wrapper around child_process.execFile — the single choke point
  * through which every `sf` and `git` invocation flows.
  *
@@ -35,7 +49,7 @@ export function run(
 ): Promise<ExecResult> {
   return new Promise((resolve) => {
     execFile(
-      file,
+      quoteExecutable(file, process.platform),
       args,
       {
         cwd: options.cwd,

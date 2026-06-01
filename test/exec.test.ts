@@ -1,6 +1,26 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { run } from "../src/util/exec.js";
+import { run, quoteExecutable } from "../src/util/exec.js";
+
+test("quoteExecutable: スペース無しの一般ケースは不変(従来動作維持)", () => {
+  assert.equal(quoteExecutable("sf", "win32"), "sf");
+  assert.equal(quoteExecutable("git", "win32"), "git");
+  assert.equal(quoteExecutable("C:\\tools\\sf.cmd", "win32"), "C:\\tools\\sf.cmd", "スペース無しパスも不変");
+});
+
+test("quoteExecutable: win32 でスペースを含むパスは引用符で囲む", () => {
+  assert.equal(
+    quoteExecutable("C:\\Program Files\\sf\\bin\\sf.cmd", "win32"),
+    '"C:\\Program Files\\sf\\bin\\sf.cmd"'
+  );
+  // 既に引用済みは二重に囲まない
+  assert.equal(quoteExecutable('"C:\\Program Files\\sf.cmd"', "win32"), '"C:\\Program Files\\sf.cmd"');
+});
+
+test("quoteExecutable: 非win32(POSIX)は何もしない(shell:falseのため)", () => {
+  assert.equal(quoteExecutable("/usr/local/bin/with space/sf", "linux"), "/usr/local/bin/with space/sf");
+  assert.equal(quoteExecutable("/opt/sf", "darwin"), "/opt/sf");
+});
 
 test("run: 存在しないコマンドは原因をstderrに載せて非ゼロで返す(rejectしない)", async () => {
   const res = await run("sf-teamflow-no-such-binary-xyz", ["--version"], { timeout: 10_000 });
