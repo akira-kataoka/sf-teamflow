@@ -688,8 +688,11 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       const rows = s.files.map(f =>
         '<div class="fileitem"><span class="filetag">'+escapeHtml(f.label)+'</span>'+
         '<span class="filepath">'+escapeHtml(f.path)+'</span></div>').join('');
+      // 件数はヒーローと一致させるため真の変更数(s.changes)を表示。一覧は先頭のみ載せている場合がある。
+      const total = (s.changes && s.changes > s.files.length) ? s.changes : s.files.length;
+      const more = total > s.files.length ? '（先頭'+s.files.length+'件を表示）' : '';
       $('changedbox').innerHTML = '<details class="changed"><summary><span class="caret">▶</span>'+
-        '📝 保存される変更 '+s.files.length+'件</summary><div class="filelist">'+rows+'</div></details>';
+        '📝 保存される変更 '+total+'件'+more+'</summary><div class="filelist">'+rows+'</div></details>';
     } else {
       $('changedbox').innerHTML = '';
     }
