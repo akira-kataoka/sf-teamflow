@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.37] - 2026-06-01
+
+- ✅ **複数パッケージディレクトリ構成のCI生成に回帰テストを追加（テスト強化のみ）**: `packageDirectories` が複数（例: force-app + shared）のとき、生成CIが全ディレクトリを取りこぼさないこと（初回デプロイの `CHANGED="force-app shared"`、差分deploy/PR検証diffの全dirスコープ、PMDスキャナの `--target`、paths フィルタ、デプロイは diff ファイルを `-d` で個別指定）を固定する回帰テストを追加。マルチパッケージは実在のSalesforce構成で、取りこぼすと一部メタデータが未デプロイになる。実装は精査の結果すべて正しく、コード変更なし（計160件pass）。
+
 ## [0.72.36] - 2026-06-01
 
 - ✅ **既定設定(defaultConfig)の不変条件に回帰テストを追加（テスト強化のみ）**: 新規ユーザーが最初に得る既定の3環境構成（本番=main/ステージング=release*/開発=develop、本番は requireValidation 必須、packageDirectories=force-app、名前一意）を固定し、さらに「自分が生成する既定設定は自前の `parseTeamflowConfig` 検証を必ず通る」という重要な不変条件を回帰テスト化。teamflowConfig・gitService の全 pure 関数が直接テストで網羅されている状態に。実装は変更なし。計159件pass。

@@ -77,6 +77,28 @@ test("deployWorkflow: 初回(親コミット無し)はパッケージ全体を�
   assert.ok(yml.includes('CHANGED="force-app"'), "初回はパッケージ全体をデプロイ");
 });
 
+test("deployWorkflow/prValidation: 複数パッケージdirでも全dirをスコープし取りこぼさない", () => {
+  const cfg = {
+    version: 1 as const,
+    defaultBaseRef: "origin/main",
+    testLevel: "RunLocalTests" as const,
+    packageDirectories: ["force-app", "shared"],
+    environments: [{ name: "prod", orgAlias: "p", branch: "main", type: "production" as const }],
+  };
+  const dep = deployWorkflow(cfg);
+  // 初回(親無し)は両dirをデプロイ対象に
+  assert.ok(dep.includes('CHANGED="force-app shared"'), "初回は全パッケージdirをデプロイ");
+  // 差分deployも両dirスコープ
+  assert.ok(dep.includes("HEAD -- force-app shared"), "差分deployは全dirスコープ");
+  // デプロイは diff で得たファイルを -d で個別に渡す（--source-dir 列挙ではない）
+  assert.ok(dep.includes("for f in") && dep.includes('DIRS="$DIRS -d $f"'), "差分ファイルを-dで渡す");
+  // PR検証: 差分も両dirスコープ / PMDスキャナの--targetも両dir / pathsフィルタも両dir
+  const pr = prValidationWorkflow(cfg);
+  assert.ok(pr.includes('"origin/$BASE...HEAD" -- force-app shared'), "PR検証diffは全dirスコープ");
+  assert.ok(pr.includes('--target "force-app,shared"'), "PMDスキャナも全dirを対象");
+  assert.ok(pr.includes('"force-app/**"') && pr.includes('"shared/**"'), "pathsフィルタも全dir");
+});
+
 test("deployWorkflow contains a job per environment with its org + auth secrets", () => {
   const c = defaultConfig();
   const yml = deployWorkflow(c);
