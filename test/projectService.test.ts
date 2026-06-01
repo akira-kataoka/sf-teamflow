@@ -16,6 +16,7 @@ import {
   componentNameError,
   scratchAliasForBranch,
   prBaseCandidates,
+  isReleaseLikeBranch,
   buildPullRequestArgs,
   COMMON_METADATA_TYPES,
   buildDevHubOpenArgs,
@@ -205,6 +206,16 @@ test("scratchAliasForBranch derives a safe alias, drops prefix, falls back on no
   assert.equal(scratchAliasForBranch("hotfix/Bug_123"), "scr-bug-123");
   assert.equal(scratchAliasForBranch("main"), "scr-main");
   assert.equal(scratchAliasForBranch("feature/取引先検索"), "scr-feature"); // 非ASCIIはフォールバック
+});
+
+test("isReleaseLikeBranch: release/hotfix のみ true", () => {
+  assert.equal(isReleaseLikeBranch("release/1.0"), true);
+  assert.equal(isReleaseLikeBranch("hotfix/urgent"), true);
+  assert.equal(isReleaseLikeBranch("feature/x"), false);
+  assert.equal(isReleaseLikeBranch("develop"), false);
+  assert.equal(isReleaseLikeBranch("main"), false);
+  assert.equal(isReleaseLikeBranch(""), false);
+  assert.equal(isReleaseLikeBranch("releasely/x"), false, "release/ で始まらない紛らわしい名前は false");
 });
 
 test("prBaseCandidates: feature系は develop 優先・release/hotfix は main 優先", () => {

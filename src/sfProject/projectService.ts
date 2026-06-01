@@ -316,14 +316,21 @@ export function scratchAliasForBranch(branch: string): string {
 }
 
 /**
+ * GitHub Flow で「本番(main)へ直接マージするのが筋」のブランチか。
+ * `release/*`・`hotfix/*` が該当。PR のマージ先のおすすめ判定に使う。Pure & unit-tested.
+ */
+export function isReleaseLikeBranch(branch: string): boolean {
+  return /^(release|hotfix)\//.test(branch || "");
+}
+
+/**
  * PR のマージ先候補を GitHub Flow に沿って並べる。
  * `release/*`・`hotfix/*` からは `main` を優先、それ以外（feature 等）は `develop` を優先。
  * develop/main は標準名なので常に候補に含め、残りの既存ブランチを後ろに付ける（current は除外・重複排除）。
  * Pure & unit-tested.
  */
 export function prBaseCandidates(current: string, branches: string[]): string[] {
-  const releaseLike = /^(release|hotfix)\//.test(current);
-  const head = releaseLike ? ["main", "develop"] : ["develop", "main"];
+  const head = isReleaseLikeBranch(current) ? ["main", "develop"] : ["develop", "main"];
   const rest = branches.filter((b) => b && b !== current && b !== "develop" && b !== "main");
   return [...new Set([...head, ...rest])];
 }

@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.8] - 2026-06-01
+
+- 🏷️ **PRマージ先の「おすすめ」ラベルを並び順に追従**: v0.72.7で release/hotfix は main を先頭にしたが、説明ラベルは依然 develop に「（おすすめ）」が固定で、release ブランチからのPRで「main が先頭なのに develop におすすめ」と矛盾していた。現在のブランチが release/hotfix のときは main 側に「（おすすめ）」を表示するよう統一。重複していた判定を純関数 `isReleaseLikeBranch` に集約し `prBaseCandidates` と共有。単体テスト1件追加（計126件pass）。
+
 ## [0.72.7] - 2026-06-01
 
 - 🔀 **Pull Requestのマージ先候補をGitHub Flowに合わせて並べ替え**: これまでマージ先候補は常に `develop` 優先で、`release/*`・`hotfix/*` ブランチからPRを作るときも develop が先頭に来ていた（本来は `main` がマージ先）。現在のブランチが release/hotfix なら `main` を、それ以外（feature 等）は `develop` を先頭に出すように変更。並び順の改善のみで選択肢・UI・挙動は不変。純関数 `prBaseCandidates` に切り出し単体テスト2件追加（計125件pass）。

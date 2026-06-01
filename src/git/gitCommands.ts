@@ -36,7 +36,12 @@ import {
   switchBranch,
 } from "../deploy/gitService.js";
 import { suggestNextTag } from "./tagUtils.js";
-import { buildPullRequestArgs, prBaseCandidates, scratchAliasForBranch } from "../sfProject/projectService.js";
+import {
+  buildPullRequestArgs,
+  isReleaseLikeBranch,
+  prBaseCandidates,
+  scratchAliasForBranch,
+} from "../sfProject/projectService.js";
 import { renderCommand } from "../deploy/deployService.js";
 
 /**
@@ -650,10 +655,17 @@ export function registerGitCommands(
     // GitHub Flow に沿ってマージ先候補を並べる（release/hotfix は main 優先、他は develop 優先）。
     const branches = await listBranches(root);
     const uniq = prBaseCandidates(current, branches);
-    const desc: Record<string, string> = {
-      develop: "開発の合流先（おすすめ）",
-      main: "本番リリース用（通常は release から）",
-    };
+    // 「おすすめ」ラベルは並び順（prBaseCandidates）と一致させる。
+    // release/hotfix からは main が、それ以外は develop がおすすめ。
+    const desc: Record<string, string> = isReleaseLikeBranch(current)
+      ? {
+          main: "本番リリース用（おすすめ）",
+          develop: "開発の合流先",
+        }
+      : {
+          develop: "開発の合流先（おすすめ）",
+          main: "本番リリース用（通常は release から）",
+        };
     const basePick = await vscode.window.showQuickPick(
       uniq.map((b) => ({
         label: b,
