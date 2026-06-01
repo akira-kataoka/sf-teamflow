@@ -66,6 +66,32 @@ test("parseOrgList flattens, de-dupes by username, and sorts by category", () =>
   assert.equal(scr.connected, true);
 });
 
+test("parseOrgList: 後のバケットのフラグでカテゴリが昇格する(Dev Hubが両バケットに出る実ケース)", () => {
+  const orgs = parseOrgList({
+    // 同一orgが先に nonScratchOrgs(フラグ無し) に現れる
+    nonScratchOrgs: [
+      { username: "hub@acme.com", alias: "hub", connectedStatus: "Connected" } as RawOrg,
+    ],
+    // 後の devHubs バケットで isDevHub:true → DevHub へ昇格すべき（フラグのマージ）
+    devHubs: [{ username: "hub@acme.com", alias: "hub", isDevHub: true } as RawOrg],
+  });
+  assert.equal(orgs.length, 1, "重複は1つにマージ");
+  assert.equal(orgs[0].category, "DevHub", "後のバケットのisDevHubを取り込みDevHubに昇格");
+  assert.equal(orgs[0].connected, true, "先のバケットのconnected状態も保持");
+});
+
+test("parseOrgList: sandboxバケットのフラグも反映され本番扱いされない", () => {
+  const orgs = parseOrgList({
+    nonScratchOrgs: [
+      { username: "uat@acme.com", alias: "uat", loginUrl: "https://login.salesforce.com" } as RawOrg,
+    ],
+    sandboxes: [{ username: "uat@acme.com", alias: "uat", isSandbox: true } as RawOrg],
+  });
+  assert.equal(orgs.length, 1);
+  assert.equal(orgs[0].category, "Sandbox", "isSandboxを取り込みSandboxに");
+  assert.equal(orgs[0].isProduction, false, "Sandboxは本番扱いしない（誤確認ダイアログ防止）");
+});
+
 test("parseOrgList handles empty result and skips records without username", () => {
   assert.deepEqual(parseOrgList({}), []);
   const orgs = parseOrgList({ nonScratchOrgs: [{ alias: "x" } as RawOrg, { username: "u@e.com" }] });
