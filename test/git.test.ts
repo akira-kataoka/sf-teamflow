@@ -23,6 +23,25 @@ test("parseNameStatus parses adds, mods, deletes and renames", () => {
   assert.equal(entries.filter((e) => e.status === "D").length, 2);
 });
 
+test("parseNameStatus: コピー(C)は新規ファイルのみを変更として扱い、元は消さない", () => {
+  const out = [
+    "C100\tforce-app/main/default/classes/Src.cls\tforce-app/main/default/classes/Copy.cls",
+  ].join("\n");
+  const entries = parseNameStatus(out);
+  assert.deepEqual(entries, [
+    { path: "force-app/main/default/classes/Copy.cls", status: "M" },
+  ]);
+  assert.ok(!entries.some((e) => e.status === "D"), "コピー元の削除は出さない");
+});
+
+test("リネームはデプロイ上『新規を反映＋旧を削除候補』になる(parseNameStatus→classifyChanges)", () => {
+  const out =
+    "R100\tforce-app/main/default/classes/Was.cls\tforce-app/main/default/classes/Now.cls";
+  const cs = classifyChanges(parseNameStatus(out), ["force-app"]);
+  assert.deepEqual(cs.toDeploy, ["force-app/main/default/classes/Now.cls"], "新名はデプロイ対象");
+  assert.deepEqual(cs.toDelete, ["force-app/main/default/classes/Was.cls"], "旧名は削除候補");
+});
+
 test("isUnderPackageDirs respects directory boundaries and separators", () => {
   assert.equal(isUnderPackageDirs("force-app/main/x.cls", ["force-app"]), true);
   assert.equal(isUnderPackageDirs("force-app\\main\\x.cls", ["force-app"]), true);
