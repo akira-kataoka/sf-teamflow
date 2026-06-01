@@ -406,7 +406,8 @@ export function isProtectedBranch(branch: string): boolean {
 export function prBaseCandidates(current: string, branches: string[]): string[] {
   const head = isReleaseLikeBranch(current) ? ["main", "develop"] : ["develop", "main"];
   const rest = branches.filter((b) => b && b !== current && b !== "develop" && b !== "main");
-  return [...new Set([...head, ...rest])];
+  // current 自身はマージ先候補から必ず除外する（develop/main 上での自己PR＝gh失敗を防ぐ）。
+  return [...new Set([...head, ...rest])].filter((b) => b !== current);
 }
 
 export interface PullRequestOptions {

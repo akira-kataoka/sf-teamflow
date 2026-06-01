@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.73.3] - 2026-06-02
+
+- 🐞 **PRマージ先候補から現在ブランチを確実に除外（自己PR防止・バグ修正）**: `prBaseCandidates` が現在ブランチを候補末尾(rest)からは除いていたが、先頭の `develop`/`main` からは除外しておらず、**develop や main 上で Pull Request を作ろうとすると自分自身がマージ先候補に並び、選ぶと `gh pr create` が「No commits between X and X」で失敗**していた（v0.72.7 のリグレッション）。最終候補から `current` を必ず除外するよう修正。回帰テスト1件追加（計168件pass）。
+
 ## [0.73.2] - 2026-06-02
 
 - ✅ **Apex専用プロジェクトでCIが失敗しないことに回帰テストを追加（テスト強化のみ）**: 生成CIのJS系ジョブ（LWC Jest／ESLint／Prettier）は、LWCコンポーネントや各設定ファイルが無ければスキップする設計になっている。この「Apex専用プロジェクトでもCIが赤くならない」挙動を回帰テストで固定（無条件の `npm run` を出さないことも検証）。初心者がよく作るApexだけのプロジェクトで、CIが恒常的に失敗するのを防ぐ。実装は精査の結果すでに正しく、コード変更なし（計167件pass）。

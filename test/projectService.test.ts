@@ -316,6 +316,17 @@ test("prBaseCandidates: feature系は develop 優先・release/hotfix は main �
   assert.equal(prBaseCandidates("hotfix/bug", [])[0], "main");
 });
 
+test("prBaseCandidates: develop/main 上では自分自身を候補から除外する(自己PR防止)", () => {
+  // develop 上 → 候補に develop は出さない（main は出る）
+  const onDev = prBaseCandidates("develop", ["develop", "main", "feature/x"]);
+  assert.ok(!onDev.includes("develop"), "develop上ではdevelopを候補にしない");
+  assert.ok(onDev.includes("main"), "mainは候補に残る");
+  // main 上 → 候補に main は出さない
+  const onMain = prBaseCandidates("main", ["develop", "main"]);
+  assert.ok(!onMain.includes("main"), "main上ではmainを候補にしない");
+  assert.deepEqual(onMain, ["develop"]);
+});
+
 test("prBaseCandidates: current除外・develop/mainは常に含む・残りを後ろに重複なく", () => {
   const got = prBaseCandidates("feature/x", ["feature/x", "develop", "main", "release/2.0", "qa"]);
   assert.deepEqual(got, ["develop", "main", "release/2.0", "qa"]);
