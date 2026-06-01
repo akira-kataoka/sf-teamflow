@@ -595,6 +595,26 @@ export async function deleteBranch(name: string, cwd: string, force: boolean): P
   await git(["branch", force ? "-D" : "-d", name], cwd);
 }
 
+/**
+ * 指定ブランチを現在のブランチに取り込む（git merge）。例: develop の更新を自分の feature に。
+ * 成功時は ok。競合時は **マージ状態を維持したまま** conflict=true を返す（abort しない）ので、
+ * 呼び出し側／ホームの競合解決UIで各ファイルを解決→コミットして完了できる。Run-based・例外を投げない。
+ */
+export async function mergeBranch(
+  name: string,
+  cwd: string
+): Promise<{ ok: boolean; conflict: boolean; message: string }> {
+  const res = await run("git", ["--no-optional-locks", "merge", "--no-edit", name], {
+    cwd,
+    timeout: 30_000,
+  });
+  if (res.code === 0) {
+    return { ok: true, conflict: false, message: res.stdout.trim() };
+  }
+  const out = (res.stderr + res.stdout).toLowerCase();
+  return { ok: false, conflict: out.includes("conflict"), message: (res.stderr || res.stdout).trim() };
+}
+
 /** Create an annotated tag (used for release tagging). */
 export async function createTag(name: string, message: string, cwd: string): Promise<void> {
   await git(["tag", "-a", name, "-m", message || name], cwd);

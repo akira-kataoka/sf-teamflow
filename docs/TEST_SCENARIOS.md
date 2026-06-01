@@ -87,9 +87,10 @@
 - 確認観点: 初回でも失敗しないこと／**履歴分岐（ff-only失敗）時は「ソース管理ビューでプル→マージ」を案内**（`pushErrorHint`、push拒否＝『先に同期』とは区別）
 
 ### S2-5. ブランチ管理 ✅
-- 操作: 🌿 ブランチ管理（切替/作成/削除）
-- 内部: `git switch -c` / `switch` / `branch -d`（✅ `feature/検索` 日本語ブランチ検証）
-- 確認観点: 作業中ブランチのハイライト
+- 操作: 🌿 ブランチ管理（切替/**取り込み(マージ)**/作成/削除）
+- 内部: `git switch -c` / `switch` / **`git merge --no-edit`（`mergeBranch`）** / `branch -d`（✅ `feature/検索` 日本語ブランチ検証）
+- 確認観点: 作業中ブランチのハイライト／名前検証(`branchNameError`)／**共有基準ブランチ削除時の強い警告(`isProtectedBranch`)**
+- マージ（✅ 実gitで統合テスト）: 「このブランチを現在のブランチに取り込む」= 他ブランチ(例 develop)を現在ブランチへ `merge`。競合時は**マージ状態を維持**し、ホームの競合一覧→各ファイル解決→「バックアップ」で完了（abortしない）。本流(feature→develop/main)への統合は PR 経由を推奨
 
 ### S2-6. Pull Request作成
 - 操作: 🔀 Pull Request

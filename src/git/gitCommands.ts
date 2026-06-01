@@ -12,6 +12,7 @@ import {
   currentBranch,
   deleteBranch,
   deleteTag,
+  mergeBranch,
   hasRemote,
   hasUpstream,
   initRepo,
@@ -526,6 +527,11 @@ export function registerGitCommands(
     const action = await vscode.window.showQuickPick(
       [
         { label: "$(arrow-right) このブランチに切り替える", description: "作業対象を切替", act: "switch" },
+        {
+          label: "$(git-merge) このブランチを現在のブランチに取り込む",
+          description: `${name} → ${current} にマージ`,
+          act: "merge",
+        },
         { label: "$(trash) このブランチを削除する", description: "未マージ変更があると失敗(安全)", act: "delete" },
       ],
       { title: `ブランチ: ${name}` }
@@ -537,6 +543,20 @@ export function registerGitCommands(
       if (action.act === "switch") {
         await switchBranch(name, root);
         vscode.window.showInformationMessage(`✅ ${name} に切り替えました。`);
+      } else if (action.act === "merge") {
+        const r = await mergeBranch(name, root);
+        if (r.ok) {
+          vscode.window.showInformationMessage(`✅ 「${name}」を ${current} に取り込みました。`);
+        } else if (r.conflict) {
+          vscode.window.showWarningMessage(
+            `⚠️ 「${name}」の取り込みで競合が発生しました。ホーム画面の競合一覧で各ファイルを解決し、「バックアップ」で完了してください。`
+          );
+        } else {
+          vscode.window.showErrorMessage(`取り込みに失敗しました: ${r.message || "不明なエラー"}`);
+        }
+        ctx.recordActivity(`ブランチ取り込み: ${name}→${current}`, r.ok ? "ok" : "error");
+        ctx.refreshAll();
+        return;
       } else {
         const ok = await vscode.window.showWarningMessage(
           `ブランチ「${name}」を削除しますか？`,
