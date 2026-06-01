@@ -494,6 +494,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
 
   <div class="footer">
     <span class="fitem" data-cmd="teamflow.openWorkflowGuide" role="button" tabindex="0">📘 ガイド</span>
+    <span class="fitem" data-cmd="teamflow.openActions" role="button" tabindex="0" title="GitHubのCI/CD実行状況を開く">🤖 CI状況</span>
     <span class="fitem" data-cmd="teamflow.quickSettings" role="button" tabindex="0">⚙️ 設定</span>
     <span class="fitem" data-cmd="teamflow.refreshOrgs" role="button" tabindex="0">🔄 更新</span>
   </div>

@@ -174,6 +174,7 @@ export function activate(context: vscode.ExtensionContext): void {
   register("teamflow.initTeamProject", () => initTeamProject());
   register("teamflow.openConfig", () => openConfig());
   register("teamflow.openWorkflowGuide", () => openWorkflowGuide());
+  register("teamflow.openActions", () => openGitHubActions());
   register("teamflow.setupWizard", () => setupWizard.open());
   register("teamflow.quickSettings", () => quickSettings());
 
@@ -278,6 +279,32 @@ async function quickSettings(): Promise<void> {
     return;
   }
   refreshAll();
+}
+
+/** GitHub Actions（CI/CDの実行状況）をブラウザで開く。生成したCIの結果確認の近道。 */
+async function openGitHubActions(): Promise<void> {
+  const root = requireRoot();
+  if (!root) {
+    return;
+  }
+  if (!(await isGitRepo(root)) || !(await hasRemote(root))) {
+    vscode.window.showInformationMessage(
+      "先に「🐙 GitHubに接続」してください（GitHub上の実行状況ページを開きます）。"
+    );
+    return;
+  }
+  const url = await run("gh", ["repo", "view", "--json", "url", "-q", ".url"], {
+    cwd: root,
+    timeout: 15_000,
+  });
+  const repoUrl = url.code === 0 ? url.stdout.trim() : "";
+  if (!repoUrl) {
+    vscode.window.showErrorMessage(
+      "リポジトリURLを取得できませんでした（GitHub CLI のログインを確認してください）。"
+    );
+    return;
+  }
+  await vscode.env.openExternal(vscode.Uri.parse(`${repoUrl}/actions`));
 }
 
 async function openWorkflowGuide(): Promise<void> {

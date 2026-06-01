@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.74.0] - 2026-06-02
+
+- 🤖 **「CI状況」ボタンを追加（GitHub Actionsをワンクリックで開く）**: CI/CD を生成して push した後、「CIが通ったか」を確認するにはGitHubを手で開く必要があった。ホーム下部のフッターに「🤖 CI状況」リンクを追加し、`gh repo view` で取得したリポジトリの GitHub Actions ページ（`<repo>/actions`）をブラウザで開けるようにした（コマンド `teamflow.openActions` も追加）。GitHub未接続のときは「先にGitHubに接続してください」と案内。タイルは増やさずフッターリンクのみ。コマンド登録・package.json・ホーム参照の3点整合を確認（計170件pass）。
+
 ## [0.73.14] - 2026-06-02
 
 - 🐛 **デバッグログ確認に「出ないとき」の案内を追加**: 「ログ確認」(`sf apex tail log`) はデバッグログ（TraceFlag）が未設定だと何も流れず、初心者が「動いていない？」と戸惑いやすい。起動時に「出力が出ないときは対象環境でデバッグログ(TraceFlag)の設定が必要なことがあります」と一言案内するようにした。挙動の追加（情報メッセージ）のみ・UI不変（計170件pass）。
