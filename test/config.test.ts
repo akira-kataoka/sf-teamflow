@@ -19,6 +19,34 @@ test("parseTeamflowConfig applies defaults", () => {
   assert.deepEqual(c.environments, []);
 });
 
+test("parseTeamflowConfig: 空/不正なpackageDirectoriesは force-app にフォールバック(デプロイ対象消失を防ぐ)", () => {
+  // 明示的な空配列 → サイレントに何もデプロイされないのを防ぐ
+  assert.deepEqual(
+    parseTeamflowConfig({ packageDirectories: [], environments: [] }).packageDirectories,
+    ["force-app"]
+  );
+  // 全要素が非文字列 / 空文字
+  assert.deepEqual(
+    parseTeamflowConfig({ packageDirectories: [1, true, null], environments: [] }).packageDirectories,
+    ["force-app"]
+  );
+  assert.deepEqual(
+    parseTeamflowConfig({ packageDirectories: ["", "  "], environments: [] }).packageDirectories,
+    ["force-app"]
+  );
+  // 配列でない
+  assert.deepEqual(
+    parseTeamflowConfig({ packageDirectories: "force-app", environments: [] }).packageDirectories,
+    ["force-app"]
+  );
+  // 有効値が一部でもあれば、その有効値のみ残す（空文字は除去）
+  assert.deepEqual(
+    parseTeamflowConfig({ packageDirectories: ["force-app", "", "shared"], environments: [] })
+      .packageDirectories,
+    ["force-app", "shared"]
+  );
+});
+
 test("parseTeamflowConfig normalises environments and unknown enums", () => {
   const c = parseTeamflowConfig({
     testLevel: "Bogus",

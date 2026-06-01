@@ -81,9 +81,12 @@ export function parseTeamflowConfig(raw: unknown): TeamflowConfig {
       ? (obj.testLevel as TestLevel)
       : "RunLocalTests";
 
-  const packageDirectories = Array.isArray(obj.packageDirectories)
-    ? obj.packageDirectories.filter((d): d is string => typeof d === "string")
-    : ["force-app"];
+  // 配列でない／空／全要素が非文字列なら ["force-app"] にフォールバックする。
+  // 空のまま通すとデプロイ対象が無くなり、サイレントに何もデプロイされなくなるため。
+  const pkgDirs = Array.isArray(obj.packageDirectories)
+    ? obj.packageDirectories.filter((d): d is string => typeof d === "string" && d.trim() !== "")
+    : [];
+  const packageDirectories = pkgDirs.length > 0 ? pkgDirs : ["force-app"];
 
   const rawEnvs = Array.isArray(obj.environments) ? obj.environments : [];
   const environments: TeamEnvironment[] = rawEnvs.map((e, i) => {

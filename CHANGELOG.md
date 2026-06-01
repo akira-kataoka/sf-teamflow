@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.32] - 2026-06-01
+
+- 🛟 **空/不正な `packageDirectories` を force-app にフォールバック（サイレント無デプロイ防止）**: `sf-teamflow.json` を手編集して `"packageDirectories": []`（空配列）や全要素が非文字列/空文字になると、デプロイ対象のディレクトリが消え、差分計算で何もデプロイされない状態になっていた（従来フォールバックは「配列でない時」だけ働き、空配列は素通り）。空・全無効・配列でない場合はいずれも `["force-app"]` にフォールバックするよう `parseTeamflowConfig` を修正。空文字要素も除去。単体テスト5アサーション追加（計154件pass）。
+
 ## [0.72.31] - 2026-06-01
 
 - 🪪 **Git名前/メール未設定エラーを日本語で案内**: 初回コミット時に Git の identity（user.name / user.email）が未設定だと「Author identity unknown / Please tell me who you are」という英語エラーで止まり、初心者が最もよく詰まる箇所だった。`commitErrorHint` を新設し、初回コミット（Gitを開始する）と「バックアップ」の失敗時に、設定コマンド（`git config --global user.name/…email`）を日本語で提示。「コミットする変更がありません」も拾う。単体テスト1件追加（計153件pass）。
