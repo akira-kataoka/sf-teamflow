@@ -788,6 +788,30 @@ async function initTeamProject(): Promise<void> {
   refreshAll();
 }
 
+/**
+ * 環境名/別名が CI 上で同じ識別子(envSlug)へ collapse する衝突を検出し、あれば
+ * modal で具体的に警告して true（=中止すべき）を返す。衝突なしなら false。
+ * CI生成とシークレット登録の両方で、壊れた成果物を作る前に止めるために使う。
+ */
+async function hasBlockingEnvSlugCollision(config: TeamflowConfig): Promise<boolean> {
+  const collisions = envSlugCollisions(config);
+  if (collisions.length === 0) {
+    return false;
+  }
+  const lines = collisions.map((c) => `・${c.envs.join(" / ")}（同じ識別子 ${c.slug} になります）`);
+  await vscode.window.showErrorMessage(
+    "環境名が CI 上で重複します。名前を変えてから実行してください。",
+    {
+      modal: true,
+      detail:
+        "次の環境は CI のジョブID/シークレット名が同じになり、ワークフローが壊れます:\n\n" +
+        lines.join("\n") +
+        "\n\n「① 環境設定」で名前を区別できるよう変更してください。",
+    }
+  );
+  return true;
+}
+
 async function scaffoldCICD(): Promise<void> {
   const root = requireRoot();
   if (!root) {
@@ -812,19 +836,7 @@ async function scaffoldCICD(): Promise<void> {
   }
 
   // 環境名/別名が同じslugへ collapse するとjob ID重複・シークレット上書きでCIが壊れる。生成前に止める。
-  const collisions = envSlugCollisions(config);
-  if (collisions.length > 0) {
-    const lines = collisions.map((c) => `・${c.envs.join(" / ")}（同じ識別子 ${c.slug} になります）`);
-    await vscode.window.showErrorMessage(
-      "環境名が CI 上で重複します。名前を変えてから生成してください。",
-      {
-        modal: true,
-        detail:
-          "次の環境は CI のジョブID/シークレット名が同じになり、ワークフローが壊れます:\n\n" +
-          lines.join("\n") +
-          "\n\n「① 環境設定」で名前を区別できるよう変更してください。",
-      }
-    );
+  if (await hasBlockingEnvSlugCollision(config)) {
     return;
   }
 
@@ -876,6 +888,10 @@ async function setupCicdSecrets(): Promise<void> {
   }
   if (!config || config.environments.length === 0) {
     vscode.window.showInformationMessage("先に「① 環境設定」で環境を定義してください。");
+    return;
+  }
+  // 衝突する環境名のままだと、同名シークレットを互いに上書きしてしまうので先に止める。
+  if (await hasBlockingEnvSlugCollision(config)) {
     return;
   }
   if (!(await isGitRepo(root)) || !(await hasRemote(root))) {

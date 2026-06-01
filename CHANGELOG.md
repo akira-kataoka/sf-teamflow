@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.12] - 2026-06-01
+
+- 🚧 **環境名の衝突ガードを「CI/CDシークレット設定」にも適用**: v0.72.11ではCI/CD生成時のみ衝突を検出していたが、同じ衝突は「CI/CDシークレット設定」でも各環境のシークレットを同名で互いに上書きしてしまう。衝突検出を共通ヘルパ `hasBlockingEnvSlugCollision` に集約し、生成・シークレット登録の両方で実行前に中止するよう統一（壊れた状態を作らせない）。挙動の追加のみで既存の正常系・UI不変。テストは既存の `envSlugCollisions` でカバー（計130件pass）。
+
 ## [0.72.11] - 2026-06-01
 
 - 🚧 **CI生成前に環境名の衝突を検出して中止**: 別々の環境名でも CI 上の識別子（job ID・シークレット接頭辞）へ同じ slug に collapse すると（例: 「UAT EU」と「UAT-EU」がどちらも `uat-eu`→`SF_UAT_EU`）、YAMLの重複ジョブIDやシークレット上書きでワークフローが壊れる。CI/CD生成時に `envSlugCollisions` で事前検出し、衝突する環境名を具体的に示して「名前を変えてから生成して」と中止するようにした（壊れたYAMLを生成しない）。純関数として単体テスト2件追加（計130件pass）。
