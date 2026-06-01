@@ -553,6 +553,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     if (!s.configured) return { em:'🧭', t1:'はじめに（3）', t2:'環境を設定する（開発/ステージング/本番）', c:'teamflow.setupWizard' };
     if (s.changes > 0) return { em:'💾', t1:'次にやること', t2:'変更 '+s.changes+'件をバックアップ', c:'teamflow.gitCommitPush' };
     if (s.ahead > 0) return { em:'🔄', t1:'次にやること', t2:'未バックアップ '+s.ahead+'件をGitHubへ', c:'teamflow.gitSync' };
+    if (s.behind > 0) return { em:'🔄', t1:'次にやること', t2:'リモートの更新 '+s.behind+'件を取り込む', c:'teamflow.gitSync' };
     return { em:'✅', t1:'準備OK', t2:'いまやる操作はありません', calm:true };
   }
 
