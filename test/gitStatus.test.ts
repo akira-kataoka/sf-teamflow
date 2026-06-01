@@ -9,7 +9,26 @@ import {
   BASELINE_GITIGNORE_ENTRIES,
   pushErrorHint,
   branchNameError,
+  tagNameError,
 } from "../src/deploy/gitService.js";
+
+test("tagNameError: 妥当なタグ名は undefined", () => {
+  assert.equal(tagNameError("v1.0.0"), undefined);
+  assert.equal(tagNameError("v2.3.1-rc1"), undefined);
+  assert.equal(tagNameError("release_2026"), undefined);
+  assert.equal(tagNameError("  v1.0.0  "), undefined, "前後空白はtrimして許容");
+});
+
+test("tagNameError: gitが弾く不正なタグ名を検出する", () => {
+  assert.ok(tagNameError(""), "空");
+  assert.ok(tagNameError("v1 0 0"), "スペース");
+  assert.ok(tagNameError("バージョン1"), "日本語");
+  assert.ok(tagNameError("v1.0.0/"), "末尾スラッシュ");
+  assert.ok(tagNameError(".v1"), "先頭ドット");
+  assert.ok(tagNameError("v1."), "末尾ドット");
+  assert.ok(tagNameError("v1..0"), "連続ドット");
+  assert.ok(tagNameError("v1.lock"), "末尾.lock");
+});
 
 test("branchNameError: 妥当なブランチ名は undefined", () => {
   assert.equal(branchNameError("feature/account-search"), undefined);

@@ -19,6 +19,7 @@ import {
   BASELINE_GITIGNORE_ENTRIES,
   pushErrorHint,
   branchNameError,
+  tagNameError,
   isGitRepo,
   remoteUrl,
   removeRemote,
@@ -551,10 +552,7 @@ export function registerGitCommands(
       title: "リリースタグを作成",
       prompt: "バージョンの目印（例: v1.0.0）。このままEnterでもOK。",
       value: suggested,
-      validateInput: (v) =>
-        /^[\w.\/-]+$/.test(v.trim())
-          ? undefined
-          : "バージョン名を入力（例: v1.0.0）。英数字と . - / が使えます。",
+      validateInput: (v) => tagNameError(v),
     });
     if (!name) {
       return;

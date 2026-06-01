@@ -451,6 +451,31 @@ export function branchNameError(name: string): string | undefined {
 }
 
 /**
+ * Git のタグ名（リリースタグ）として妥当かを検証し、NGなら日本語のエラー文を返す（OKは undefined）。
+ * git のref名規則はブランチと同じなので branchNameError と同等の判定だが、メッセージはタグ向け。
+ * Pure & unit-tested.
+ */
+export function tagNameError(name: string): string | undefined {
+  const v = (name || "").trim();
+  if (!v) {
+    return "バージョン名を入力してください（例: v1.0.0）。";
+  }
+  if (!/^[A-Za-z0-9._/-]+$/.test(v)) {
+    return "使える文字は英数字と . - / _ のみです（スペース・日本語・記号は不可）。";
+  }
+  if (/^[/.]/.test(v) || /[/.]$/.test(v)) {
+    return "先頭・末尾を / や . にはできません（例: v1.0.0）。";
+  }
+  if (v.includes("//") || v.includes("..")) {
+    return "「//」や「..」は使えません。";
+  }
+  if (v.endsWith(".lock")) {
+    return "末尾を「.lock」にはできません。";
+  }
+  return undefined;
+}
+
+/**
  * push 失敗時のエラー文から、初心者向けの具体的な対処ヒントを返す（未知なら undefined）。
  * Pure & unit-tested.
  */
