@@ -261,6 +261,22 @@ export function buildGenerateComponentArgs(
 }
 
 /**
+ * Apexトリガの対象オブジェクト（sObject）API名の妥当性を検証する（OKは undefined）。
+ * 任意入力なので空は許容。非空なら英字始まりの英数字_（`Account` や `MyObject__c` 等）に限る。
+ * sf CLI が後で弾くより前に、入力時点で分かりやすく止める。Pure & unit-tested.
+ */
+export function sobjectNameError(name: string): string | undefined {
+  const v = (name || "").trim();
+  if (!v) {
+    return undefined; // 任意項目（空でトリガを作成できる）
+  }
+  if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(v)) {
+    return "オブジェクトのAPI名で入力してください（例: Account、MyObject__c）。記号・スペース・日本語は不可。空でもOK。";
+  }
+  return undefined;
+}
+
+/**
  * 新規プロジェクト名（＝作成されるフォルダ名）の妥当性を検証する（OKは undefined）。
  * 英数字始まりを必須にすることで、`..`（親ディレクトリに解決）や `.hidden`（隠しフォルダ）、
  * 先頭が記号の名前といった事故を入力時点で防ぐ。Pure & unit-tested.

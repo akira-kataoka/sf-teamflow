@@ -21,6 +21,7 @@ import {
   componentMainFile,
   componentNameError,
   projectNameError,
+  sobjectNameError,
   testClassNamesError,
   buildTailLogArgs,
   buildDevHubOpenArgs,
@@ -247,6 +248,7 @@ export function registerProjectCommands(
       sobject = await vscode.window.showInputBox({
         title: "対象オブジェクト (任意)",
         prompt: "例: Account（空でもOK）",
+        validateInput: (v) => sobjectNameError(v),
       });
       if (sobject === undefined) {
         return;

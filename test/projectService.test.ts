@@ -15,6 +15,7 @@ import {
   componentMainFile,
   componentNameError,
   projectNameError,
+  sobjectNameError,
   testClassNamesError,
   scratchAliasForBranch,
   prBaseCandidates,
@@ -224,6 +225,21 @@ test("scratchAliasForBranch derives a safe alias, drops prefix, falls back on no
   assert.equal(scratchAliasForBranch("hotfix/Bug_123"), "scr-bug-123");
   assert.equal(scratchAliasForBranch("main"), "scr-main");
   assert.equal(scratchAliasForBranch("feature/取引先検索"), "scr-feature"); // 非ASCIIはフォールバック
+});
+
+test("sobjectNameError: 空は任意でOK・標準/カスタムオブジェクト名もOK", () => {
+  assert.equal(sobjectNameError(""), undefined, "空は任意なのでOK");
+  assert.equal(sobjectNameError("  "), undefined, "空白のみもOK(任意)");
+  assert.equal(sobjectNameError("Account"), undefined);
+  assert.equal(sobjectNameError("MyObject__c"), undefined, "カスタムオブジェクト(__c)はOK");
+  assert.equal(sobjectNameError("Order_Item__c"), undefined);
+});
+
+test("sobjectNameError: 非空の不正なAPI名を弾く", () => {
+  assert.ok(sobjectNameError("My Object"), "スペース");
+  assert.ok(sobjectNameError("取引先"), "日本語");
+  assert.ok(sobjectNameError("1Object"), "数字始まり");
+  assert.ok(sobjectNameError("Obj!"), "記号");
 });
 
 test("projectNameError: 妥当なプロジェクト名はundefined", () => {
