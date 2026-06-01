@@ -110,6 +110,20 @@ test("prValidationWorkflow includes PMD static analysis and LWC Jest jobs", () =
   assert.ok(yml.includes("npm run lint"), "runs eslint via npm run lint");
 });
 
+test("両ワークフローは最小権限(permissions: contents: read)を宣言する", () => {
+  const pr = prValidationWorkflow(defaultConfig());
+  const dep = deployWorkflow(defaultConfig());
+  for (const [name, yml] of [["validate", pr], ["deploy", dep]] as const) {
+    assert.ok(yml.includes("permissions:"), `${name}: permissions ブロックがある`);
+    assert.ok(
+      /permissions:\s*\n\s+contents: read/.test(yml),
+      `${name}: contents: read を宣言する`
+    );
+    // 書き込み権限を不用意に付けていないこと
+    assert.ok(!yml.includes("contents: write"), `${name}: contents: write は付けない`);
+  }
+});
+
 test("codeowners lists the package directories", () => {
   const co = codeowners(defaultConfig());
   assert.ok(co.includes("force-app/ @your-team"));

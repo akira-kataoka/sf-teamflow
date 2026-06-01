@@ -104,6 +104,10 @@ ${filters}
     paths:
 ${dirs.map((d) => `      - "${d}/**"`).join("\n")}
 
+# GITHUB_TOKEN は最小権限に。リポジトリ読み取りのみ許可（デプロイは secrets 経由で外部Orgへ）。
+permissions:
+  contents: read
+
 # 同じPRに新しいコミットが来たら、進行中の古い検証はキャンセルしてCI時間を節約。
 concurrency:
   group: sf-validate-\${{ github.event.pull_request.number || github.ref }}
@@ -300,6 +304,10 @@ on:
 ${filters}
     paths:
 ${dirs.map((d) => `      - "${d}/**"`).join("\n")}
+
+# GITHUB_TOKEN は最小権限に。リポジトリ読み取りのみ許可（デプロイは secrets 経由で外部Orgへ）。
+permissions:
+  contents: read
 
 jobs:
 ${jobs}
