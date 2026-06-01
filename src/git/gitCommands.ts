@@ -547,7 +547,16 @@ export function registerGitCommands(
       } else if (action.act === "merge") {
         const r = await mergeBranch(name, root);
         if (r.ok) {
-          vscode.window.showInformationMessage(`✅ 「${name}」を ${current} に取り込みました。`);
+          // 取り込み結果はローカルのみ。リモートがあればワンクリックで送れる導線を出す。
+          const SYNC = "GitHubへ送る（同期）";
+          const offer = (await hasRemote(root)) ? [SYNC] : [];
+          void vscode.window
+            .showInformationMessage(`✅ 「${name}」を ${current} に取り込みました。`, ...offer)
+            .then((pickSync) => {
+              if (pickSync === SYNC) {
+                void vscode.commands.executeCommand("teamflow.gitSync");
+              }
+            });
         } else if (r.conflict) {
           vscode.window.showWarningMessage(
             `⚠️ 「${name}」の取り込みで競合が発生しました。ホーム画面の競合一覧で各ファイルを解決し、「バックアップ」で完了してください。`
