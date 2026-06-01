@@ -40,7 +40,7 @@ import {
   status,
   switchBranch,
 } from "../deploy/gitService.js";
-import { suggestNextTag } from "./tagUtils.js";
+import { suggestNextTag, suggestNextTags } from "./tagUtils.js";
 import {
   buildPullRequestArgs,
   isReleaseLikeBranch,
@@ -626,7 +626,43 @@ export function registerGitCommands(
       return;
     }
     const existing = await listTags(root).catch((): string[] => []);
-    const suggested = suggestNextTag(existing);
+    const next = suggestNextTags(existing);
+    // 既存バージョンがある時だけ、semver の意図（修正/新機能/破壊的変更）を選んでもらう。
+    // 初回（current 未定義）は v1.0.0 を既定にして、従来どおり入力欄へ直行する。
+    let suggested = suggestNextTag(existing);
+    if (next.current) {
+      const CUSTOM = "$(pencil) 自分で入力…";
+      const levelPick = await vscode.window.showQuickPick(
+        [
+          {
+            label: `$(arrow-up) ${next.patch}`,
+            description: "バグ修正（おすすめ）",
+            detail: `現在 ${next.current} → パッチを上げる`,
+            value: next.patch,
+          },
+          {
+            label: `$(arrow-up) ${next.minor}`,
+            description: "新機能の追加",
+            detail: `現在 ${next.current} → マイナーを上げる`,
+            value: next.minor,
+          },
+          {
+            label: `$(arrow-up) ${next.major}`,
+            description: "破壊的変更",
+            detail: `現在 ${next.current} → メジャーを上げる`,
+            value: next.major,
+          },
+          { label: CUSTOM, description: "任意のバージョン名", value: "" },
+        ],
+        { title: "リリースタグを作成", placeHolder: `現在の最新: ${next.current}` }
+      );
+      if (!levelPick) {
+        return;
+      }
+      if (levelPick.value) {
+        suggested = levelPick.value;
+      }
+    }
     const name = await vscode.window.showInputBox({
       title: "リリースタグを作成",
       prompt: "バージョンの目印（例: v1.0.0）。このままEnterでもOK。",

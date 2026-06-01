@@ -66,7 +66,7 @@ flowchart LR
 ### 💾 保存・共有（Git/GitHub）
 - 💾 **保存してバックアップ**（add→commit→push。メッセージは日時既定でEnterのみ）
 - 🔄 **GitHubと同期**（pull→push）
-- 🌿 **ブランチ管理**（切替/**取り込み(マージ)**/作成/削除。競合はホームの一覧で解決）/ 🔀 **Pull Request作成** / 🏷️ **タグ管理**（次バージョン自動採番）
+- 🌿 **ブランチ管理**（切替/**取り込み(マージ)**/作成/削除。競合はホームの一覧で解決）/ 🔀 **Pull Request作成** / 🏷️ **タグ管理**（次バージョンを semver で選択：修正/新機能/破壊的）
 - **GitHubに公開**（`gh repo create`）
 
 ### 🚀 リリース
@@ -113,7 +113,7 @@ flowchart LR
 | 保存 | 保存してバックアップ / GitHubと同期 / GitHubに公開 | commit+push / pull+push / `gh repo create` |
 | 保存 | 作業ブランチを作成 / ブランチを管理 | feature運用・切替/**取り込み(マージ)**/作成/削除 |
 | 保存 | Pull Requestを作成 | `gh pr create`（マージ先選択） |
-| 保存 | リリースタグを作成 / タグを管理 | 次バージョン自動採番・push/削除 |
+| 保存 | リリースタグを作成 / タグを管理 | 次バージョンを semver で選択（修正=パッチ/新機能=マイナー/破壊的=メジャー）・push/削除 |
 | 保存 | 変更を取り消す（ロールバック） / 変更履歴を見る | `git revert`（履歴を壊さない）/ 誰が・いつ・何を→変更ファイル |
 | 設定 | チーム設定を開く / CI/CDを生成 / CI/CDシークレットを設定 / **CI状況(GitHub Actions)を開く** / チーム開発ガイド / 設定 | sf-teamflow.json・GitHub Actions（PR検証＋Apexテスト＋PMD＋LWC Jest／mergeで自動デプロイ）・JWT鍵生成＋シークレット登録・CI実行状況・ガイド |
 
