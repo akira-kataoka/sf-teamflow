@@ -462,6 +462,25 @@ export function branchNameError(name: string): string | undefined {
 }
 
 /**
+ * GitHub のリポジトリ名として妥当かを検証し、NGなら日本語のエラー文を返す（OKは undefined）。
+ * GitHub は ASCII 英数字と `.` `-` `_` のみ許可し、`.`/`..` 単体は不可。スペースや日本語が
+ * 含まれると `gh repo create` が失敗/勝手に変換されるため、入力時点で止める。Pure & unit-tested.
+ */
+export function repoNameError(name: string): string | undefined {
+  const v = (name || "").trim();
+  if (!v) {
+    return "リポジトリ名を入力してください（例: my-sf-project）。";
+  }
+  if (!/^[A-Za-z0-9._-]+$/.test(v)) {
+    return "使える文字は英数字と . - _ のみです（スペース・日本語・記号は不可）。";
+  }
+  if (v === "." || v === "..") {
+    return "その名前は使えません。";
+  }
+  return undefined;
+}
+
+/**
  * Git のタグ名（リリースタグ）として妥当かを検証し、NGなら日本語のエラー文を返す（OKは undefined）。
  * git のref名規則はブランチと同じなので branchNameError と同等の判定だが、メッセージはタグ向け。
  * Pure & unit-tested.

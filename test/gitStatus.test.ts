@@ -10,8 +10,25 @@ import {
   pushErrorHint,
   branchNameError,
   tagNameError,
+  repoNameError,
   BASELINE_GITATTRIBUTES,
 } from "../src/deploy/gitService.js";
+
+test("repoNameError: 妥当なGitHubリポジトリ名は undefined", () => {
+  assert.equal(repoNameError("my-sf-project"), undefined);
+  assert.equal(repoNameError("Project_1.0"), undefined);
+  assert.equal(repoNameError(".github"), undefined, "先頭ドットはGitHubで許容");
+  assert.equal(repoNameError("  my-app  "), undefined, "前後空白はtrim");
+});
+
+test("repoNameError: gh repo create が失敗する名前を弾く", () => {
+  assert.ok(repoNameError(""), "空");
+  assert.ok(repoNameError("my repo"), "スペース");
+  assert.ok(repoNameError("プロジェクト"), "日本語");
+  assert.ok(repoNameError("repo!"), "記号");
+  assert.ok(repoNameError("."), ". 単体は不可");
+  assert.ok(repoNameError(".."), ".. 単体は不可");
+});
 
 test("BASELINE_GITATTRIBUTES: 改行正規化(* text=auto)を含み、eolは強制しない", () => {
   assert.ok(BASELINE_GITATTRIBUTES.includes("* text=auto"), "text=auto を含む");

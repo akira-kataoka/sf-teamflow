@@ -21,6 +21,7 @@ import {
   pushErrorHint,
   branchNameError,
   tagNameError,
+  repoNameError,
   isGitRepo,
   remoteUrl,
   removeRemote,
@@ -760,6 +761,7 @@ export function registerGitCommands(
       title: "GitHubに公開",
       prompt: "リポジトリ名",
       value: vscode.workspace.workspaceFolders?.[0]?.name ?? "my-sf-project",
+      validateInput: (v) => repoNameError(v),
     });
     if (!name) {
       return;
