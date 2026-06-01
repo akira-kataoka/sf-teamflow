@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.21] - 2026-06-01
+
+- 📑 **sf-teamflow.json スキーマを強化（手編集の補完・タイポ検出）**: 設定を手で編集する際、`additionalProperties: false` を未設定だったためキー名のタイポ（例: `orgAlias`→`orgalias`）がエディタで検出されず、黙って既定動作になっていた。ルートと各環境項目に `additionalProperties: false` を追加してタイポを赤線で警告。あわせて version/testLevel/packageDirectories/type/baseRef/requireValidation 等に日本語の説明文を補強しホバーヘルプを充実。スキーマ構造の回帰テスト4件を新設（TeamEnvironment全フィールド網羅・enum一致・JSON妥当性を固定）。計139件pass。
+
 ## [0.72.20] - 2026-06-01
 
 - 🗣️ **UI文言の「Org」→「環境／接続先」統一（取りこぼし一掃）**: 以前のリネーム時に残っていた「Org」表記を、ユーザー要望どおり全て見直した。環境選択プロンプト（取得元/反映先/取り込み元/テスト/ログ/削除）、ステータスバー（既定の環境）、ウィザード（接続先・環境）、ホーム（既定の環境設定・使い捨て開発環境）、`環境「X」の接続先「alias」は未認証` などを修正。Salesforce固有語のみ「組織ID」に。挙動・機能・コマンドIDは不変、表示文字列のみ（全135件pass維持）。
