@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.36] - 2026-06-01
+
+- ✅ **既定設定(defaultConfig)の不変条件に回帰テストを追加（テスト強化のみ）**: 新規ユーザーが最初に得る既定の3環境構成（本番=main/ステージング=release*/開発=develop、本番は requireValidation 必須、packageDirectories=force-app、名前一意）を固定し、さらに「自分が生成する既定設定は自前の `parseTeamflowConfig` 検証を必ず通る」という重要な不変条件を回帰テスト化。teamflowConfig・gitService の全 pure 関数が直接テストで網羅されている状態に。実装は変更なし。計159件pass。
+
 ## [0.72.35] - 2026-06-01
 
 - 🌱 **スクラッチ定義ファイルが無い時に事前警告**: スクラッチ環境作成で `*scratch-def.json` がどこにも見つからない場合、従来は存在しない既定パスのまま `sf org create scratch` を実行して不可解に失敗していた。解決ロジックを純関数 `resolveScratchDefinitionFile` に切り出し（候補の先頭を採用、無ければ既定パス＋`found=false`）、未検出時は「定義ファイルが見つかりません（通常は config/project-scratch-def.json）。このまま試しますか？」と確認するようにした。単体テスト4アサーション追加（計158件pass）。

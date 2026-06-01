@@ -11,6 +11,24 @@ import {
   testLevelFor,
 } from "../src/config/teamflowConfig.js";
 
+test("defaultConfig: 新規ユーザー既定の不変条件(GitHub Flow構成・自前検証を通る)", () => {
+  const c = defaultConfig();
+  // GitHub Flow の3環境が揃う
+  const byBranch = Object.fromEntries(c.environments.map((e) => [e.branch, e]));
+  assert.ok(byBranch["main"], "本番(main)がある");
+  assert.equal(byBranch["main"].type, "production");
+  assert.equal(byBranch["main"].requireValidation, true, "本番はrequireValidation必須");
+  assert.ok(byBranch["release/*"], "ステージング(release/*)がある");
+  assert.ok(byBranch["develop"], "開発(develop)がある");
+  // 自分が生成する既定設定は、自前のパーサ検証を必ず通る（名前重複等で落ちない）
+  assert.doesNotThrow(() => parseTeamflowConfig(c));
+  // 既定の packageDirectories は force-app
+  assert.deepEqual(c.packageDirectories, ["force-app"]);
+  // 環境名は一意（CIのslug衝突を生まない前提）
+  const names = c.environments.map((e) => e.name);
+  assert.equal(new Set(names).size, names.length, "環境名は一意");
+});
+
 test("parseTeamflowConfig applies defaults", () => {
   const c = parseTeamflowConfig({ environments: [] });
   assert.equal(c.defaultBaseRef, "origin/main");
