@@ -179,6 +179,25 @@ test("parseCommitLog parses hash/rel/author/subject (subject may contain tabs)",
   assert.equal(c[1].subject, "fix: 不具合\tの修正");
 });
 
+test("parseCommitLog: 空subject・CRLF・余分な空行・hash欠落行を安全に扱う", () => {
+  const out = [
+    "abc1234\t3 days ago\t佐藤\t", // 空subject(末尾タブ)
+    "ghi9012\tjust now\tLee\tmerge\r", // CRLF混入
+    "", // 空行 → 除外
+    "\thello\thello\tno-hash", // hash欠落(先頭タブ) → 除外される
+  ].join("\n");
+  const c = parseCommitLog(out);
+  // 空subjectは空文字で保持
+  const sato = c.find((x) => x.hash === "abc1234");
+  assert.ok(sato, "空subjectでも行は残る");
+  assert.equal(sato!.subject, "", "空subjectは空文字");
+  // CRLFの\rはsubjectに残さない
+  const lee = c.find((x) => x.author === "Lee");
+  assert.equal(lee!.subject, "merge", "末尾CRは除去");
+  // hash欠落行(先頭タブ)は除外
+  assert.ok(!c.some((x) => x.subject === "no-hash"), "hash欠落行は捨てる");
+});
+
 test("parsePorcelainV2 reads branch and ahead/behind", () => {
   const out = [
     "# branch.oid abc123",
