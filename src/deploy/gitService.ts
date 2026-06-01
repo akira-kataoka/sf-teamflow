@@ -495,6 +495,9 @@ export function pushErrorHint(errText: string): string | undefined {
   if (/non-fast-forward|fetch first|\[rejected\]|tip of your current branch is behind/.test(t)) {
     return "リモートに新しい変更があります。先に「🔄 GitHub同期」で取り込んでから、もう一度お試しください。";
   }
+  if (/not possible to fast-forward|have diverged|diverging/.test(t)) {
+    return "ローカルとリモートの変更が分かれています（履歴が分岐）。VSCode左のソース管理ビューで「プル」してマージし、競合が出たら解消してから、もう一度お試しください。";
+  }
   if (/workflow.{0,20}scope/.test(t)) {
     return "CI/CDのワークフロー送信には gh の『workflow』権限が必要です。`gh auth refresh -s workflow` を実行してください。";
   }

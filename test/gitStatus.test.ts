@@ -75,6 +75,19 @@ test("pushErrorHint maps common push failures to actionable hints", () => {
   assert.equal(pushErrorHint("some unrelated error"), undefined, "未知はヒント無し");
 });
 
+test("pushErrorHint: pull --ff-only の履歴分岐(diverged)を案内する", () => {
+  assert.match(
+    pushErrorHint("fatal: Not possible to fast-forward, aborting.") || "",
+    /分かれています|分岐/,
+    "ff-only失敗は分岐の解消を案内"
+  );
+  assert.match(
+    pushErrorHint("Your branch and 'origin/main' have diverged") || "",
+    /プル|マージ/,
+    "diverged はプル/マージを案内"
+  );
+});
+
 test("pushErrorHint: SSH鍵拒否・リポジトリ不在・ネットワーク不通も案内する", () => {
   assert.match(
     pushErrorHint("git@github.com: Permission denied (publickey).\nfatal: Could not read from remote repository.") || "",
