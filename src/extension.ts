@@ -517,9 +517,11 @@ async function previewDiff(): Promise<void> {
     return;
   }
   const cs = await computeChangeSet(ctx);
+  // executeDeploy と同様、設定値が無効でも実際に diff に使われた基準refを表示する。
+  const usedBase = (await resolveBaseRef(ctx.baseRef, ctx.root)) ?? ctx.baseRef;
   logger.show();
   logger.info("──────── デプロイ差分プレビュー ────────");
-  logger.info(`ブランチ: ${ctx.branch} / 基準: ${ctx.baseRef} / 対象Org: ${ctx.orgAlias}`);
+  logger.info(`ブランチ: ${ctx.branch} / 基準: ${usedBase} / 対象Org: ${ctx.orgAlias}`);
   logger.info(`デプロイ対象 (${cs.toDeploy.length}件):`);
   cs.toDeploy.forEach((f) => logger.info(`  + ${f}`));
   if (cs.toDelete.length) {
@@ -529,8 +531,13 @@ async function previewDiff(): Promise<void> {
   if (cs.ignored.length) {
     logger.info(`パッケージ外のため無視 (${cs.ignored.length}件)`);
   }
+  // 変更はあるが全てパッケージ外のときは、その旨を補足して混乱を防ぐ（executeDeployと同じ方針）。
+  const extra =
+    cs.toDeploy.length === 0 && cs.ignored.length
+      ? ` 変更 ${cs.ignored.length}件はパッケージ外(README等)のみです。`
+      : "";
   vscode.window.showInformationMessage(
-    `差分: デプロイ ${cs.toDeploy.length}件 / 削除候補 ${cs.toDelete.length}件 (詳細は出力パネル)`
+    `差分: デプロイ ${cs.toDeploy.length}件 / 削除候補 ${cs.toDelete.length}件 (詳細は出力パネル)。${extra}`
   );
 }
 

@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.25] - 2026-06-01
+
+- 🔍 **差分プレビューを実デプロイと整合**: 「デプロイ前チェック（差分プレビュー）」が表示する基準refを、設定値そのままではなく実際に diff に使われる解決後の ref（master系リポジトリ等のフォールバック反映）に変更し、デプロイ実行時の表示と一致させた。あわせて、変更が全てパッケージ外（README等）のときは「変更N件はパッケージ外のみです」と補足（v0.72.6 の executeDeploy と同じ方針）。表示の整合・追記のみで挙動不変（計143件pass・コマンド登録driftゼロも確認）。
+
 ## [0.72.24] - 2026-06-01
 
 - ⏱️ **生成CIの全ジョブに `timeout-minutes` を付与（ランナー暴走の安全網）**: GitHub Actions のジョブは既定タイムアウトが6時間で、デプロイや検証がハングするとランナー時間を大量消費する恐れがあった。生成する sf-validate.yml / sf-deploy.yml の全ジョブ（validate/PMD/Jest/Prettier/ESLint/各環境deploy）に `timeout-minutes: 45` を付与（通常実行を誤って打ち切らない余裕を持たせつつ暴走を防止）。回帰テスト1件追加（全ジョブ数＝timeout宣言数を固定）。計143件pass。
