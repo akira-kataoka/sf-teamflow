@@ -496,6 +496,17 @@ export function pushErrorHint(errText: string): string | undefined {
   if (/workflow.{0,20}scope/.test(t)) {
     return "CI/CDのワークフロー送信には gh の『workflow』権限が必要です。`gh auth refresh -s workflow` を実行してください。";
   }
+  // 以下は「could not read from remote repository」を伴うことが多いので、
+  // 汎用の認証失敗判定より先に、より具体的な原因（SSH鍵/リポジトリ不在/ネットワーク）を見る。
+  if (/permission denied \(publickey\)|host key verification failed/.test(t)) {
+    return "SSH鍵での認証に失敗しました。GitHubにSSH公開鍵を登録するか、HTTPS接続に切り替えてください（`gh auth login` でHTTPSが手軽です）。";
+  }
+  if (/repository not found|does not (?:exist|appear to be a git)|remote: not found/.test(t)) {
+    return "リモートのリポジトリが見つかりません。削除済み/権限不足/URL誤りの可能性があります。`git remote -v` でURLを確認してください。";
+  }
+  if (/could not resolve host|connection timed out|failed to connect|network is unreachable/.test(t)) {
+    return "ネットワークに接続できません。オフラインやプロキシ設定をご確認のうえ、もう一度お試しください。";
+  }
   if (/could not read|authentication failed|invalid username or password/.test(t)) {
     return "GitHubの認証に失敗しました。`gh auth login` でログインし直してください。";
   }

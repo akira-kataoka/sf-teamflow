@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.72.18] - 2026-06-01
+
+- 🔑 **push失敗の案内に「SSH鍵拒否・リポジトリ不在・ネットワーク不通」を追加**: `pushErrorHint` は非fast-forward/workflow権限/汎用認証失敗のみ案内していたが、実際によくある `Permission denied (publickey)`・`Repository not found`・`Could not resolve host` は未対応で具体策が出なかった。各原因に応じた対処（SSH公開鍵登録かHTTPS切替／`git remote -v`でURL確認／ネットワーク・プロキシ確認）を返すよう追加。これらは git の出力に「could not read from remote repository」を伴うため、汎用の認証失敗判定より**先に**具体原因を判定するよう順序も修正（テストで順序を固定）。単体テスト1件追加（計135件pass）。
+
 ## [0.72.17] - 2026-06-01
 
 - 🧭 **環境設定ウィザードのCI生成にも衝突ガードを適用**: 環境設定ウィザードで「CI/CDも生成」をオンにした場合だけ、環境名のslug衝突チェック（v0.72.11/12 でCI生成・シークレット設定には適用済）が漏れており、衝突する環境名のまま壊れたYAMLを生成し得た。ウィザードのCI生成でも `envSlugCollisions` を確認し、衝突時はCI生成を見送って「名前を区別してから生成して」と通知（環境設定の保存自体は成功させる）。これでCI生成の3経路すべてで衝突を防止。挙動の安全側追加のみ・UI不変（計134件pass）。

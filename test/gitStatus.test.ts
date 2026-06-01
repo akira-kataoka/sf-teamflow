@@ -75,6 +75,24 @@ test("pushErrorHint maps common push failures to actionable hints", () => {
   assert.equal(pushErrorHint("some unrelated error"), undefined, "未知はヒント無し");
 });
 
+test("pushErrorHint: SSH鍵拒否・リポジトリ不在・ネットワーク不通も案内する", () => {
+  assert.match(
+    pushErrorHint("git@github.com: Permission denied (publickey).\nfatal: Could not read from remote repository.") || "",
+    /SSH/,
+    "publickey拒否はSSH案内"
+  );
+  assert.match(
+    pushErrorHint("remote: Repository not found.\nfatal: repository 'https://...' not found") || "",
+    /リモートのリポジトリが見つかりません/,
+    "repository not found を案内"
+  );
+  assert.match(
+    pushErrorHint("fatal: unable to access '...': Could not resolve host: github.com") || "",
+    /ネットワーク/,
+    "名前解決失敗はネットワーク案内"
+  );
+});
+
 test("mergeGitignore appends only missing entries; preserves existing; no-op when all present", () => {
   // 空から: 全エントリ＋見出しコメントが入る
   const a = mergeGitignore("", BASELINE_GITIGNORE_ENTRIES);
