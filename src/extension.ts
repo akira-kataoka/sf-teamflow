@@ -602,7 +602,9 @@ async function authorizeOrg(): Promise<void> {
       /* 設定が不正でも認証自体は続行 */
     }
     if (cfg) {
-      const knownAliases = orgTree.knownOrgs.flatMap((o) =>
+      // Org一覧が未ロードだと既認証の接続先まで「未認証」と誤判定するため、先に確実に読み込む。
+      const loadedOrgs = await orgTree.ensureOrgsLoaded().catch(() => orgTree.knownOrgs);
+      const knownAliases = loadedOrgs.flatMap((o) =>
         [o.alias, o.username].filter((x): x is string => !!x)
       );
       const pending = unauthedConfigAliases(cfg, knownAliases);
