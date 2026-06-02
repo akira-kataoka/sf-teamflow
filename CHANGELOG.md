@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.80.1] - 2026-06-02
+
+- 🩹 **`sf --json` 出力に警告/更新通知が混ざっても解析できるよう堅牢化**: sf CLI は稀に JSON 本体の前後へ非JSONの行（「`update available` 更新通知」や Node の `ExperimentalWarning` 等）を出力することがあり、その場合 `JSON.parse` が失敗して「CLIがJSONを返さなかった」と誤って失敗扱いになっていた（環境一覧取得・DevHub判定など `runSf` 経由の操作が空振り）。`parseSfJson` に、直接パースが失敗したら先頭の `{`〜末尾の `}` を切り出して再パースするフォールバックを追加。非ゼロstatusのエラー伝播・波括弧の無い純テキストのthrowは従来どおり。`parseSfJson` の単体テストにノイズ前後・エラー伝播・純テキストのケースを追加（計192件pass）。
+
 ## [0.80.0] - 2026-06-02
 
 - 🛡️ **「検証必須(requireValidation)」設定をデプロイ時に実際に効かせる**: 環境設定の `requireValidation` は環境ツリーに「CI検証必須」と表示され、ウィザードでも設定できたが、**デプロイ時に一切強制されていなかった**（本番だけが検証先行の確認を持ち、`requireValidation` を立てた非本番環境＝既定の staging などは素通り）。デプロイ確認の強さを純粋関数 `deployConfirmKind()` に集約し、`requireValidation` の環境では本番でなくても「検証必須に設定されています。まず検証(お試し)で安全確認を」という確認（検証を選べば check-only 実行）を出すようにした。本番＋確認ONは従来どおり🛑強い確認、検証(お試し)実行は常に通常確認。判定を `deployConfirmKind` の単体テストで網羅（本番/検証のみ/require=true非本番/確認OFF＋require/フラグ無し、計188件pass）。確認ダイアログの追加のみでタイル・コマンドは不変。

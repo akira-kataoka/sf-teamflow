@@ -51,3 +51,30 @@ test("parseSfJson throws on non-JSON output", () => {
 test("parseSfJson throws on a non-envelope object", () => {
   assert.throws(() => parseSfJson('{"foo":1}', 0), SfCliError);
 });
+
+test("parseSfJson: JSON前の警告/更新通知行を読み飛ばして本体をパースする", () => {
+  const noisy =
+    "Warning: @salesforce/cli update available from 2.40.0 to 2.50.0.\n" +
+    '{"status":0,"result":{"ok":true}}';
+  const env = parseSfJson<{ ok: boolean }>(noisy, 0);
+  assert.equal(env.status, 0);
+  assert.deepEqual(env.result, { ok: true });
+});
+
+test("parseSfJson: JSON後ろの付随テキストがあっても本体をパースする", () => {
+  const noisy = '{"status":0,"result":{"n":1}}\n(node:123) ExperimentalWarning: ...';
+  const env = parseSfJson<{ n: number }>(noisy, 0);
+  assert.deepEqual(env.result, { n: 1 });
+});
+
+test("parseSfJson: ノイズ混在でもエラー(非ゼロstatus)は正しく伝播する", () => {
+  const noisy = 'Update available!\n{"status":1,"message":"No org found"}';
+  assert.throws(
+    () => parseSfJson(noisy, 1),
+    (e: unknown) => e instanceof SfCliError && /No org found/.test(e.message)
+  );
+});
+
+test("parseSfJson: 波括弧の無い純テキストは従来どおり throw", () => {
+  assert.throws(() => parseSfJson("command not found", 127), SfCliError);
+});

@@ -62,6 +62,20 @@ export class SfCliError extends Error {
 }
 
 /**
+ * 文字列から最初の "{" 〜 最後の "}" までを切り出す（無ければ undefined）。
+ * sf の JSON 出力は単一のトップレベルオブジェクトなので、前後に紛れた
+ * 非JSONテキスト（警告・更新通知）を取り除く用途。波括弧が無ければ undefined。
+ */
+function extractJsonObject(s: string): string | undefined {
+  const start = s.indexOf("{");
+  const end = s.lastIndexOf("}");
+  if (start === -1 || end === -1 || end < start) {
+    return undefined;
+  }
+  return s.slice(start, end + 1);
+}
+
+/**
  * Pure parser for an `sf --json` envelope. Exported so it can be unit-tested
  * without spawning the CLI. Throws SfCliError on a non-zero status or when the
  * payload is not the expected envelope.
@@ -71,11 +85,24 @@ export function parseSfJson<T>(stdout: string, exitCode: number): SfJson<T> {
   try {
     parsed = JSON.parse(stdout);
   } catch {
-    throw new SfCliError(
-      "Salesforce CLI did not return JSON. Is `sf` installed and on PATH?",
-      exitCode,
-      stdout.slice(0, 2000)
-    );
+    // sf は稀に JSON 本体の前後に非JSONの行を混ぜる（"Warning: ... update available"
+    // などの更新通知や Node の deprecation 警告）。その場合でも本体は有効なので、
+    // 先頭の "{" から末尾の "}" までを切り出して再パースを試みる。
+    const sliced = extractJsonObject(stdout);
+    if (sliced !== undefined) {
+      try {
+        parsed = JSON.parse(sliced);
+      } catch {
+        parsed = undefined;
+      }
+    }
+    if (parsed === undefined) {
+      throw new SfCliError(
+        "Salesforce CLI did not return JSON. Is `sf` installed and on PATH?",
+        exitCode,
+        stdout.slice(0, 2000)
+      );
+    }
   }
   if (typeof parsed !== "object" || parsed === null || !("status" in parsed)) {
     throw new SfCliError("Unexpected sf JSON envelope.", exitCode, stdout.slice(0, 2000));
