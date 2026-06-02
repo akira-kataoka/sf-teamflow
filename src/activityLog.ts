@@ -75,7 +75,10 @@ export function computeStats(entries: ActivityEntry[]): ActivityStats {
   return { deploys, tests, saves };
 }
 
-/** Pure relative-time formatter in Japanese. */
+/**
+ * Pure relative-time formatter in Japanese. 古い項目は日数が大きくなって読みにくい
+ * ので、7日以上は週、約30日以上は月、365日以上は年でまるめる（活動ログの表示用）。
+ */
 export function relativeTime(fromMs: number, nowMs: number): string {
   const diff = Math.max(0, nowMs - fromMs);
   const min = Math.floor(diff / 60_000);
@@ -89,5 +92,15 @@ export function relativeTime(fromMs: number, nowMs: number): string {
   if (hr < 24) {
     return `${hr}時間前`;
   }
-  return `${Math.floor(hr / 24)}日前`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) {
+    return `${day}日前`;
+  }
+  if (day < 30) {
+    return `${Math.floor(day / 7)}週間前`;
+  }
+  if (day < 365) {
+    return `${Math.floor(day / 30)}か月前`;
+  }
+  return `${Math.floor(day / 365)}年前`;
 }

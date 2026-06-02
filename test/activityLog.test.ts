@@ -53,6 +53,20 @@ test("relativeTime: boundaries (59min, 60min->1時間, 23h, 24h->1日)", () => {
   assert.equal(relativeTime(now - 24 * 3_600_000, now), "1日前");
 });
 
+test("relativeTime: 週/月/年でまるめる（古い項目を読みやすく）", () => {
+  const now = 2_000_000_000_000;
+  const day = 86_400_000;
+  assert.equal(relativeTime(now - 6 * day, now), "6日前", "7日未満は日");
+  assert.equal(relativeTime(now - 7 * day, now), "1週間前", "7日で週へ");
+  assert.equal(relativeTime(now - 20 * day, now), "2週間前");
+  assert.equal(relativeTime(now - 29 * day, now), "4週間前", "30日未満は週");
+  assert.equal(relativeTime(now - 30 * day, now), "1か月前", "30日で月へ");
+  assert.equal(relativeTime(now - 200 * day, now), "6か月前");
+  assert.equal(relativeTime(now - 364 * day, now), "12か月前", "365日未満は月");
+  assert.equal(relativeTime(now - 365 * day, now), "1年前", "365日で年へ");
+  assert.equal(relativeTime(now - 800 * day, now), "2年前");
+});
+
 test("ActivityLog: recent(n) on empty store is [] and respects n", () => {
   const log = new ActivityLog(fakeStore());
   assert.deepEqual(log.recent(3), []);
