@@ -16,7 +16,7 @@ import {
   status,
   uncommittedInList,
 } from "./deploy/gitService.js";
-import { buildDeployArgs, renderCommand } from "./deploy/deployService.js";
+import { buildDeployArgs, renderCommand, deployConfirmKind } from "./deploy/deployService.js";
 import {
   baseRefFor,
   defaultConfig,
@@ -469,6 +469,8 @@ interface DeployContext {
   orgAlias: string;
   orgUsername: string;
   isProduction: boolean;
+  /** 環境が sf-teamflow.json で「検証必須」に設定されているか。 */
+  requireValidation?: boolean;
   testLevel: TeamflowConfig["testLevel"];
   packageDirs: string[];
 }
@@ -538,6 +540,7 @@ async function buildDeployContext(): Promise<DeployContext | undefined> {
     orgAlias: orgAlias ?? orgUsername!,
     orgUsername: orgUsername!,
     isProduction,
+    requireValidation: env?.requireValidation === true,
     testLevel,
     packageDirs,
   };
@@ -685,6 +688,7 @@ async function deployToEnvironment(): Promise<void> {
     orgAlias: matched.displayName,
     orgUsername: matched.username,
     isProduction: matched.isProduction || env.type === "production",
+    requireValidation: env.requireValidation === true,
     testLevel: testLevelFor(config, env),
     packageDirs: config.packageDirectories,
   };
@@ -752,12 +756,35 @@ async function executeDeploy(ctx: DeployContext, validateOnly: boolean): Promise
   const confirmProd = vscode.workspace
     .getConfiguration("teamflow")
     .get<boolean>("confirmProductionDeploy", true);
-  if (!validateOnly && ctx.isProduction && confirmProd) {
+  const kind = deployConfirmKind({
+    validateOnly,
+    isProduction: ctx.isProduction,
+    confirmProduction: confirmProd,
+    requireValidation: ctx.requireValidation === true,
+  });
+  if (kind === "production") {
     // Safety: offer to dry-run (validate) first before touching production.
     const VALIDATE = "先に検証する（おすすめ）";
     const DEPLOY = "本番にデプロイする";
     const ok = await vscode.window.showWarningMessage(
       `🛑 本番環境「${ctx.orgAlias}」へデプロイします。まず検証(お試し)で安全確認するのがおすすめです。`,
+      { modal: true, detail: detailLines.join("\n") },
+      VALIDATE,
+      DEPLOY
+    );
+    if (ok === VALIDATE) {
+      launchDeploy(ctx, true, cs.toDeploy);
+      return;
+    }
+    if (ok !== DEPLOY) {
+      return;
+    }
+  } else if (kind === "validateFirst") {
+    // requireValidation の環境（本番以外でも）は、まず検証を勧める。
+    const VALIDATE = "先に検証する（おすすめ）";
+    const DEPLOY = "このままデプロイする";
+    const ok = await vscode.window.showWarningMessage(
+      `環境「${ctx.orgAlias}」は「検証必須」に設定されています。まず検証(お試し)で安全確認するのがおすすめです。`,
       { modal: true, detail: detailLines.join("\n") },
       VALIDATE,
       DEPLOY

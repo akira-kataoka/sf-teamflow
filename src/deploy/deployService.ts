@@ -33,6 +33,40 @@ export function buildDeployArgs(plan: DeployPlan): string[] {
   return args;
 }
 
+export interface DeployConfirmInput {
+  /** This run is a check-only validate (no confirmation escalation needed). */
+  validateOnly: boolean;
+  /** Target org is production. */
+  isProduction: boolean;
+  /** User setting `teamflow.confirmProductionDeploy`. */
+  confirmProduction: boolean;
+  /** Environment is flagged `requireValidation` in sf-teamflow.json. */
+  requireValidation: boolean;
+}
+
+/**
+ * Decide how strongly to confirm a deploy before running it. Pure & unit-tested
+ * so the (UI) confirmation flow stays a thin switch over this decision.
+ *  - "production"   … 本番＋確認ON: 検証を勧める強い確認（🛑）
+ *  - "validateFirst"… 本番扱いでないが `requireValidation` の環境: 検証を勧める確認
+ *  - "normal"       … 通常の実行確認
+ * validate（お試し）実行自体はエスカレーション不要なので常に "normal"。
+ */
+export function deployConfirmKind(
+  i: DeployConfirmInput
+): "production" | "validateFirst" | "normal" {
+  if (i.validateOnly) {
+    return "normal";
+  }
+  if (i.isProduction && i.confirmProduction) {
+    return "production";
+  }
+  if (i.requireValidation) {
+    return "validateFirst";
+  }
+  return "normal";
+}
+
 /** Quote an argv element for display / terminal execution. */
 export function quoteArg(arg: string): string {
   if (/^[A-Za-z0-9_./:@=-]+$/.test(arg)) {

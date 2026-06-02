@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.80.0] - 2026-06-02
+
+- 🛡️ **「検証必須(requireValidation)」設定をデプロイ時に実際に効かせる**: 環境設定の `requireValidation` は環境ツリーに「CI検証必須」と表示され、ウィザードでも設定できたが、**デプロイ時に一切強制されていなかった**（本番だけが検証先行の確認を持ち、`requireValidation` を立てた非本番環境＝既定の staging などは素通り）。デプロイ確認の強さを純粋関数 `deployConfirmKind()` に集約し、`requireValidation` の環境では本番でなくても「検証必須に設定されています。まず検証(お試し)で安全確認を」という確認（検証を選べば check-only 実行）を出すようにした。本番＋確認ONは従来どおり🛑強い確認、検証(お試し)実行は常に通常確認。判定を `deployConfirmKind` の単体テストで網羅（本番/検証のみ/require=true非本番/確認OFF＋require/フラグ無し、計188件pass）。確認ダイアログの追加のみでタイル・コマンドは不変。
+
 ## [0.79.0] - 2026-06-02
 
 - 🛡️ **設定lintに「接続先(orgAlias)の重複」検出を追加**: チーム設定（`sf-teamflow.json`）で同じ接続先を複数環境に割り当てるのは危険な設定ミス（例: ステージングの接続先をうっかり本番 `prod` にすると、ステージングのつもりが本番Orgへ反映される）。`lintTeamflowConfig` に重複 orgAlias の検出を追加し、該当する環境名を挙げて「それぞれ別のOrgを指定してください」とホームに警告するようにした（既存のブランチ重複・未認証・本番未定義チェックと同じ仕組み）。純粋関数の追加チェックで挙動・UIは不変、単体テストで網羅（計183件pass）。

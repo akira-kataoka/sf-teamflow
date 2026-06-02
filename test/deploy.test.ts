@@ -1,6 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildDeployArgs, quoteArg, renderCommand } from "../src/deploy/deployService.js";
+import {
+  buildDeployArgs,
+  quoteArg,
+  renderCommand,
+  deployConfirmKind,
+} from "../src/deploy/deployService.js";
 
 test("buildDeployArgs builds a start command with per-file -d", () => {
   const args = buildDeployArgs({
@@ -69,4 +74,39 @@ test("quoteArg escapes a backtick by prefixing a backslash", () => {
   const bt = String.fromCharCode(96); // `
   const bs = String.fromCharCode(92); // \
   assert.equal(quoteArg("a" + bt + "b"), '"a' + bs + bt + 'b"');
+});
+
+test("deployConfirmKind: 本番＋確認ONは production", () => {
+  assert.equal(
+    deployConfirmKind({ validateOnly: false, isProduction: true, confirmProduction: true, requireValidation: false }),
+    "production"
+  );
+});
+
+test("deployConfirmKind: 検証(お試し)実行は常に normal", () => {
+  assert.equal(
+    deployConfirmKind({ validateOnly: true, isProduction: true, confirmProduction: true, requireValidation: true }),
+    "normal"
+  );
+});
+
+test("deployConfirmKind: 本番以外でも requireValidation なら validateFirst", () => {
+  assert.equal(
+    deployConfirmKind({ validateOnly: false, isProduction: false, confirmProduction: true, requireValidation: true }),
+    "validateFirst"
+  );
+});
+
+test("deployConfirmKind: 本番だが確認OFF＋requireValidation は validateFirst（検証は勧める）", () => {
+  assert.equal(
+    deployConfirmKind({ validateOnly: false, isProduction: true, confirmProduction: false, requireValidation: true }),
+    "validateFirst"
+  );
+});
+
+test("deployConfirmKind: フラグ無しの通常デプロイは normal", () => {
+  assert.equal(
+    deployConfirmKind({ validateOnly: false, isProduction: false, confirmProduction: true, requireValidation: false }),
+    "normal"
+  );
 });
