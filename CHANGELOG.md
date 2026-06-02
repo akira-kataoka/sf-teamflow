@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.88.6] - 2026-06-03
+
+- 🧪 **ブランチ/タグ操作を実gitで統合テスト（`shell:false` 化の回帰防止）**: 前版で git を `shell:false` に切り替えたため、コア操作が end-to-end で正しく動くことを実gitで固定。ブランチ操作（作成→一覧→切替→削除）と、タグ作成（注釈メッセージに `&` 等の特殊文字を含むケース）を統合テストし、`shell:false` での実行・引数の逐語渡しが健全であることを確認（計236件pass）。コード不変・テスト追加のみ。
+
 ## [0.88.5] - 2026-06-03
 
 - 🩹🪟 **【重大】特殊文字を含むコミットメッセージ等が Windows で壊れる根本原因を修正（shell:true の限定化）**: `run()` は Windows で**無条件に `shell:true`**（`sf.cmd` シム起動のため）だったが、これにより git/gh/openssl など実exeへ渡す引数中の cmd 特殊文字（`& | < > ^ ( )`）が cmd.exe に解釈されて壊れていた。例えば「保存（バックアップ）」で `fix: A & B (100%)` のようなメッセージは `&` がコマンド区切りと解釈され **`pathspec 'A' ...` でコミット失敗**（前版 v0.88.3 の `resolveBaseRef` の `^` 破壊も同根）。`.cmd`/`.bat` シム（`sf`）だけ shell:true、実exeは **shell:false** で引数を逐語的に渡すよう `run()` を修正（`needsWinShell` で判定）。特殊文字メッセージのコミットを実gitで統合テストし、git/gh が shell:false でも正しく解決・実行されることを既存の実git統合テスト群で確認（計234件pass）。`needsWinShell` の単体テストと TEST_SCENARIOS（横断観点）も追加。

@@ -13,6 +13,13 @@ import {
   recentCommits,
   commit,
   stageAll,
+  createBranch,
+  switchBranch,
+  listBranches,
+  deleteBranch,
+  currentBranch,
+  createTag,
+  listTags,
 } from "../src/deploy/gitService.js";
 
 /** Capture git stdout (trimmed) from a temp repo with a fixed identity. */
@@ -224,6 +231,27 @@ test("changedFiles: 追加/変更/削除（コミット済み）＋未追跡を�
   assert.equal(byPath["base.txt"], "M", "変更は M");
   assert.equal(byPath["todelete.txt"], "D", "削除は D");
   assert.ok("untracked.txt" in byPath, "未追跡ファイルも含む");
+});
+
+test("ブランチ操作: 作成→一覧→切替→削除が実gitで一貫して動く（shell:false解決の確認）", async () => {
+  const dir = initRepo();
+  await createBranch("feature/abc", dir);
+  assert.equal(await currentBranch(dir), "feature/abc", "作成して切り替わる");
+  let branches = await listBranches(dir);
+  assert.ok(branches.includes("feature/abc") && branches.includes("main"), "一覧に両方");
+  await switchBranch("main", dir);
+  assert.equal(await currentBranch(dir), "main", "切替できる");
+  await deleteBranch("feature/abc", dir, true);
+  branches = await listBranches(dir);
+  assert.ok(!branches.includes("feature/abc"), "削除される");
+});
+
+test("タグ操作: 作成→一覧（注釈メッセージに特殊文字を含んでも壊れない）", async () => {
+  const dir = initRepo();
+  // 注釈メッセージにも cmd 特殊文字を入れて shell:false で壊れないことを確認
+  await createTag("v1.0.0", "Release v1.0.0 (A & B)", dir);
+  const tags = await listTags(dir);
+  assert.ok(tags.includes("v1.0.0"), "作成したタグが一覧に出る");
 });
 
 test("commit: cmd特殊文字を含むメッセージでも壊れず保存される（Windows shell:true）", async () => {
