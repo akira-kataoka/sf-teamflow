@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.88.4] - 2026-06-03
+
+- 🧪 **`recentCommits`（変更履歴・ロールバック一覧）を実gitで統合テスト**: 前版の `^` バグを受け、`--pretty=format:%h%x09%cr%x09%an%x09%p%x09%s` の **`%`（cmd.exe の変数展開記号）** が Windows の `shell:true` 実行でログ解析を壊さないかを実gitで検証。結果は健全（未定義の `%h%`/`%cr%` 等は cmd 上で literal のまま保持され、hash/author/subject/相対日時/マージ判定すべて正しくパース）と確認し、Windows 感応の重要パスを回帰テストで固定（計232件pass）。コード不変・テスト追加のみ。
+
 ## [0.88.3] - 2026-06-03
 
 - 🩹🪟 **【重大】Windowsでデプロイのgit差分が「コミット済み変更」を拾わないバグを修正**: 基準refの存在確認に使っていた `git rev-parse --verify --quiet <ref>^{commit}` の `^` が、Windowsでは `run()` が `shell:true`（.cmdシム対応）で実行する都合上 **cmd.exe のエスケープ文字として食われ**（`main^{commit}` → `main{commit}`）、`resolveBaseRef` が常に解決失敗していた。その結果 `changedFiles` のコミット済み差分（`base...HEAD`）が空になり、**Windowsでは「Git差分をデプロイ／環境へデプロイ」が未コミット＋未追跡しか対象にせず、コミット済みの変更を取りこぼす**状態だった。`^{commit}` の peel をやめてプレーンな `--verify <ref>`（base ref は通常ブランチなので peel 不要・クロスプラットフォーム安全）に修正。`changedFiles` の追加/変更/削除/未追跡＋基準ref不在フォールバックを実gitで統合テストし回帰防止（計231件pass）。TEST_SCENARIOS(S3-3) も更新。

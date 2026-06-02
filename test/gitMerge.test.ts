@@ -10,6 +10,7 @@ import {
   commitFiles,
   abortMerge,
   changedFiles,
+  recentCommits,
 } from "../src/deploy/gitService.js";
 
 /** Capture git stdout (trimmed) from a temp repo with a fixed identity. */
@@ -221,6 +222,21 @@ test("changedFiles: 追加/変更/削除（コミット済み）＋未追跡を�
   assert.equal(byPath["base.txt"], "M", "変更は M");
   assert.equal(byPath["todelete.txt"], "D", "削除は D");
   assert.ok("untracked.txt" in byPath, "未追跡ファイルも含む");
+});
+
+test("recentCommits: 実gitのログを正しくパースする（pretty=format の % がshellで壊れない）", async () => {
+  const dir = initRepo(); // 1件目 "base"
+  fs.writeFileSync(path.join(dir, "a.txt"), "a\n");
+  git(dir, "add", "-A");
+  git(dir, "commit", "-m", "機能を追加: 取引先検索");
+  const commits = await recentCommits(dir, 5);
+  assert.ok(commits.length >= 2, "コミットが取得できる");
+  // 最新が先頭。hash/author/subject/isMerge が壊れずパースできていること
+  assert.equal(commits[0].subject, "機能を追加: 取引先検索", "subjectが正しく取れる(タブ%x09が機能)");
+  assert.ok(/^[0-9a-f]{4,}$/.test(commits[0].hash), "短縮hashが取れる");
+  assert.ok(commits[0].author.length > 0, "authorが取れる");
+  assert.equal(commits[0].isMerge, false, "通常コミットは非マージ");
+  assert.ok(commits[0].rel.length > 0, "相対日時が取れる");
 });
 
 test("changedFiles: 基準refが存在しなくても落ちない（committed差分は空・作業ツリーは拾う）", async () => {
