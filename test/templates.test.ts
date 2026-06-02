@@ -9,6 +9,7 @@ import {
   integrationUsernameError,
   loginUrlError,
   prValidationWorkflow,
+  pullRequestTemplate,
   secretPrefix,
   envSlug,
   envSlugCollisions,
@@ -203,13 +204,25 @@ test("codeowners lists the package directories", () => {
   assert.ok(co.includes("force-app/ @your-team"));
 });
 
-test("cicdFiles returns the three expected paths", () => {
+test("cicdFiles returns the expected paths (workflows + CODEOWNERS + PRテンプレート)", () => {
   const files = cicdFiles(defaultConfig()).map((f) => f.relativePath).sort();
   assert.deepEqual(files, [
     ".github/CODEOWNERS",
+    ".github/pull_request_template.md",
     ".github/workflows/sf-deploy.yml",
     ".github/workflows/sf-validate.yml",
   ]);
+});
+
+test("pullRequestTemplate は Salesforce のレビュー観点（テスト/カバレッジ・破壊的変更）を含む", () => {
+  const t = pullRequestTemplate();
+  assert.match(t, /## 概要/);
+  assert.match(t, /Apexテスト/);
+  assert.match(t, /カバレッジ/);
+  assert.match(t, /破壊的変更/);
+  // チェックボックス（GitHubのタスクリスト）を含む
+  assert.match(t, /- \[ \]/);
+  assert.ok(t.length > 0);
 });
 
 test("secretPrefix uppercases and replaces non-alphanumerics with underscores", () => {
@@ -267,6 +280,7 @@ test("cicdFiles returns workflows + CODEOWNERS with non-empty content", () => {
   const paths = files.map((f) => f.relativePath).sort();
   assert.deepEqual(paths, [
     ".github/CODEOWNERS",
+    ".github/pull_request_template.md",
     ".github/workflows/sf-deploy.yml",
     ".github/workflows/sf-validate.yml",
   ]);

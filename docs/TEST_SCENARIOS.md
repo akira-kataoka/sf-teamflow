@@ -129,7 +129,7 @@
 - エッジ: **現在ブランチが環境の想定ブランチと不一致なら警告**（`matchBranch`。例 feature のまま本番＝レビュー迂回を防ぐ・続行可）／差分が全てパッケージ外なら「パッケージ外のみ」と補足
 
 ### S3-4. CI/CD生成
-- 内部: `.github/workflows/sf-validate.yml`（PRで検証）/`sf-deploy.yml`（mergeでデプロイ）/`CODEOWNERS` 生成
+- 内部: `.github/workflows/sf-validate.yml`（PRで検証）/`sf-deploy.yml`（mergeでデプロイ）/`CODEOWNERS`/`pull_request_template.md`（PR説明欄の雛形）生成
 - 確認観点: GitHub Flow（feature→develop→main）に対応／要 `workflow` scope（S2-2参照）
 - 堅牢化（✅）: 全ジョブ`permissions: contents: read`＋`timeout-minutes: 45`／環境名が同じslugへ衝突するとCIが壊れるため**生成・シークレット設定・ウィザード・ホーム警告の4箇所で衝突検出**（`envSlugCollisions`）／CODEOWNERSのプレースホルダはコメント化
 

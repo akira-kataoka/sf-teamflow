@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.77.0] - 2026-06-02
+
+- 📋 **Pull Request テンプレートを CI/CD 生成物に追加**: 「CI/CDを生成」で `.github/pull_request_template.md` も生成するようにした。GitHub では PR 作成時に説明欄へ自動展開され、レビュー観点を毎回ゼロから書かずに済む。内容は Salesforce 開発で確認すべき項目（概要・変更内容・**Apexテスト/カバレッジ**・影響範囲・**破壊的変更の有無**・関連Issue）をチェックリスト化（GitHub のタスクリスト `- [ ]` 形式）。タイルは増やさず生成ファイルが1つ増えるのみ（既存ファイルは生成時の上書き選択に従う）。純粋関数 `pullRequestTemplate()` を追加し、`cicdFiles` の出力（従来3→4ファイル）とテンプレート内容を単体テストで検証（計180件pass）。
+
 ## [0.76.1] - 2026-06-02
 
 - 🧹 **`.gitignore` ベースラインに Salesforce 定番の除外を追加**: Git開始時に用意するベースライン `.gitignore` へ、Salesforce公式 `.gitignore` 相当の安全な定番エントリを3つ追加 — `.localdevserver/`（LWCローカル開発サーバのキャッシュ）、`.eslintcache`（ESLintキャッシュ）、`Thumbs.db`（Windowsのサムネイルキャッシュ）。いずれも普遍的にGit管理対象外で、`mergeGitignore` は既存行を尊重し不足分のみ追記するため既存リポジトリにも安全。Windows環境では `Thumbs.db` の混入を防げる。テスト更新（計179件pass）。
