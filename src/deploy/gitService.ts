@@ -523,8 +523,11 @@ export function branchNameError(name: string): string | undefined {
   if (v.includes("//") || v.includes("..")) {
     return "「//」や「..」は使えません。";
   }
-  if (v.endsWith(".lock")) {
-    return "末尾を「.lock」にはできません。";
+  if (v.includes("/.")) {
+    return "スラッシュの直後を「.」にはできません（例: feature/account-search）。";
+  }
+  if (v.split("/").some((seg) => seg.endsWith(".lock"))) {
+    return "「.lock」で終わる名前は使えません。";
   }
   return undefined;
 }
@@ -567,8 +570,11 @@ export function tagNameError(name: string): string | undefined {
   if (v.includes("//") || v.includes("..")) {
     return "「//」や「..」は使えません。";
   }
-  if (v.endsWith(".lock")) {
-    return "末尾を「.lock」にはできません。";
+  if (v.includes("/.")) {
+    return "スラッシュの直後を「.」にはできません（例: v1.0.0）。";
+  }
+  if (v.split("/").some((seg) => seg.endsWith(".lock"))) {
+    return "「.lock」で終わる名前は使えません。";
   }
   return undefined;
 }

@@ -94,6 +94,8 @@ test("tagNameError: gitが弾く不正なタグ名を検出する", () => {
   assert.ok(tagNameError("v1."), "末尾ドット");
   assert.ok(tagNameError("v1..0"), "連続ドット");
   assert.ok(tagNameError("v1.lock"), "末尾.lock");
+  assert.ok(tagNameError("rel/.v1"), "スラッシュ直後のドット");
+  assert.ok(tagNameError("v1.lock/rc"), "末尾以外のコンポーネントが.lock");
 });
 
 test("branchNameError: 妥当なブランチ名は undefined", () => {
@@ -117,6 +119,8 @@ test("branchNameError: gitが弾く不正名を入力時点で検出する", () 
   assert.ok(branchNameError("feat//x"), "連続スラッシュ");
   assert.ok(branchNameError("feat..x"), "連続ドット");
   assert.ok(branchNameError("feature.lock"), "末尾.lock");
+  assert.ok(branchNameError("feature/.hidden"), "スラッシュ直後のドット(コンポーネント先頭ドット)");
+  assert.ok(branchNameError("feat.lock/x"), "末尾以外のコンポーネントが.lockで終わる");
 });
 
 test("pushErrorHint maps common push failures to actionable hints", () => {
