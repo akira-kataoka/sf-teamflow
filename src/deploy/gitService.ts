@@ -376,9 +376,20 @@ export async function recentCommits(cwd: string, limit = 15): Promise<CommitInfo
   return parseCommitLog(out);
 }
 
-/** Files changed in a single commit (name-status), for the history drill-down. */
+/**
+ * Files changed in a single commit (name-status), for the history drill-down.
+ *
+ * マージコミット（PR取り込み）は `git show` 既定の combined diff だと
+ * 「全親と異なるファイル」しか出ず、取り込んだ変更が **空に見えてしまう**。
+ * その場合は `--first-parent`（第1親=取り込み先からの差分）で、取り込んだ
+ * 変更一式を表示する。通常コミットは従来どおり。
+ */
 export async function commitFiles(hash: string, cwd: string): Promise<DiffEntry[]> {
-  const out = await git(["show", "--name-status", "--format=", hash], cwd);
+  const merge = await isMergeCommit(hash, cwd);
+  const args = merge
+    ? ["show", "--first-parent", "--name-status", "--format=", hash]
+    : ["show", "--name-status", "--format=", hash];
+  const out = await git(args, cwd);
   return parseNameStatus(out);
 }
 

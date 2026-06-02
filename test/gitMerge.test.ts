@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { mergeBranch, revertCommit } from "../src/deploy/gitService.js";
+import { mergeBranch, revertCommit, commitFiles } from "../src/deploy/gitService.js";
 
 /** Capture git stdout (trimmed) from a temp repo with a fixed identity. */
 function gitOut(cwd: string, ...args: string[]): string {
@@ -100,6 +100,34 @@ test("revertCommit: マージコミット(PR取り込み)も -m 1 で取り消�
   // 取り消しコミットが新たに積まれ（履歴は壊さない）、feature の変更が消える
   assert.ok(!fs.existsSync(path.join(dir, "feature.txt")), "取り込んだ変更が打ち消される");
   assert.notEqual(gitOut(dir, "rev-parse", "HEAD"), mergeHash, "新しい取り消しコミットができている");
+});
+
+test("commitFiles: マージコミットでも取り込んだ変更ファイルが見える（--first-parent）", async () => {
+  const dir = initRepo();
+  git(dir, "switch", "-c", "feature/h");
+  fs.writeFileSync(path.join(dir, "feature.txt"), "from feature\n");
+  git(dir, "add", "-A");
+  git(dir, "commit", "-m", "feat");
+  git(dir, "switch", "main");
+  git(dir, "merge", "--no-ff", "--no-edit", "feature/h");
+  const mergeHash = gitOut(dir, "rev-parse", "HEAD");
+
+  const files = await commitFiles(mergeHash, dir);
+  // 既定の combined diff だと空になりがち。--first-parent で feature.txt が見える。
+  assert.ok(
+    files.some((f) => f.path === "feature.txt"),
+    "マージで取り込んだファイルが変更履歴に表示される"
+  );
+});
+
+test("commitFiles: 通常コミットは従来どおり変更ファイルを返す", async () => {
+  const dir = initRepo();
+  fs.writeFileSync(path.join(dir, "y.txt"), "y\n");
+  git(dir, "add", "-A");
+  git(dir, "commit", "-m", "add y");
+  const hash = gitOut(dir, "rev-parse", "HEAD");
+  const files = await commitFiles(hash, dir);
+  assert.ok(files.some((f) => f.path === "y.txt" && f.status === "A"));
 });
 
 test("revertCommit: 通常コミットも従来どおり取り消せる（-m を付けない）", async () => {
