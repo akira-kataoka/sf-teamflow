@@ -43,6 +43,7 @@ import { writeScaffold } from "./cicd/scaffolder.js";
 import { schemaJson } from "./config/schema.js";
 import { registerGitCommands } from "./git/gitCommands.js";
 import { registerProjectCommands } from "./sfProject/projectCommands.js";
+import { BASELINE_FORCEIGNORE, shouldWriteBaselineForceignore } from "./sfProject/projectService.js";
 import { StatusBar } from "./statusBar.js";
 import type { CommandContext } from "./commandContext.js";
 import { TEAM_WORKFLOW_GUIDE } from "./docs/workflowGuide.js";
@@ -835,6 +836,24 @@ async function initTeamProject(): Promise<void> {
     );
   } catch (err) {
     logger.warn(`schema 書き込み失敗: ${String(err)}`);
+  }
+
+  // Salesforce DX 標準の .forceignore が無ければ用意（既存は尊重して上書きしない）。
+  // deploy/retrieve から「デプロイ不可なノイズ（Jest/LWC設定/package.xml）」を除外する。
+  try {
+    const fiPath = path.join(root, ".forceignore");
+    let cur: string | undefined;
+    try {
+      cur = await fsp.readFile(fiPath, "utf8");
+    } catch {
+      /* まだ無い */
+    }
+    if (shouldWriteBaselineForceignore(cur)) {
+      await fsp.writeFile(fiPath, BASELINE_FORCEIGNORE, "utf8");
+      logger.info(".forceignore を作成しました（Salesforce標準の除外）。");
+    }
+  } catch (err) {
+    logger.warn(`.forceignore 書き込み失敗: ${String(err)}`);
   }
 
   refreshAll();

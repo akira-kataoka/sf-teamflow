@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.76.0] - 2026-06-02
+
+- 🧹 **`.forceignore` のベースラインを自動生成（Salesforce DX標準・既存は尊重）**: `sf project deploy/retrieve` の除外リスト `.forceignore` は `sf project generate` が新規プロジェクトに作るが、既存プロジェクトには無いことが多く、無いと LWC の Jest テスト（`**/__tests__/**`）・LWC設定（`jsconfig.json`/`.eslintrc.json`）・`package.xml` といった**デプロイ不可なノイズ**が取得や差分に混ざっていた。「チーム設定（sf-teamflow.json）」初期化時に、`.forceignore` が無い／空のときだけ Salesforce 標準と同等の内容を作成（既存ファイルがあれば一切上書きしない）。除外対象は普遍的に非デプロイなものだけなので、実メタデータの取りこぼし（無言の未デプロイ）は起きない。純粋関数 `BASELINE_FORCEIGNORE` / `shouldWriteBaselineForceignore()` を追加し単体テストで網羅（計179件pass）。.gitignore/.gitattributes の「既存尊重」パターンと同様の最小実装。
+
 ## [0.75.1] - 2026-06-02
 
 - 🔐 **CI/CDシークレット設定の入力を検証（空値で静かにCIが壊れるのを防止）**: 「CI/CDシークレットを設定」で Consumer Key・連携ユーザー名・ログインURL を入力する際、空文字のままEnterしても `=== undefined`（キャンセル）には当たらず、空のシークレットが `gh secret set` で登録されてCIが後から静かに失敗していた。`showInputBox` に `validateInput` を追加し、(1) Consumer Key=空/内部空白を拒否、(2) ユーザー名=空/空白入りを拒否、(3) ログインURL=`https://` で始まる形式のみ許可、を即時検証するようにした。純粋関数 `consumerKeyError`/`integrationUsernameError`/`loginUrlError` を `cicd/templates.ts` に追加し単体テストで網羅（計177件pass）。UI/コマンドは不変、入力ガードの追加のみ。

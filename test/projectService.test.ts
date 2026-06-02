@@ -30,6 +30,8 @@ import {
   buildDevHubLoginArgs,
   DEV_HUB_SETUP_PATH,
   DEVELOPER_EDITION_SIGNUP_URL,
+  BASELINE_FORCEIGNORE,
+  shouldWriteBaselineForceignore,
 } from "../src/sfProject/projectService.js";
 
 test("buildProjectGenerateArgs sets name, template, package dir and manifest", () => {
@@ -413,4 +415,23 @@ test("buildDevHubLoginArgs re-auths as default dev hub, with optional alias", ()
 
 test("DEVELOPER_EDITION_SIGNUP_URL points at the Salesforce signup page", () => {
   assert.match(DEVELOPER_EDITION_SIGNUP_URL, /developer\.salesforce\.com\/signup/);
+});
+
+test("BASELINE_FORCEIGNORE は Salesforce標準のデプロイ不可ノイズのみを除外する", () => {
+  // 普遍的に非デプロイなものだけ（実メタデータの取りこぼしを起こさない）。
+  assert.match(BASELINE_FORCEIGNORE, /package\.xml/);
+  assert.match(BASELINE_FORCEIGNORE, /\*\*\/jsconfig\.json/);
+  assert.match(BASELINE_FORCEIGNORE, /\*\*\/\.eslintrc\.json/);
+  assert.match(BASELINE_FORCEIGNORE, /\*\*\/__tests__\/\*\*/);
+  // force-app 等の実ソースを丸ごと除外する行が無いこと（無言の未デプロイ防止）。
+  assert.ok(!/^force-app/m.test(BASELINE_FORCEIGNORE));
+  assert.ok(BASELINE_FORCEIGNORE.length > 0);
+});
+
+test("shouldWriteBaselineForceignore は無い/空のときだけ true（既存は尊重）", () => {
+  assert.equal(shouldWriteBaselineForceignore(undefined), true);
+  assert.equal(shouldWriteBaselineForceignore(""), true);
+  assert.equal(shouldWriteBaselineForceignore("   \n  "), true);
+  assert.equal(shouldWriteBaselineForceignore("package.xml\n"), false);
+  assert.equal(shouldWriteBaselineForceignore("# 既存のユーザー設定"), false);
 });

@@ -119,6 +119,42 @@ export function resolveScratchDefinitionFile(candidates: string[]): { file: stri
     : { file: "config/project-scratch-def.json", found: false };
 }
 
+/* ------------------------------ .forceignore ----------------------------- */
+//
+// `.forceignore` は `sf project deploy/retrieve` の除外リスト（git の .gitignore
+// 相当）。`sf project generate` が新規プロジェクトに標準で作るが、既存プロジェクト
+// には無いことがある。無いと LWC の Jest テストや設定ファイル等「デプロイ不可な
+// ノイズ」が retrieve に混ざり、警告や差分の原因になる。
+
+/**
+ * Salesforce DX 標準の `.forceignore` 内容（`sf project generate` と同等）。
+ * 除外するのは「Salesforce メタデータとしてデプロイ不可」な普遍的ノイズのみなので、
+ * 実メタデータの取りこぼし（無言の未デプロイ）は起こさない。
+ */
+export const BASELINE_FORCEIGNORE = [
+  "# sf project deploy/retrieve から除外する資産（Salesforce標準）",
+  "# https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_exclude_source.htm",
+  "",
+  "# マニフェスト（メタデータ本体ではない）",
+  "package.xml",
+  "",
+  "# LWC の設定ファイル（デプロイ対象外）",
+  "**/jsconfig.json",
+  "**/.eslintrc.json",
+  "",
+  "# LWC Jest テスト（デプロイ対象外）",
+  "**/__tests__/**",
+  "",
+].join("\n");
+
+/**
+ * `.forceignore` のベースラインを書くべきか。既存の内容（無ければ undefined）を尊重し、
+ * ファイルが無い・空のときだけ true。既存設定は絶対に上書きしない。Pure & unit-tested.
+ */
+export function shouldWriteBaselineForceignore(current: string | undefined): boolean {
+  return !current || current.trim().length === 0;
+}
+
 /* ------------------------------- Dev Hub -------------------------------- */
 //
 // A "Dev Hub" is not a special org you create from scratch — it is the Dev Hub
