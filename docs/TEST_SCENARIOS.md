@@ -176,6 +176,7 @@
 - **シェル非互換**: ターミナルへ `&&`/PowerShell非対応構文を送っていないか（✅ 全 runInTerminal 監査済・残ゼロ）
 - **無言の失敗**: fire-and-forget で成否不明にならないか（生成系は `run()` で捕捉）
 - **Windows の shell:true による引数破壊**（✅）: `run()` は `.cmd`/`.bat` シム（`sf` 等）だけ shell:true、git/gh/openssl などの実exeは **shell:false** で引数を逐語的に渡す（`needsWinShell`）。これにより (1) `resolveBaseRef` の `^{commit}` の `^` が cmd に食われる問題、(2) コミットメッセージの `& | < > ^ ( )` がコマンド区切り等に化けて保存失敗する問題 を回避。実gitで「特殊文字メッセージのコミット」「ログ整形 `%x09`」を統合テスト
+- **sf（shell:true）のスペース/特殊文字入り引数**（✅）: Node の shell:true は引数をエスケープせず連結するだけ（DEP0190）。`run()` は shell が要るとき**自前で cmd 用クォート**（`winCmdQuote`）したコマンド文字列を組み立てて渡す。これで DevHub判定の SOQL `--query "SELECT Id FROM ScratchOrgInfo LIMIT 1"` 等が単語分割されずに sf へ届く（.cmd エコーで実測検証・`winCmdQuote` を単体テスト）
 - **日本語**: メッセージ/ブランチ名/コミットは日本語OK、ただし**Apex識別子は不可**
 - **未接続/失効**: Org失効・remote無し・上流無し でも親切に案内
 - **死にボタン**: ホーム全タイルが実在コマンドに紐づく（✅ 33個確認）

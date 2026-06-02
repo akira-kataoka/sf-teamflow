@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.88.7] - 2026-06-03
+
+- 🩹🪟 **【重大】sf のスペース/特殊文字入り引数が Windows で単語分割されるバグを修正**: `sf` は `.cmd` シムのため shell:true で起動するが、Node の shell:true は**引数をエスケープせず連結するだけ**（公式の DEP0190 警告）。そのため DevHub 判定の SOQL `--query "SELECT Id FROM ScratchOrgInfo LIMIT 1"` のようなスペース入り引数が **`SELECT` `Id` `FROM` … と単語分割されて sf に渡り、コマンドが壊れていた**（.cmd エコーで `[SELECT][Id][FROM]…` と実測確認）。shell が必要なときは自前で cmd 用にクォート（`winCmdQuote`）したコマンド文字列を組み立てて渡すよう `run()` を修正。修正後は `[SELECT Id FROM ScratchOrgInfo LIMIT 1]` と単一引数で届くことを実測確認。`winCmdQuote`（安全な単語は素通し／スペース・`& | < > ^ ( ) % !`・`"` を含む場合のみ二重引用符で囲み内部 `"` は `""`）を単体テストで網羅（計237件pass）。実exe（git/gh）は引き続き shell:false。
+
 ## [0.88.6] - 2026-06-03
 
 - 🧪 **ブランチ/タグ操作を実gitで統合テスト（`shell:false` 化の回帰防止）**: 前版で git を `shell:false` に切り替えたため、コア操作が end-to-end で正しく動くことを実gitで固定。ブランチ操作（作成→一覧→切替→削除）と、タグ作成（注釈メッセージに `&` 等の特殊文字を含むケース）を統合テストし、`shell:false` での実行・引数の逐語渡しが健全であることを確認（計236件pass）。コード不変・テスト追加のみ。

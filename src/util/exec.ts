@@ -44,6 +44,22 @@ export function needsWinShell(file: string, platform: NodeJS.Platform): boolean 
 }
 
 /**
+ * 1つの引数を cmd.exe 用にクォートする。`shell:true` では Node が引数をエスケープせず
+ * 連結するだけなので（スペースを含む `--query "SELECT ..."` 等が単語分割されて壊れる）、
+ * 自前でクォートする。スペース・cmd特殊文字・引用符を含む場合のみ二重引用符で囲み、
+ * 内部の `"` は `""` にする（cmd / CommandLineToArgvW 双方で実用的）。Pure & unit-tested.
+ */
+export function winCmdQuote(arg: string): string {
+  if (arg === "") {
+    return '""';
+  }
+  if (!/[\s"&|<>^()%!]/.test(arg)) {
+    return arg;
+  }
+  return '"' + arg.replace(/"/g, '""') + '"';
+}
+
+/**
  * Thin promise wrapper around child_process.execFile — the single choke point
  * through which every `sf` and `git` invocation flows.
  *
@@ -67,10 +83,18 @@ export function run(
   // （例: コミットメッセージ "A & B" がコマンド区切りと解釈され失敗）。実exeは shell:false で
   // 逐語的に引数を渡す。shell が要るときだけスペース対策の引用符でパスを囲む。
   const useShell = needsWinShell(file, process.platform);
+  // shell:true（Windowsの.cmdシム）では Node が引数をエスケープせず連結するだけなので、
+  // 自前で cmd 用にクォートしたコマンド文字列を組み立て、args は空で渡す
+  // （スペース/特殊文字入りの引数＝SOQLクエリ等が単語分割される破壊を防ぐ）。
+  // 実exe（shell:false）は execFile が引数を逐語的に渡すのでそのまま。
+  const spawnFile = useShell
+    ? [quoteExecutable(file, process.platform), ...args.map(winCmdQuote)].join(" ")
+    : file;
+  const spawnArgs = useShell ? [] : args;
   return new Promise((resolve) => {
     execFile(
-      useShell ? quoteExecutable(file, process.platform) : file,
-      args,
+      spawnFile,
+      spawnArgs,
       {
         cwd: options.cwd,
         timeout: options.timeout ?? 0,

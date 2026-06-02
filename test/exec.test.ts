@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { run, quoteExecutable, needsWinShell } from "../src/util/exec.js";
+import { run, quoteExecutable, needsWinShell, winCmdQuote } from "../src/util/exec.js";
 
 test("quoteExecutable: スペース無しの一般ケースは不変(従来動作維持)", () => {
   assert.equal(quoteExecutable("sf", "win32"), "sf");
@@ -36,6 +36,23 @@ test("needsWinShell: win32 では .cmd/.bat と bare sf のみ shell 必須、�
   // 非 win32 は常に false（POSIX は shell:false）
   assert.equal(needsWinShell("sf", "linux"), false);
   assert.equal(needsWinShell("foo.cmd", "darwin"), false);
+});
+
+test("winCmdQuote: スペース/特殊文字を含む引数だけ二重引用符で囲む", () => {
+  // 安全な単語はそのまま（過剰クォートしない）
+  assert.equal(winCmdQuote("data"), "data");
+  assert.equal(winCmdQuote("--target-org"), "--target-org");
+  assert.equal(winCmdQuote("me@example.com"), "me@example.com");
+  assert.equal(winCmdQuote("config/project-scratch-def.json"), "config/project-scratch-def.json");
+  // スペースを含む SOQL クエリは囲む（単語分割されないように）
+  assert.equal(winCmdQuote("SELECT Id FROM ScratchOrgInfo LIMIT 1"), '"SELECT Id FROM ScratchOrgInfo LIMIT 1"');
+  // cmd 特殊文字を含む場合も囲む
+  assert.equal(winCmdQuote("A & B"), '"A & B"');
+  assert.equal(winCmdQuote("a|b"), '"a|b"');
+  // 内部の " は "" にエスケープ
+  assert.equal(winCmdQuote('say "hi"'), '"say ""hi"""');
+  // 空文字は ""（空の引数を保持）
+  assert.equal(winCmdQuote(""), '""');
 });
 
 test("run: 存在しないコマンドは原因をstderrに載せて非ゼロで返す(rejectしない)", async () => {
