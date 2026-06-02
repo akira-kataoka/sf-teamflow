@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.88.8] - 2026-06-03
+
+- 🧪 **`status`/`conflictedFiles`（ホーム状態・競合検出の中核）を実gitで統合テスト**: ホームのほぼ全表示と「次にやること」判定の土台である `status`（`git status --porcelain=v2 --branch` 解析）を end-to-end で検証。ブランチ名・変更/未追跡ファイルの検出・件数、そして実際のマージ競合を `conflictedFiles` が拾うことを実gitで確認し回帰防止（計239件pass）。コード不変・テスト追加のみ（一連の live git 関数の統合テスト整備の一環）。
+
 ## [0.88.7] - 2026-06-03
 
 - 🩹🪟 **【重大】sf のスペース/特殊文字入り引数が Windows で単語分割されるバグを修正**: `sf` は `.cmd` シムのため shell:true で起動するが、Node の shell:true は**引数をエスケープせず連結するだけ**（公式の DEP0190 警告）。そのため DevHub 判定の SOQL `--query "SELECT Id FROM ScratchOrgInfo LIMIT 1"` のようなスペース入り引数が **`SELECT` `Id` `FROM` … と単語分割されて sf に渡り、コマンドが壊れていた**（.cmd エコーで `[SELECT][Id][FROM]…` と実測確認）。shell が必要なときは自前で cmd 用にクォート（`winCmdQuote`）したコマンド文字列を組み立てて渡すよう `run()` を修正。修正後は `[SELECT Id FROM ScratchOrgInfo LIMIT 1]` と単一引数で届くことを実測確認。`winCmdQuote`（安全な単語は素通し／スペース・`& | < > ^ ( ) % !`・`"` を含む場合のみ二重引用符で囲み内部 `"` は `""`）を単体テストで網羅（計237件pass）。実exe（git/gh）は引き続き shell:false。

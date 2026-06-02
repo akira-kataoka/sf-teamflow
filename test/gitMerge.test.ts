@@ -20,6 +20,8 @@ import {
   currentBranch,
   createTag,
   listTags,
+  status,
+  conflictedFiles,
 } from "../src/deploy/gitService.js";
 
 /** Capture git stdout (trimmed) from a temp repo with a fixed identity. */
@@ -231,6 +233,37 @@ test("changedFiles: 追加/変更/削除（コミット済み）＋未追跡を�
   assert.equal(byPath["base.txt"], "M", "変更は M");
   assert.equal(byPath["todelete.txt"], "D", "削除は D");
   assert.ok("untracked.txt" in byPath, "未追跡ファイルも含む");
+});
+
+test("status: 実gitでブランチ名・変更/新規ファイル・件数を正しく読む（porcelain v2）", async () => {
+  const dir = initRepo(); // main, base.txt コミット済み
+  // 変更（既存ファイル）＋新規（未追跡）
+  fs.writeFileSync(path.join(dir, "base.txt"), "edited\n");
+  fs.writeFileSync(path.join(dir, "new.txt"), "n\n");
+  const s = await status(dir);
+  assert.equal(s.branch, "main", "ブランチ名");
+  assert.ok(s.changed >= 2, "変更＋新規で2件以上");
+  const paths = s.files.map((f) => f.path);
+  assert.ok(paths.includes("base.txt"), "変更ファイルを検出");
+  assert.ok(paths.includes("new.txt"), "未追跡ファイルを検出");
+  // クリーンな状態では競合なし
+  assert.deepEqual(conflictedFiles(s), [], "競合なし");
+});
+
+test("status: マージ競合を conflictedFiles で検出する", async () => {
+  const dir = initRepo();
+  git(dir, "switch", "-c", "feature/cf");
+  fs.writeFileSync(path.join(dir, "base.txt"), "feature\n");
+  git(dir, "add", "-A");
+  git(dir, "commit", "-m", "feat");
+  git(dir, "switch", "main");
+  fs.writeFileSync(path.join(dir, "base.txt"), "main\n");
+  git(dir, "add", "-A");
+  git(dir, "commit", "-m", "main");
+  const m = await mergeBranch("feature/cf", dir);
+  assert.equal(m.conflict, true);
+  const s = await status(dir);
+  assert.ok(conflictedFiles(s).includes("base.txt"), "競合ファイルを検出");
 });
 
 test("ブランチ操作: 作成→一覧→切替→削除が実gitで一貫して動く（shell:false解決の確認）", async () => {
