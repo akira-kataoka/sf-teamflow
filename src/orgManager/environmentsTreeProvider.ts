@@ -112,7 +112,7 @@ export class EnvironmentsTreeProvider implements vscode.TreeDataProvider<EnvNode
           `Org alias: \`${env.orgAlias}\` ${org ? "✅ 認証済み" : "❌ 未認証"}`,
           `Branch: \`${env.branch}\``,
           env.testLevel ? `Test level: ${env.testLevel}` : undefined,
-          env.requireValidation ? "CI検証必須" : undefined,
+          env.requireValidation ? "検証必須（デプロイ前に検証を促す）" : undefined,
         ]
           .filter(Boolean)
           .join("\n\n")

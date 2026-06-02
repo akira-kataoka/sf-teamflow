@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.80.2] - 2026-06-02
+
+- 📝 **`requireValidation` の説明・ラベルを実態に合わせて修正**: 設定スキーマ（エディタ補完のツールチップ）が「true なら **CI で**デプロイ前に validate を必須にする」と説明していたが、`requireValidation` は CI ワークフロー（生成YAML）では一切使われておらず、v0.80.0 で**拡張のデプロイ確認**に効くようにした機能だった。説明を「この環境へデプロイする前に検証(validate/check-only)を促す（確認で『先に検証する』を既定提案）」に修正。環境ツリーのツールチップも「CI検証必須」→「検証必須（デプロイ前に検証を促す）」に。挙動・コードは不変、表示文言のみの整合（計192件pass）。
+
 ## [0.80.1] - 2026-06-02
 
 - 🩹 **`sf --json` 出力に警告/更新通知が混ざっても解析できるよう堅牢化**: sf CLI は稀に JSON 本体の前後へ非JSONの行（「`update available` 更新通知」や Node の `ExperimentalWarning` 等）を出力することがあり、その場合 `JSON.parse` が失敗して「CLIがJSONを返さなかった」と誤って失敗扱いになっていた（環境一覧取得・DevHub判定など `runSf` 経由の操作が空振り）。`parseSfJson` に、直接パースが失敗したら先頭の `{`〜末尾の `}` を切り出して再パースするフォールバックを追加。非ゼロstatusのエラー伝播・波括弧の無い純テキストのthrowは従来どおり。`parseSfJson` の単体テストにノイズ前後・エラー伝播・純テキストのケースを追加（計192件pass）。

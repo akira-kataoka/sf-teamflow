@@ -56,7 +56,8 @@ export const TEAMFLOW_SCHEMA = {
           },
           requireValidation: {
             type: "boolean",
-            description: "true なら CI でデプロイ前に validate（check-only）を必須にする。",
+            description:
+              "true なら、この環境へデプロイする前に検証(validate / check-only)を促す（デプロイ確認で『先に検証する』を既定提案）。",
           },
           purpose: { type: "string", description: "この環境の役割/用途（例: 結合テスト, UAT）" },
         },
