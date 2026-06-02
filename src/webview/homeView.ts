@@ -20,6 +20,7 @@ import { isProtectedBranch } from "../sfProject/projectService.js";
 import { runSf } from "../util/cli.js";
 import { logger } from "../util/logger.js";
 import { relativeTime, computeStats, type ActivityEntry } from "../activityLog.js";
+import { computeTeamReadiness, type TeamReadiness } from "./readiness.js";
 
 interface HomeOrg {
   username: string;
@@ -66,6 +67,8 @@ interface HomeState {
   stats: { deploys: number; tests: number; saves: number; orgs: number };
   /** Environment pipeline for the visual (dev → staging → prod). */
   pipeline: { name: string; type: string; orgAlias: string; purpose?: string; current: boolean; connected: boolean }[];
+  /** チーム開発の準備状況（網羅的なセットアップ手順の達成度）。 */
+  readiness: TeamReadiness;
 }
 
 /**
@@ -199,6 +202,11 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     const hasFolder = !!root;
     // An SFDX project is identified by sfdx-project.json at the workspace root.
     const hasProject = !!root && fs.existsSync(path.join(root, "sfdx-project.json"));
+    // CI/CD が生成済みか（生成ワークフローのどちらかがあれば「生成済み」とみなす）。
+    const ciScaffolded =
+      !!root &&
+      (fs.existsSync(path.join(root, ".github", "workflows", "sf-deploy.yml")) ||
+        fs.existsSync(path.join(root, ".github", "workflows", "sf-validate.yml")));
     const orgsRaw = await this.orgTree.ensureOrgsLoaded().catch(() => []);
     const orgs: HomeOrg[] = orgsRaw.map((o) => ({
       username: o.username,
@@ -320,6 +328,13 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       conflicts,
       stats: { ...computeStats(allActivity), orgs: orgs.length },
       pipeline,
+      readiness: computeTeamReadiness({
+        hasProject,
+        orgCount: orgs.length,
+        configured,
+        hasRemote: remote,
+        ciScaffolded,
+      }),
     };
   }
 
@@ -467,6 +482,22 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .setupbar .done { color: #3fb950; }
   .setupbar .now { font-weight: 700; }
   .setupbar .sep { opacity: .5; }
+  /* チーム開発の準備状況パネル */
+  details.readiness { margin-bottom: 12px; border: 1px solid var(--vscode-panel-border, #8884); border-radius: 8px; overflow: hidden; }
+  details.readiness > summary { cursor: pointer; font-size: 12.5px; padding: 9px 11px; list-style: none; background: var(--vscode-editorWidget-background, #2228); }
+  details.readiness > summary::-webkit-details-marker { display: none; }
+  details.readiness > summary b { font-size: 13px; }
+  details.readiness .rbody { padding: 6px 11px 10px; }
+  .ritem { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12.5px; }
+  .ritem .rdone { color: #3fb950; font-weight: 700; }
+  .ritem .rtodo { color: var(--vscode-descriptionForeground, #9aa); }
+  .ritem.is-done .rlabel { opacity: .7; }
+  .ritem .rlabel { flex: 1; }
+  .ritem .rgo { cursor: pointer; font-size: 11.5px; padding: 1px 8px; border-radius: 999px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); white-space: nowrap; }
+  .ritem .rgo:hover { opacity: .9; }
+  .rfinish { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--vscode-panel-border, #8884); font-size: 11.5px; opacity: .9; }
+  .rfinish .flink { cursor: pointer; text-decoration: underline; }
+  .rfinish .flink:hover { opacity: .8; }
 </style>
 </head>
 <body>
@@ -476,6 +507,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   <div class="caption" id="pipecap">🗺️ 環境構成</div>
   <div id="pipeline" class="pipeline"></div>
   <div id="hero"></div>
+  <div id="readiness"></div>
   <div id="situation" class="situation"></div>
   <div id="conflicts"></div>
   <div id="warnings"></div>
@@ -618,6 +650,31 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     $('hero').innerHTML = '<div class="hero '+(na.calm?'calm':'')+'" '+heroAttr+heroA11y+'>'+
       '<span class="em">'+na.em+'</span><span class="tx"><div class="t1">'+na.t1+'</div>'+
       '<div class="t2">'+escapeHtml(na.t2)+'</div></span>'+((na.c||na.reconnect)?'<span class="go">▶</span>':'')+'</div>';
+
+    // チーム開発の準備状況（網羅的なセットアップの達成度）。フォルダを開いている
+    // ときだけ表示し、全完了したら自動で畳む（経験者の画面を煩雑にしない）。
+    const r = s.readiness;
+    if (s.hasFolder && r && r.steps) {
+      const items = r.steps.map(function(st){
+        const mark = st.done ? '<span class="rdone">✓</span>' : '<span class="rtodo">○</span>';
+        const act = (!st.done && st.command)
+          ? '<span class="rgo" data-cmd="'+st.command+'" role="button" tabindex="0">▶ 実行</span>'
+          : '';
+        return '<div class="ritem'+(st.done?' is-done':'')+'">'+mark+
+          '<span class="rlabel">'+st.emoji+' '+escapeHtml(st.label)+'</span>'+act+'</div>';
+      }).join('');
+      const finishing = r.allDone
+        ? '<div class="rfinish">🎉 基本の準備は完了！仕上げ（任意）: '+
+          '<span class="flink" data-cmd="teamflow.setupCicdSecrets" role="button" tabindex="0">🔑 CI/CDシークレット設定</span> ・ '+
+          '<span class="flink" data-cmd="teamflow.openWorkflowGuide" role="button" tabindex="0">🛡️ ブランチ保護の設定方法</span></div>'
+        : '';
+      const openAttr = r.allDone ? '' : ' open';
+      $('readiness').innerHTML = '<details class="readiness"'+openAttr+'>'+
+        '<summary>🚦 チーム開発の準備　<b>'+r.doneCount+'/'+r.total+'</b> 完了'+(r.allDone?' 🎉':'')+'</summary>'+
+        '<div class="rbody">'+items+finishing+'</div></details>';
+    } else {
+      $('readiness').innerHTML = '';
+    }
 
     // plain-language one-liner: where you are and what is pending.
     // In the empty/onboarding state, show a friendly welcome + guide link.
