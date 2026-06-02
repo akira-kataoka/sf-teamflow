@@ -513,6 +513,11 @@ export function registerGitCommands(
           value: prefix,
           valueSelection: [prefix.length, prefix.length],
           validateInput: (v) => {
+            // プレフィックスだけの状態（例「feature/」）は末尾スラッシュで検証エラーになるが、
+            // 初心者には不親切なので「続けて名前を入力」と優しく案内する。
+            if (prefix && v === prefix) {
+              return `「${prefix}」の後ろに名前を入力してください（例: ${prefix}account-search）。`;
+            }
             const err = branchNameError(v);
             if (err) {
               return err;
