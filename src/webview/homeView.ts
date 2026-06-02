@@ -21,6 +21,7 @@ import { runSf } from "../util/cli.js";
 import { logger } from "../util/logger.js";
 import { relativeTime, computeStats, type ActivityEntry } from "../activityLog.js";
 import { computeTeamReadiness, type TeamReadiness } from "./readiness.js";
+import { computeNextAction, type NextAction } from "./nextStep.js";
 
 interface HomeOrg {
   username: string;
@@ -69,6 +70,8 @@ interface HomeState {
   pipeline: { name: string; type: string; orgAlias: string; purpose?: string; current: boolean; connected: boolean }[];
   /** チーム開発の準備状況（網羅的なセットアップ手順の達成度）。 */
   readiness: TeamReadiness;
+  /** ヒーロー（次にやること）。状況から決まる唯一の推奨操作。 */
+  nextAction: NextAction;
 }
 
 /**
@@ -302,13 +305,14 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     }
 
     const allActivity = this.getActivity();
+    const defaultOrgForState = orgs.find((o) => o.isDefault) ?? null;
     return {
       hasFolder,
       hasProject,
       configured,
       hasRepo,
       hasRemote: remote,
-      defaultOrg: orgs.find((o) => o.isDefault) ?? null,
+      defaultOrg: defaultOrgForState,
       orgs,
       branch,
       onBaseBranch: !!branch && isProtectedBranch(branch),
@@ -334,6 +338,21 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
         configured,
         hasRemote: remote,
         ciScaffolded,
+      }),
+      nextAction: computeNextAction({
+        hasFolder,
+        hasProject,
+        defaultOrgConnected: defaultOrgForState ? defaultOrgForState.connected : null,
+        defaultOrgName: defaultOrgForState?.displayName,
+        defaultOrgUsername: defaultOrgForState?.username,
+        orgCount: orgs.length,
+        configured,
+        changes,
+        ahead,
+        behind,
+        hasRemote: remote,
+        branch,
+        onBaseBranch: !!branch && isProtectedBranch(branch),
       }),
     };
   }
@@ -579,21 +598,6 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     { c: 'teamflow.createScratchOrg', em: '🌱', label: 'スクラッチ作成', need: 'project', desc: '使い捨て開発環境（Dev Hubから作成）' },
   ]};
 
-  function nextAction(s) {
-    // Single, unambiguous "what to do next". The ordered first-run flow is:
-    //   ⓪ プロジェクトを準備 → ① Orgを認証 → ② 環境を設定。
-    // git は「保存」時に自動で開始するのでここでは別アクションとして出さない。
-    if (!s.hasFolder) return { em:'📂', t1:'はじめに（1）', t2:'新しいプロジェクトを作成する', c:'teamflow.createProject' };
-    if (!s.hasProject) return { em:'📂', t1:'はじめに（1）', t2:'Salesforceプロジェクトを作成する', c:'teamflow.createProject' };
-    if (s.defaultOrg && !s.defaultOrg.connected) return { em:'🔌', t1:'接続が切れています', t2:s.defaultOrg.displayName+' に再接続する', reconnect:s.defaultOrg.username };
-    if (s.orgs.length === 0) return { em:'🔌', t1:'はじめに（2）', t2:'環境を認証する（ログイン）', c:'teamflow.authorizeOrg' };
-    if (!s.configured) return { em:'🧭', t1:'はじめに（3）', t2:'環境を設定する（開発/ステージング/本番）', c:'teamflow.setupWizard' };
-    if (s.changes > 0) return { em:'💾', t1:'次にやること', t2:'変更 '+s.changes+'件をバックアップ', c:'teamflow.gitCommitPush' };
-    if (s.ahead > 0) return { em:'🔄', t1:'次にやること', t2:'未バックアップ '+s.ahead+'件をGitHubへ', c:'teamflow.gitSync' };
-    if (s.behind > 0) return { em:'🔄', t1:'次にやること', t2:'リモートの更新 '+s.behind+'件を取り込む', c:'teamflow.gitSync' };
-    return { em:'✅', t1:'準備OK', t2:'いまやる操作はありません', calm:true };
-  }
-
   function render(s) {
     // status chips
     const chips = [];
@@ -643,13 +647,13 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       $('pipecap').style.display = 'none';
     }
 
-    // next-action hero
-    const na = nextAction(s);
-    const heroAttr = na.reconnect ? 'data-reconnect="'+escapeAttr(na.reconnect)+'"' : (na.c?'data-cmd="'+na.c+'"':'');
-    const heroA11y = (na.c||na.reconnect) ? ' role="button" tabindex="0" aria-label="'+escapeAttr(na.t1+' '+na.t2)+'"' : '';
+    // next-action hero（ホスト側 computeNextAction の結果をそのまま描画）
+    const na = s.nextAction || { em:'✅', t1:'', t2:'', calm:true };
+    const heroAttr = na.reconnect ? 'data-reconnect="'+escapeAttr(na.reconnect)+'"' : (na.command?'data-cmd="'+na.command+'"':'');
+    const heroA11y = (na.command||na.reconnect) ? ' role="button" tabindex="0" aria-label="'+escapeAttr(na.t1+' '+na.t2)+'"' : '';
     $('hero').innerHTML = '<div class="hero '+(na.calm?'calm':'')+'" '+heroAttr+heroA11y+'>'+
-      '<span class="em">'+na.em+'</span><span class="tx"><div class="t1">'+na.t1+'</div>'+
-      '<div class="t2">'+escapeHtml(na.t2)+'</div></span>'+((na.c||na.reconnect)?'<span class="go">▶</span>':'')+'</div>';
+      '<span class="em">'+na.em+'</span><span class="tx"><div class="t1">'+escapeHtml(na.t1)+'</div>'+
+      '<div class="t2">'+escapeHtml(na.t2)+'</div></span>'+((na.command||na.reconnect)?'<span class="go">▶</span>':'')+'</div>';
 
     // チーム開発の準備状況（網羅的なセットアップの達成度）。フォルダを開いている
     // ときだけ表示し、全完了したら自動で畳む（経験者の画面を煩雑にしない）。
@@ -774,7 +778,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       if (t.badge==='ahead' && s.ahead>0) badge = '<span class="badge">'+s.ahead+'</span>';
       if (t.badge==='deploy' && s.deployCount>0) badge = '<span class="badge">'+s.deployCount+'</span>';
       const tip = t.desc ? ' title="'+escapeAttr(t.desc)+'"' : '';
-      return '<button class="tile '+(na.c===t.c?'primary':'')+'" data-cmd="'+t.c+'" '+(disabled?'disabled':'')+tip+'>'+
+      return '<button class="tile '+(na.command===t.c?'primary':'')+'" data-cmd="'+t.c+'" '+(disabled?'disabled':'')+tip+'>'+
         badge+'<span class="em">'+t.em+'</span><span>'+escapeHtml(t.label)+'</span></button>';
     }
     function renderSec(sec) {

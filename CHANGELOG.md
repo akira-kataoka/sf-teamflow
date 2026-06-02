@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.84.0] - 2026-06-03
+
+- 🔀 **「次にやること」がPR作成まで導くように＋ロジックをテスト可能化**: ホームのヒーロー（次にやること）は保存・同期までしか案内せず、バックアップ後の feature ブランチで手が止まり「次は？」となりやすかった。**feature ブランチ（基準ブランチ以外）を push 済みで保留が無いとき**に「🔀 レビュー依頼（Pull Request）を作成」へ導くステップを追加し、GitHub Flow の次の一歩を示すようにした。あわせて、従来クライアントJS内にあった未テストの決定ロジックをホスト側の純粋関数 `computeNextAction()` に切り出し（vscode非依存）、初回フロー・接続切れ再接続・日々のループ・PR導線・calm の順序と分岐を単体テスト8件で網羅（計215件pass）。基準ブランチ(develop等)やリモート未接続時はPRを勧めず calm のまま（誤誘導を回避）。TEST_SCENARIOS(S0-1) も更新。挙動以外のUIは不変。
+
 ## [0.83.0] - 2026-06-02
 
 - 🚀 **タグ作成後に「GitHubリリース」を作成できるように（変更ノート自動生成）**: これまでリリースの目印は git タグ止まりで、チーム開発で重要な「GitHub Release（リリースノート付き）」を作る導線が無かった。タグを作成して GitHub へ push したあと、`gh` が使えるときだけ「GitHubリリースも作成しますか？」と任意で提案し、`gh release create <tag> --generate-notes` で**マージ済みPR/コミットから変更ノートを自動生成**して公開できるようにした（`gh` 未インストール時は従来どおりタグのみで完了）。引数生成は純粋関数 `buildReleaseCreateArgs()`（既定で `--generate-notes`、title/latest は任意、空タグは例外）として単体テスト（計207件pass）。README・TEST_SCENARIOS(S2-9) も更新。タイルは増やさず既存のタグ作成フロー内の任意ステップとして追加。
