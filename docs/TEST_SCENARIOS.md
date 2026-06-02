@@ -127,6 +127,7 @@
 - 内部: 環境選択→`sf project deploy start`（git差分。基準refは `resolveBaseRef` で実在refへフォールバック）
 - 確認観点: **本番は確認ダイアログ**／資材反映との違いが説明で分かる／未認証は認証へ誘導
 - エッジ: **現在ブランチが環境の想定ブランチと不一致なら警告**（`matchBranch`。例 feature のまま本番＝レビュー迂回を防ぐ・続行可）／差分が全てパッケージ外なら「パッケージ外のみ」と補足
+- 堅牢化（✅）: デプロイは未コミット/未追跡も含むため、**対象に未コミット（未バックアップ）ファイルがあれば確認画面に件数を明示**（`uncommittedInList`）。「コミットせず反映」事故を黙って起こさず、先にバックアップを促す（続行可）
 
 ### S3-4. CI/CD生成
 - 内部: `.github/workflows/sf-validate.yml`（PRで検証）/`sf-deploy.yml`（mergeでデプロイ）/`CODEOWNERS`/`pull_request_template.md`（PR説明欄の雛形）生成

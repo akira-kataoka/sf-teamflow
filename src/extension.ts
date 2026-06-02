@@ -13,6 +13,8 @@ import {
   currentBranch,
   isGitRepo,
   hasRemote,
+  status,
+  uncommittedInList,
 } from "./deploy/gitService.js";
 import { buildDeployArgs, renderCommand } from "./deploy/deployService.js";
 import {
@@ -729,6 +731,22 @@ async function executeDeploy(ctx: DeployContext, validateOnly: boolean): Promise
       detailLines.push(`…他 ${cs.toDelete.length - MAX_LIST} 件`);
     }
     detailLines.push("（削除の反映は別途 destructiveChanges が必要です）");
+  }
+
+  // デプロイは未コミット/未追跡の変更も含む。対象に未バックアップのものがあれば明示し、
+  // 「コミットせず反映してしまう」事故（特に本番）を防ぐ。黙って含めない。
+  try {
+    const st = await status(ctx.root);
+    const uncommitted = uncommittedInList(cs.toDeploy, st.files.map((f) => f.path));
+    if (uncommitted.length) {
+      detailLines.push(
+        "",
+        `⚠️ うち ${uncommitted.length}件は未コミット（未バックアップ）です。この内容もそのまま反映されます。`,
+        "　確実に残すなら、いったんキャンセルして「💾 バックアップ」してからの反映がおすすめです。"
+      );
+    }
+  } catch {
+    /* status 取得に失敗しても確認自体は続行（情報行を出せないだけ） */
   }
 
   const confirmProd = vscode.workspace

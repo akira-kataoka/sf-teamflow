@@ -90,6 +90,16 @@ export function classifyChanges(entries: DiffEntry[], packageDirs: string[]): Ch
   };
 }
 
+/**
+ * デプロイ対象パスのうち、未コミット（git status のファイル一覧に含まれる）ものを返す。
+ * デプロイは未コミット/未追跡の変更も含むため、本番反映時に「未バックアップの内容も
+ * 反映される」ことをユーザーに知らせる用途。パス区切りを正規化して比較。Pure & unit-tested.
+ */
+export function uncommittedInList(deployPaths: string[], statusPaths: string[]): string[] {
+  const dirty = new Set(statusPaths.map((p) => normalize(p)));
+  return deployPaths.filter((p) => dirty.has(normalize(p)));
+}
+
 /* ----------------------------- live git calls ----------------------------- */
 
 async function git(args: string[], cwd: string): Promise<string> {

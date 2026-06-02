@@ -14,6 +14,7 @@ import {
   tagNameError,
   repoNameError,
   BASELINE_GITATTRIBUTES,
+  uncommittedInList,
 } from "../src/deploy/gitService.js";
 
 test("mergeErrorHint: 未コミット変更/ブランチ不在/未完了マージを案内する", () => {
@@ -179,6 +180,24 @@ test("mergeGitignore appends only missing entries; preserves existing; no-op whe
   // 全部ある: 変更なし（入力をそのまま返す）
   const full = BASELINE_GITIGNORE_ENTRIES.join("\n") + "\n";
   assert.equal(mergeGitignore(full, BASELINE_GITIGNORE_ENTRIES), full, "全て揃っていれば無変更");
+});
+
+test("uncommittedInList: デプロイ対象のうち未コミットのものだけを返す（パス区切り正規化）", () => {
+  const deploy = ["force-app/main/default/classes/A.cls", "force-app/main/default/classes/B.cls"];
+  // status は A だけが未コミット
+  assert.deepEqual(
+    uncommittedInList(deploy, ["force-app/main/default/classes/A.cls"]),
+    ["force-app/main/default/classes/A.cls"]
+  );
+  // Windows風のバックスラッシュ区切りでも一致する
+  assert.deepEqual(
+    uncommittedInList(["force-app/x/A.cls"], ["force-app\\x\\A.cls"]),
+    ["force-app/x/A.cls"]
+  );
+  // 未コミットが無ければ空
+  assert.deepEqual(uncommittedInList(deploy, []), []);
+  // status にあるがデプロイ対象外のパスは無視
+  assert.deepEqual(uncommittedInList(deploy, ["README.md"]), []);
 });
 
 test("baseRefCandidates: preferred first, common fallbacks, deduped", () => {
