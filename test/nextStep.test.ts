@@ -83,6 +83,19 @@ test("computeNextAction: 変更ありは基準ブランチでもまず保存（�
   assert.equal(na.command, "teamflow.gitCommitPush");
 });
 
+test("computeNextAction: コンフリクト中は『保存』より先に解決へ誘導（誤バックアップ防止）", () => {
+  // 競合ファイルは変更として数えられる(changes>0)が、解決が最優先で backup は出さない
+  const na = computeNextAction({ ...base(), changes: 3, conflictCount: 2 });
+  assert.match(na.t1, /コンフリクト/);
+  assert.notEqual(na.command, "teamflow.gitCommitPush");
+  assert.equal(na.calm, true, "クリック不可の案内（操作は競合ボックスに集約）");
+});
+
+test("computeNextAction: 競合が無ければ従来どおり保存を促す", () => {
+  const na = computeNextAction({ ...base(), changes: 3, conflictCount: 0 });
+  assert.equal(na.command, "teamflow.gitCommitPush");
+});
+
 test("computeNextAction: 変更ありは PR より先にバックアップを優先（順序）", () => {
   // feature ブランチ＋変更あり → まず保存
   assert.equal(computeNextAction({ ...base(), changes: 1 }).command, "teamflow.gitCommitPush");

@@ -26,6 +26,8 @@ export interface NextActionInput {
   onBaseBranch: boolean;
   /** 現在ブランチに上流(リモート追跡)があるか＝一度でも push 済みか。 */
   hasUpstream?: boolean;
+  /** マージ競合中のファイル数（>0 なら解決が最優先）。 */
+  conflictCount?: number;
 }
 
 export interface NextAction {
@@ -63,6 +65,17 @@ export function computeNextAction(s: NextActionInput): NextAction {
   }
   if (!s.configured) {
     return { em: "🧭", t1: "はじめに（3）", t2: "環境を設定する（開発/ステージング/本番）", command: "teamflow.setupWizard" };
+  }
+  // マージ競合中は最優先。競合ファイルは変更として数えられるが、解決前にバックアップ
+  // （コミット）すると失敗/破損するため、「保存」より先に解決へ誘導する。具体操作は
+  // ホームの競合ボックス（各ファイル解決 / 取り込み中止）に集約しているので案内に留める。
+  if ((s.conflictCount ?? 0) > 0) {
+    return {
+      em: "⚠️",
+      t1: "コンフリクト中",
+      t2: "競合を解決（下の一覧で）か、取り込みを中止してください",
+      calm: true,
+    };
   }
   if (s.changes > 0) {
     return { em: "💾", t1: "次にやること", t2: "変更 " + s.changes + "件をバックアップ", command: "teamflow.gitCommitPush" };

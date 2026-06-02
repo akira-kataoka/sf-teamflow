@@ -370,6 +370,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
         branch,
         onBaseBranch: !!branch && isProtectedBranch(branch),
         hasUpstream,
+        conflictCount: conflicts.length,
       }),
     };
   }
