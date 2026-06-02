@@ -14,6 +14,7 @@ import {
   deleteTag,
   mergeBranch,
   mergeErrorHint,
+  abortMerge,
   hasRemote,
   hasUpstream,
   initRepo,
@@ -322,6 +323,38 @@ export function registerGitCommands(
     } else {
       vscode.window.showErrorMessage(`取り消しに失敗しました: ${res.message || "不明なエラー"}`);
       ctx.recordActivity(`取り消し: ${pick.label}`, "error");
+    }
+  });
+
+  // 取り込み（マージ/pull）の競合を中止して、取り込み前の状態へ戻す（行き詰まった時の脱出口）。
+  reg("teamflow.abortMerge", async () => {
+    const root = await ensureRepo();
+    if (!root) {
+      return;
+    }
+    const ok = await vscode.window.showWarningMessage(
+      "取り込み（マージ）の競合解決をやめて、取り込み前の状態に戻しますか？",
+      {
+        modal: true,
+        detail:
+          "進行中の取り込みを中止します（git merge --abort）。\n" +
+          "コミット済みの自分の作業は残りますが、今回の取り込みで入りかけた変更と、解決作業中の内容は破棄されます。",
+      },
+      "取り込みを中止する"
+    );
+    if (ok !== "取り込みを中止する") {
+      return;
+    }
+    const res = await abortMerge(root);
+    ctx.refreshAll();
+    if (res.ok) {
+      vscode.window.showInformationMessage("✅ 取り込みを中止し、取り込み前の状態に戻しました。");
+      ctx.recordActivity("取り込み中止", "ok");
+    } else {
+      vscode.window.showErrorMessage(
+        `中止できませんでした（取り込み中でない可能性があります）: ${res.message || "不明なエラー"}`
+      );
+      ctx.recordActivity("取り込み中止", "error");
     }
   });
 

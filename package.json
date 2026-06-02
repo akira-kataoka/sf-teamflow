@@ -2,7 +2,7 @@
   "name": "sf-teamflow",
   "displayName": "Salesforce Dev Manager",
   "description": "これ1つでSalesforce開発サイクルを完結。環境管理・各環境への簡単デプロイ(開発→ステージング→本番)・Git/GitHub・テスト・CI/CDを、初心者でもクリック操作で。",
-  "version": "0.84.1",
+  "version": "0.85.0",
   "publisher": "akira-kataoka",
   "license": "MIT",
   "engines": {
@@ -215,6 +215,11 @@
         "command": "teamflow.rollback",
         "title": "SFDevManager: 変更を取り消す（ロールバック）",
         "icon": "$(discard)"
+      },
+      {
+        "command": "teamflow.abortMerge",
+        "title": "SFDevManager: 取り込み（マージ）を中止する",
+        "icon": "$(stop)"
       },
       {
         "command": "teamflow.showHistory",

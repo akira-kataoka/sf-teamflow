@@ -707,6 +707,21 @@ export async function mergeBranch(
   return { ok: false, conflict: out.includes("conflict"), message: (res.stderr || res.stdout).trim() };
 }
 
+/**
+ * 進行中のマージ（取り込み／pull の競合状態）を中止し、取り込み前の状態へ戻す。
+ * `git merge --abort`。競合解決を諦めてやり直したいときの安全な脱出口。
+ * 成功/失敗を返す（マージ中でなければ git がエラーを返す）。
+ */
+export async function abortMerge(
+  cwd: string
+): Promise<{ ok: boolean; message: string }> {
+  const res = await run("git", ["--no-optional-locks", "merge", "--abort"], {
+    cwd,
+    timeout: 30_000,
+  });
+  return { ok: res.code === 0, message: (res.stderr || res.stdout).trim() };
+}
+
 /** Create an annotated tag (used for release tagging). */
 export async function createTag(name: string, message: string, cwd: string): Promise<void> {
   await git(["tag", "-a", name, "-m", message || name], cwd);

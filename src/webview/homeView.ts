@@ -714,7 +714,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       $('conflicts').innerHTML = '<div class="conflictbox">'+
         '<div class="ch">⚠️ コンフリクト解決中（'+s.conflicts.length+'件）</div>'+
         '<div>各ファイルを開き、どちらの変更を残すか決めて保存してください。</div>'+rows+
-        '<div class="done" data-cmd="teamflow.gitCommitPush">✅ 解決したら「バックアップ」</div></div>';
+        '<div class="done" data-cmd="teamflow.gitCommitPush">✅ 解決したら「バックアップ」</div>'+
+        '<div class="done" data-cmd="teamflow.abortMerge">🛑 やめて取り込み前に戻す（中止）</div></div>';
     } else {
       $('conflicts').innerHTML = '';
     }

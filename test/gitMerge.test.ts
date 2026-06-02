@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { mergeBranch, revertCommit, commitFiles } from "../src/deploy/gitService.js";
+import { mergeBranch, revertCommit, commitFiles, abortMerge } from "../src/deploy/gitService.js";
 
 /** Capture git stdout (trimmed) from a temp repo with a fixed identity. */
 function gitOut(cwd: string, ...args: string[]): string {
@@ -158,4 +158,34 @@ test("mergeBranch: 同一行の衝突は conflict=true でマージ状態を維�
   assert.equal(r.conflict, true, "同一行編集は競合として検出");
   // マージ状態が維持されている（MERGE_HEAD が存在＝abortしていない）
   assert.ok(fs.existsSync(path.join(dir, ".git", "MERGE_HEAD")), "マージ状態を維持(競合解決UIに繋ぐ)");
+});
+
+test("abortMerge: 競合状態を中止して取り込み前(main)の内容へ戻す", async () => {
+  const dir = initRepo();
+  git(dir, "switch", "-c", "feature/c");
+  fs.writeFileSync(path.join(dir, "base.txt"), "feature version\n");
+  git(dir, "add", "-A");
+  git(dir, "commit", "-m", "feat edit");
+  git(dir, "switch", "main");
+  fs.writeFileSync(path.join(dir, "base.txt"), "main version\n");
+  git(dir, "add", "-A");
+  git(dir, "commit", "-m", "main edit");
+
+  const m = await mergeBranch("feature/c", dir);
+  assert.equal(m.conflict, true, "前提: 競合中");
+  assert.ok(fs.existsSync(path.join(dir, ".git", "MERGE_HEAD")));
+
+  const a = await abortMerge(dir);
+  assert.equal(a.ok, true, "中止に成功");
+  // マージ状態が解消され、main の内容に戻る
+  assert.equal(fs.existsSync(path.join(dir, ".git", "MERGE_HEAD")), false, "MERGE_HEADが消える");
+  // 改行コード(CRLF/LF)はGit設定で揺れるため正規化して比較。
+  const restored = fs.readFileSync(path.join(dir, "base.txt"), "utf8").replace(/\r\n/g, "\n");
+  assert.equal(restored, "main version\n", "取り込み前(main)の内容へ復帰");
+});
+
+test("abortMerge: マージ中でないときは ok=false（中止対象なし）", async () => {
+  const dir = initRepo();
+  const a = await abortMerge(dir);
+  assert.equal(a.ok, false, "マージ中でないので中止は失敗（無害）");
 });
