@@ -200,6 +200,22 @@ export function lintTeamflowConfig(config: TeamflowConfig, knownAliases: string[
       warnings.push(`ブランチ「${branch}」が${n}個の環境に重複しています。1ブランチ＝1環境にしてください。`);
     }
   }
+  // 同じ接続先(orgAlias)を複数環境に割り当てるのは危険な設定ミス。
+  // 例: ステージングの接続先をうっかり本番(prod)にすると、ステージングのつもりが本番へ反映される。
+  const aliasEnvs = new Map<string, string[]>();
+  for (const e of config.environments) {
+    const list = aliasEnvs.get(e.orgAlias) ?? [];
+    list.push(e.name);
+    aliasEnvs.set(e.orgAlias, list);
+  }
+  for (const [alias, envs] of aliasEnvs) {
+    if (envs.length > 1) {
+      warnings.push(
+        `接続先「${alias}」が複数の環境（${envs.join("・")}）に割り当てられています。` +
+          "それぞれ別のOrgを指定してください（別環境のつもりが同じOrgへ反映される事故を防ぐため）。"
+      );
+    }
+  }
   if (knownAliases.length > 0) {
     const set = new Set(knownAliases);
     for (const e of config.environments) {

@@ -166,6 +166,27 @@ test("lintTeamflowConfig flags duplicate branch, unknown org, no production", ()
   assert.ok(w.some((m) => /本番.*定義されていません/.test(m)), "no production");
 });
 
+test("lintTeamflowConfig flags duplicate orgAlias across environments", () => {
+  // staging が誤って本番(prod)と同じ接続先を指している危険な設定
+  const c = parseTeamflowConfig({
+    environments: [
+      { name: "production", orgAlias: "prod", branch: "main", type: "production" },
+      { name: "staging", orgAlias: "prod", branch: "release/*", type: "sandbox" },
+    ],
+  });
+  const w = lintTeamflowConfig(c, ["prod"]);
+  assert.ok(
+    w.some((m) => /接続先「prod」が複数の環境/.test(m) && /production/.test(m) && /staging/.test(m)),
+    "duplicate orgAlias warned with env names"
+  );
+});
+
+test("lintTeamflowConfig: 接続先が全て別なら重複警告は出ない", () => {
+  const c = defaultConfig(); // prod/uat/int で全て別alias
+  const w = lintTeamflowConfig(c, c.environments.map((e) => e.orgAlias));
+  assert.ok(!w.some((m) => /複数の環境/.test(m)), "no duplicate-alias warning for healthy config");
+});
+
 test("lintTeamflowConfig skips org check when no known aliases", () => {
   const c = parseTeamflowConfig({
     environments: [{ name: "prod", orgAlias: "p", branch: "main", type: "production" }],

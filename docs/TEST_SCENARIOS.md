@@ -149,6 +149,7 @@
 - 操作: ① 環境設定 → 既存読込（編集対応済）→ ⠿D&D / ↑↓ で並び替え → 保存
 - 確認観点: 既存 sf-teamflow.json をプリフィル／複数・並列環境を自由に構成
 - 堅牢化（✅）: チーム設定初期化時、`.forceignore` が**無い/空のときだけ** Salesforce 標準内容（`package.xml`・`**/jsconfig.json`・`**/.eslintrc.json`・`**/__tests__/**`）を作成（`shouldWriteBaselineForceignore`／既存は上書きしない）。除外は普遍的に非デプロイな資産のみ＝実メタデータの取りこぼしは起きない
+- 設定lint（`lintTeamflowConfig`・ホームに警告表示）: 環境未定義／**ブランチ重複**／**接続先(orgAlias)重複**（別環境のつもりが同じOrgへ反映される事故を防ぐ）／未認証の接続先／本番未定義 を検出
 
 ---
 
