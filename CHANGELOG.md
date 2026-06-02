@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.88.3] - 2026-06-03
+
+- 🩹🪟 **【重大】Windowsでデプロイのgit差分が「コミット済み変更」を拾わないバグを修正**: 基準refの存在確認に使っていた `git rev-parse --verify --quiet <ref>^{commit}` の `^` が、Windowsでは `run()` が `shell:true`（.cmdシム対応）で実行する都合上 **cmd.exe のエスケープ文字として食われ**（`main^{commit}` → `main{commit}`）、`resolveBaseRef` が常に解決失敗していた。その結果 `changedFiles` のコミット済み差分（`base...HEAD`）が空になり、**Windowsでは「Git差分をデプロイ／環境へデプロイ」が未コミット＋未追跡しか対象にせず、コミット済みの変更を取りこぼす**状態だった。`^{commit}` の peel をやめてプレーンな `--verify <ref>`（base ref は通常ブランチなので peel 不要・クロスプラットフォーム安全）に修正。`changedFiles` の追加/変更/削除/未追跡＋基準ref不在フォールバックを実gitで統合テストし回帰防止（計231件pass）。TEST_SCENARIOS(S3-3) も更新。
+
 ## [0.88.2] - 2026-06-03
 
 - ⚠️ **コンフリクト中に「次にやること」が誤って『バックアップ』を促すのを修正**: マージ競合中は競合ファイルが変更件数(`changes`)に含まれるため、ヒーロー（次にやること）が「変更N件をバックアップ」と案内していた。しかし競合解決前のコミットは失敗または競合マーカーごと壊れたコミットになるため、これは誤誘導だった。競合中（`conflictCount>0`）は「保存」より先に「競合を解決（下の一覧で）か、取り込みを中止」と案内するよう `computeNextAction` を修正（具体操作は競合ボックスの『解決→バックアップ』『🛑中止』に集約）。競合が無ければ従来どおり保存を促す。単体テスト2件追加（計229件pass）。TEST_SCENARIOS(S0-1) も更新。

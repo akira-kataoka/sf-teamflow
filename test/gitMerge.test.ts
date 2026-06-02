@@ -4,7 +4,13 @@ import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { mergeBranch, revertCommit, commitFiles, abortMerge } from "../src/deploy/gitService.js";
+import {
+  mergeBranch,
+  revertCommit,
+  commitFiles,
+  abortMerge,
+  changedFiles,
+} from "../src/deploy/gitService.js";
 
 /** Capture git stdout (trimmed) from a temp repo with a fixed identity. */
 function gitOut(cwd: string, ...args: string[]): string {
@@ -188,4 +194,43 @@ test("abortMerge: マージ中でないときは ok=false（中止対象なし�
   const dir = initRepo();
   const a = await abortMerge(dir);
   assert.equal(a.ok, false, "マージ中でないので中止は失敗（無害）");
+});
+
+test("changedFiles: 追加/変更/削除（コミット済み）＋未追跡をまとめて拾う（デプロイ対象の基礎）", async () => {
+  const dir = initRepo(); // main + base.txt
+  // main にもう1ファイル追加（feature で削除する対象）
+  fs.writeFileSync(path.join(dir, "todelete.txt"), "x\n");
+  git(dir, "add", "-A");
+  git(dir, "commit", "-m", "add todelete");
+  // feature ブランチで 追加 / 変更 / 削除 をコミット
+  git(dir, "switch", "-c", "feature/d");
+  fs.writeFileSync(path.join(dir, "feature.cls"), "class A {}\n"); // 追加
+  fs.writeFileSync(path.join(dir, "base.txt"), "changed\n"); // 変更
+  fs.rmSync(path.join(dir, "todelete.txt")); // 削除
+  git(dir, "add", "-A");
+  git(dir, "commit", "-m", "feat changes");
+  // 未追跡（コミットしない）
+  fs.writeFileSync(path.join(dir, "untracked.txt"), "u\n");
+
+  const entries = await changedFiles("main", dir);
+  const byPath: Record<string, string> = {};
+  for (const e of entries) {
+    byPath[e.path] = e.status;
+  }
+  assert.equal(byPath["feature.cls"], "A", "追加は A");
+  assert.equal(byPath["base.txt"], "M", "変更は M");
+  assert.equal(byPath["todelete.txt"], "D", "削除は D");
+  assert.ok("untracked.txt" in byPath, "未追跡ファイルも含む");
+});
+
+test("changedFiles: 基準refが存在しなくても落ちない（committed差分は空・作業ツリーは拾う）", async () => {
+  const dir = initRepo();
+  // 追跡ファイルを変更（未コミット）＋未追跡
+  fs.writeFileSync(path.join(dir, "base.txt"), "edited\n");
+  fs.writeFileSync(path.join(dir, "new.txt"), "n\n");
+  // 存在しない基準ref を渡してもフォールバックで落ちない
+  const entries = await changedFiles("origin/does-not-exist", dir);
+  const paths = entries.map((e) => e.path);
+  assert.ok(paths.includes("base.txt"), "作業ツリーの変更は拾う");
+  assert.ok(paths.includes("new.txt"), "未追跡も拾う");
 });

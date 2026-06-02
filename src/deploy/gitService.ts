@@ -148,7 +148,12 @@ export function baseRefCandidates(preferred: string): string[] {
 /** First base-ref candidate that actually exists in the repo, or undefined. */
 export async function resolveBaseRef(preferred: string, cwd: string): Promise<string | undefined> {
   for (const ref of baseRefCandidates(preferred)) {
-    const r = await run("git", ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`], {
+    // 注: 以前は `${ref}^{commit}` で commit へ peel していたが、Windows では run() が
+    // shell:true で実行するため `^` が cmd.exe のエスケープ文字として食われ
+    // （`main^{commit}` → `main{commit}`）、基準refの解決が常に失敗していた
+    // （＝デプロイのGit差分がコミット済み変更を拾わない重大バグ）。base ref は通常ブランチ
+    // なので peel は不要。プレーンに `--verify <ref>` で存在確認する（クロスプラットフォーム安全）。
+    const r = await run("git", ["rev-parse", "--verify", "--quiet", ref], {
       cwd,
       timeout: 10_000,
     });
