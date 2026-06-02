@@ -23,6 +23,42 @@ test("isProductionOrg flags prod login + my-domain, spares sandbox/scratch", () 
   assert.equal(isProductionOrg({ username: "e", isScratchOrg: true }), false);
 });
 
+test("isProductionOrg: 安全クリティカルなエッジ（サンドボックスMyドメイン/Enhanced本番/フラグ優先/不明URL）", () => {
+  // サンドボックスの My ドメイン（Enhanced Domain）は本番ではない（ホストに sandbox を含む）
+  assert.equal(
+    isProductionOrg({ username: "sbx", instanceUrl: "https://acme--uat.sandbox.my.salesforce.com" }),
+    false,
+    "*.sandbox.my.salesforce.com は本番扱いしない"
+  );
+  // 本番の Enhanced Domain（sandbox を含まない my.salesforce.com）は本番
+  assert.equal(
+    isProductionOrg({ username: "prod", instanceUrl: "https://acme.my.salesforce.com" }),
+    true
+  );
+  // フラグ優先: instanceUrl が本番系でも isSandbox/isScratchOrg が立っていれば本番ではない
+  assert.equal(
+    isProductionOrg({ username: "f1", isSandbox: true, instanceUrl: "https://acme.my.salesforce.com" }),
+    false,
+    "isSandbox フラグが URL より優先"
+  );
+  assert.equal(
+    isProductionOrg({ username: "f2", isScratchOrg: true, instanceUrl: "https://acme.my.salesforce.com" }),
+    false
+  );
+  // test.salesforce.com ログインは（My ドメイン instanceUrl があっても）本番ではない
+  assert.equal(
+    isProductionOrg({
+      username: "g",
+      loginUrl: "https://test.salesforce.com",
+      instanceUrl: "https://acme.my.salesforce.com",
+    }),
+    false,
+    "test ログインは sandbox 系として本番扱いしない"
+  );
+  // 認識できない URL のみ（現挙動: 本番とは判定しない）
+  assert.equal(isProductionOrg({ username: "h", instanceUrl: "https://example.com" }), false);
+});
+
 test("categorize precedence: scratch > sandbox > devhub > production", () => {
   assert.equal(categorize({ username: "s", isScratchOrg: true, isDevHub: true }), "Scratch");
   assert.equal(categorize({ username: "sb", isSandbox: true }), "Sandbox");

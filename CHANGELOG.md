@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.86.2] - 2026-06-03
+
+- 🧪 **本番判定 `isProductionOrg` の安全クリティカルなエッジを回帰テストで固定**: 本番Orgの検出は、本番デプロイの二重確認・「資材反映で本番警告」「⚠️赤表示」など**すべての本番安全策の土台**。サンドボックスのMyドメイン（`*.sandbox.my.salesforce.com`＝本番扱いしない）、本番のEnhanced Domain（`*.my.salesforce.com`＝本番）、`isSandbox`/`isScratchOrg` フラグがURLより優先されること、`test.salesforce.com` ログイン、認識できないURLの各挙動を単体テストで明示的に固定（計220件pass）。コード挙動は不変＝回帰防止のためのテスト追加のみ。
+
 ## [0.86.1] - 2026-06-03
 
 - 🛡️ **「資材反映」で本番Orgを選んだら強く警告してデプロイ画面へ誘導（本番事故の防止）**: 「資材反映（sourcePush）」は反映先を選べるが、ここで**本番Orgを選ぶと、デプロイの差分確認・本番二重確認をバイパスして直接本番へ反映**できてしまう安全ギャップがあった（資材反映は本来「自分の開発環境」向け）。反映先が本番のときは modal で警告し、「デプロイ画面へ」（対象ファイル確認＋本番二重確認つきの `teamflow.deployToEnvironment`）へ誘導するようにした（「それでも反映する」で続行も可）。`org.isProduction` による入口ガードで、既存のデプロイ安全策と整合（計219件pass）。TEST_SCENARIOS(S1-4) も更新。
