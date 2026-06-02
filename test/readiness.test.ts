@@ -63,6 +63,68 @@ test("computeTeamReadiness: 認証0件のラベルは『ログイン』、件数
   assert.ok(!/件/.test(auth.label));
 });
 
+test("computeTeamReadiness: チーム設定の接続先数が分かると認証ステップは『N/M 接続先』表示", () => {
+  // 3接続先のうち1つ認証済み → ラベルに 1/3、1件以上で done
+  const r = computeTeamReadiness({
+    hasProject: true,
+    orgCount: 1,
+    configured: true,
+    hasRemote: true,
+    ciScaffolded: false,
+    configuredAliasTotal: 3,
+    configuredAliasAuthed: 1,
+  });
+  const auth = r.steps.find((s) => s.key === "auth")!;
+  assert.match(auth.label, /1\/3 接続先/);
+  assert.equal(auth.done, true, "1件でも認証済みなら done（作業開始可）");
+  assert.match(auth.hint ?? "", /未認証の接続先/);
+});
+
+test("computeTeamReadiness: 接続先が0件認証なら認証ステップ未完了", () => {
+  const r = computeTeamReadiness({
+    hasProject: true,
+    orgCount: 0,
+    configured: true,
+    hasRemote: true,
+    ciScaffolded: false,
+    configuredAliasTotal: 3,
+    configuredAliasAuthed: 0,
+  });
+  const auth = r.steps.find((s) => s.key === "auth")!;
+  assert.match(auth.label, /0\/3 接続先/);
+  assert.equal(auth.done, false);
+});
+
+test("computeTeamReadiness: 全接続先認証済みなら hint 無し", () => {
+  const r = computeTeamReadiness({
+    hasProject: true,
+    orgCount: 3,
+    configured: true,
+    hasRemote: true,
+    ciScaffolded: true,
+    configuredAliasTotal: 2,
+    configuredAliasAuthed: 2,
+  });
+  const auth = r.steps.find((s) => s.key === "auth")!;
+  assert.match(auth.label, /2\/2 接続先/);
+  assert.equal(auth.done, true);
+  assert.equal(auth.hint, undefined);
+});
+
+test("computeTeamReadiness: 接続先情報が無ければ従来どおりOrg数で判定", () => {
+  const r = computeTeamReadiness({
+    hasProject: true,
+    orgCount: 2,
+    configured: true,
+    hasRemote: true,
+    ciScaffolded: false,
+    // configuredAliasTotal 未指定（0扱い）→ フォールバック
+  });
+  const auth = r.steps.find((s) => s.key === "auth")!;
+  assert.match(auth.label, /2件/);
+  assert.equal(auth.done, true);
+});
+
 test("computeTeamReadiness: doneCount は done の数と常に一致する（不変条件）", () => {
   for (const ci of [true, false]) {
     for (const rem of [true, false]) {

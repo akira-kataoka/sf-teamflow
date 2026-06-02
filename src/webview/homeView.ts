@@ -235,6 +235,9 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     let deployCount = 0;
     let conflicts: string[] = [];
     let pipeline: HomeState["pipeline"] = [];
+    // チーム設定の接続先(orgAlias)の総数と、そのうち認証済みの数（準備パネルの認証ステップ用）。
+    let configuredAliasTotal = 0;
+    let configuredAliasAuthed = 0;
 
     if (root) {
       configured = await configExists(root);
@@ -298,6 +301,15 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
             current: env?.name === e.name,
             connected: orgs.some((o) => o.username === e.orgAlias || o.displayName === e.orgAlias),
           }));
+          // 接続先(重複なし)の総数と認証済み数を算出（準備パネルの「N/M 接続先」表示用）。
+          const knownAliases = orgsRaw.flatMap((o) =>
+            [o.alias, o.username].filter((x): x is string => !!x)
+          );
+          const cfgAliases = [
+            ...new Set(cfg2.environments.map((e) => e.orgAlias).filter(Boolean)),
+          ];
+          configuredAliasTotal = cfgAliases.length;
+          configuredAliasAuthed = cfgAliases.filter((a) => knownAliases.includes(a)).length;
         }
       } catch {
         /* invalid config — surfaced elsewhere */
@@ -338,6 +350,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
         configured,
         hasRemote: remote,
         ciScaffolded,
+        configuredAliasTotal,
+        configuredAliasAuthed,
       }),
       nextAction: computeNextAction({
         hasFolder,

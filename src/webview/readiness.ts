@@ -19,6 +19,10 @@ export interface ReadinessInput {
   hasRemote: boolean;
   /** CI/CD ワークフロー（.github/workflows/sf-deploy.yml 等）を生成済み */
   ciScaffolded: boolean;
+  /** チーム設定が定義する接続先(orgAlias)の総数（重複なし）。設定がある場合のみ。 */
+  configuredAliasTotal?: number;
+  /** そのうち認証済みの接続先数。設定がある場合のみ。 */
+  configuredAliasAuthed?: number;
 }
 
 export interface ReadinessStep {
@@ -42,6 +46,33 @@ export interface TeamReadiness {
 }
 
 /**
+ * 「環境を認証」ステップ。チーム設定の接続先数が分かる場合は「2/3 接続先」のように
+ * 進捗を示し、1件でも認証済みなら done（少なくとも作業を始められる）。設定が無い／接続先
+ * 情報が無い場合は従来どおり認証済みOrg数で判定する。
+ */
+function authStep(input: ReadinessInput): ReadinessStep {
+  const total = input.configuredAliasTotal ?? 0;
+  if (input.configured && total > 0) {
+    const authed = input.configuredAliasAuthed ?? 0;
+    return {
+      key: "auth",
+      emoji: "🔌",
+      label: `環境を認証（${authed}/${total} 接続先）`,
+      done: authed >= 1,
+      command: "teamflow.authorizeOrg",
+      hint: authed < total ? "未認証の接続先が残っています" : undefined,
+    };
+  }
+  return {
+    key: "auth",
+    emoji: "🔌",
+    label: input.orgCount > 0 ? `環境を認証（${input.orgCount}件）` : "環境を認証（ログイン）",
+    done: input.orgCount > 0,
+    command: "teamflow.authorizeOrg",
+  };
+}
+
+/**
  * チーム開発の準備ステップ（プロジェクト→環境認証→環境設定→GitHub接続→CI/CD生成）を
  * 入力フラグから組み立てて返す。Pure & unit-tested.
  */
@@ -54,14 +85,7 @@ export function computeTeamReadiness(input: ReadinessInput): TeamReadiness {
       done: input.hasProject,
       command: "teamflow.createProject",
     },
-    {
-      key: "auth",
-      emoji: "🔌",
-      label:
-        input.orgCount > 0 ? `環境を認証（${input.orgCount}件）` : "環境を認証（ログイン）",
-      done: input.orgCount > 0,
-      command: "teamflow.authorizeOrg",
-    },
+    authStep(input),
     {
       key: "config",
       emoji: "🧭",

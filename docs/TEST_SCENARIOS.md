@@ -18,6 +18,7 @@
 ### S0-3. チーム開発の準備パネル（🚦 網羅的なセットアップ達成度）
 - 内部: `computeTeamReadiness({hasProject, orgCount, configured, hasRemote, ciScaffolded})` をホストで算出しwebviewへ。`ciScaffolded` は `.github/workflows/sf-deploy.yml|sf-validate.yml` の存在で判定
 - 期待: 5手順（📂プロジェクト→🔌環境認証→🧭環境設定→🐙GitHub接続→🤖CI/CD生成）を ✓/○ で一覧し「N/5 完了」。未完ステップは「▶ 実行」で各コマンド起動／全完了で `<details>` を自動で畳み「仕上げ（任意）: 🔑CI/CDシークレット・🛡️ブランチ保護」を案内
+- 認証ステップ（チーム設定あり時）: 「環境を認証（N/M 接続先）」と接続先の認証進捗を表示（`configuredAliasTotal`/`configuredAliasAuthed`）。1件でも認証で done（作業開始可）だが未認証が残ればhintで明示。設定無/接続先情報無なら従来どおり認証済みOrg数で判定
 - 確認観点: フォルダ未オープン時は非表示／`doneCount` が done 数と一致（不変条件）／ヒーロー（次の1手）と役割が重複しない（ヒーロー=今やる1つ、パネル=全体像と残り）
 - 堅牢化（✅）: 検出が不確実なCIシークレット・ブランチ保護は ✓ 管理せず「仕上げ」導線として案内（誤検出で「未/済」を誤表示しない）。`computeTeamReadiness` は純粋関数で単体テスト
 
