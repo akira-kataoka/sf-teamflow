@@ -21,6 +21,22 @@ test("summarizeCliError: stderr優先・update availableノイズ除去・末尾
   assert.equal(summarizeCliError("   ", ""), "", "空白のみは空文字");
 });
 
+test("summarizeCliError: Nodeの警告ノイズを除外し本当のエラーを残す", () => {
+  // node警告が末尾に並ぶと、従来は本当のエラーが末尾3行から押し出されていた
+  const noisy = [
+    "ERROR: 本当のエラー（デプロイ失敗）",
+    "(node:12345) ExperimentalWarning: VM Modules is an experimental feature",
+    "(node:12345) [DEP0040] DeprecationWarning: punycode",
+    "Warning: @salesforce/cli update available 2.99",
+  ].join("\n");
+  assert.equal(summarizeCliError(noisy, ""), "ERROR: 本当のエラー（デプロイ失敗）", "ノイズ除外で本エラーが残る");
+  // DeprecationWarning 単体行も除外（行頭が (node:) でなくても語で判定）
+  assert.equal(
+    summarizeCliError("DeprecationWarning: x\n本当の理由", ""),
+    "本当の理由"
+  );
+});
+
 test("parseSfVersion extracts version; isSfVersionOutdated flags old CLIs", () => {
   const out = "@salesforce/cli/2.25.7 win32-x64 node-v20.10.0";
   assert.deepEqual(parseSfVersion(out), { major: 2, minor: 25, patch: 7 });

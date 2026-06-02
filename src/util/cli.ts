@@ -30,13 +30,22 @@ export function isSfVersionOutdated(out: string, floorMajor = 2, floorMinor = 40
 
 /**
  * sf CLI のエラー出力（stderr 優先、無ければ stdout）から初心者向けに簡潔な要約を作る。
- * 「update available」等のノイズ行を除き、末尾3行を「 / 」で連結する。空なら ""。Pure & unit-tested.
+ * ノイズ行（「update available」更新通知、Node の `(node:…)` 警告や
+ * Experimental/DeprecationWarning）を除いてから末尾3行を「 / 」で連結する。
+ * こうしたノイズが多いと本当のエラーが末尾3行から押し出されるのを防ぐ。空なら ""。Pure & unit-tested.
  */
 export function summarizeCliError(stderr: string, stdout: string): string {
   return (stderr || stdout || "")
     .trim()
     .split(/\r?\n/)
-    .filter((l) => l && !/update available/i.test(l))
+    .map((l) => l.trim())
+    .filter(
+      (l) =>
+        l &&
+        !/update available/i.test(l) &&
+        !/^\(node:\d+\)/.test(l) &&
+        !/\b(?:ExperimentalWarning|DeprecationWarning)\b/.test(l)
+    )
     .slice(-3)
     .join(" / ");
 }

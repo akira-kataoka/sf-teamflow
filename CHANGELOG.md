@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.81.4] - 2026-06-02
+
+- 🧹 **エラー要約から Node 警告ノイズも除外**: 捕捉した sf CLI エラーの要約（`summarizeCliError`）が「update available」行のみ除外していたが、`(node:…) ExperimentalWarning`/`DeprecationWarning` 等の Node 警告が末尾に並ぶと、本当のエラーが「末尾3行」から押し出されて見えなくなることがあった。これらの定番ノイズ行も除外し、各行をトリムしてから末尾3行を取るよう改善（本当の失敗理由が要約に残る）。単体テストを追加（計200件pass）。
+
 ## [0.81.3] - 2026-06-02
 
 - 🤖 **生成CIが「ファイル削除を含むコミット」で失敗するのを修正**: 生成する deploy / PR検証ワークフローは `git diff --name-only` で変更ファイルを集めて各 `-d` に渡すが、**削除されたファイルのパスも含まれる**ため `sf project deploy`（start/validate）が「Path does not exist」で失敗していた（メタデータを1つでも削除した PR・push で CI が落ちる）。各パスを `[ -e "$f" ]` で存在確認し、**存在する（追加/変更）ファイルのみ `-d` に渡す**よう修正。除外後に対象が空（削除のみ）ならジョブを正常スキップ。拡張のローカルデプロイ（削除は別扱い）と挙動を揃えた。削除の反映は従来どおり destructiveChanges が別途必要。両ワークフローの生成内容を単体テストで検証（計199件pass）。
