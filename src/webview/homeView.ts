@@ -235,6 +235,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     let deployCount = 0;
     let conflicts: string[] = [];
     let pipeline: HomeState["pipeline"] = [];
+    let hasUpstream = false;
     // チーム設定の接続先(orgAlias)の総数と、そのうち認証済みの数（準備パネルの認証ステップ用）。
     let configuredAliasTotal = 0;
     let configuredAliasAuthed = 0;
@@ -249,6 +250,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
           changes = s.changed;
           ahead = s.ahead;
           behind = s.behind;
+          hasUpstream = !!s.upstream;
           files = s.files.slice(0, 40).map((f) => ({ path: f.path, label: f.label }));
           conflicts = conflictedFiles(s);
         } catch {
@@ -367,6 +369,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
         hasRemote: remote,
         branch,
         onBaseBranch: !!branch && isProtectedBranch(branch),
+        hasUpstream,
       }),
     };
   }

@@ -24,6 +24,8 @@ export interface NextActionInput {
   branch: string;
   /** 現在ブランチが共有の基準ブランチ(main/develop 等)か。 */
   onBaseBranch: boolean;
+  /** 現在ブランチに上流(リモート追跡)があるか＝一度でも push 済みか。 */
+  hasUpstream?: boolean;
 }
 
 export interface NextAction {
@@ -71,9 +73,10 @@ export function computeNextAction(s: NextActionInput): NextAction {
   if (s.behind > 0) {
     return { em: "🔄", t1: "次にやること", t2: "リモートの更新 " + s.behind + "件を取り込む", command: "teamflow.gitSync" };
   }
-  // 保留なし。feature ブランチ（共有の基準ブランチ以外）を push 済みなら、
-  // GitHub Flow の次の一歩としてレビュー依頼（PR）へ導く。
-  if (s.hasRemote && !!s.branch && !s.onBaseBranch) {
+  // 保留なし。feature ブランチ（共有の基準ブランチ以外）を push 済み（upstream あり）なら、
+  // GitHub Flow の次の一歩としてレビュー依頼（PR）へ導く。作りたて・未 push のブランチには
+  // 出さない（空のPRを促さない＝バックアップ後の正しいタイミングで提案）。
+  if (s.hasRemote && !!s.branch && !s.onBaseBranch && s.hasUpstream) {
     return {
       em: "🔀",
       t1: "次にやること",

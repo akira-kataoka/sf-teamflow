@@ -18,6 +18,7 @@ function base(): NextActionInput {
     hasRemote: true,
     branch: "feature/x",
     onBaseBranch: false,
+    hasUpstream: true,
   };
 }
 
@@ -68,6 +69,13 @@ test("computeNextAction: 基準ブランチ(develop等)で保留なしは『作�
 test("computeNextAction: リモート未接続の feature は PR を勧めず calm", () => {
   const na = computeNextAction({ ...base(), hasRemote: false });
   assert.equal(na.calm, true);
+});
+
+test("computeNextAction: 作りたて(未push=upstreamなし)の feature は PR を勧めず calm", () => {
+  // ブランチを作っただけ・まだ push していない → 空のPRを促さない
+  const na = computeNextAction({ ...base(), hasUpstream: false });
+  assert.equal(na.calm, true);
+  assert.notEqual(na.command, "teamflow.createPullRequest");
 });
 
 test("computeNextAction: 変更ありは基準ブランチでもまず保存（新ブランチ提案より優先）", () => {

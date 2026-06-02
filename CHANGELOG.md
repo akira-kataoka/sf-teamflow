@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.88.1] - 2026-06-03
+
+- 🔀 **「次にやること」のPR提案を“push済みのブランチ”に限定（空PRの早すぎる提案を抑制）**: feature ブランチを作った直後（まだ何も commit/push していない状態）でもヒーローが「Pull Request を作成」を提案してしまい、空のPRに繋がりかねなかった。提案条件に「上流(upstream)あり＝一度でも push 済み」を追加し、**バックアップ（commit+push）後の正しいタイミング**でだけPRを促すようにした（作りたて・未pushのブランチでは calm のまま）。`hasUpstream` を `computeNextAction` に渡し、未pushケースの単体テストを追加（計227件pass）。TEST_SCENARIOS(S0-1) も更新。
+
 ## [0.88.0] - 2026-06-03
 
 - 🔌 **「チーム開発の準備」の認証ステップを“接続先の進捗”表示に（網羅性の可視化）**: チーム設定がある場合、準備パネルの「環境を認証」を「環境を認証（**N/M 接続先**）」と表示し、設定で定義された接続先(orgAlias)を何件認証したかを可視化するようにした。1件でも認証すれば作業を始められるので done 扱いだが、未認証の接続先が残っていればヒントで明示。チームメンバーが「自分が使う環境を一通り認証できたか」を一目で把握できる。設定が無い／接続先情報が無い場合は従来どおり認証済みOrg数で判定。算出はホストで行い純粋関数 `computeTeamReadiness` に `configuredAliasTotal`/`configuredAliasAuthed` を渡す形にして単体テスト4件を追加（計226件pass）。TEST_SCENARIOS(S0-3) も更新。
