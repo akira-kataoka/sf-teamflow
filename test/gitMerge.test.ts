@@ -4,7 +4,17 @@ import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { mergeBranch } from "../src/deploy/gitService.js";
+import { mergeBranch, revertCommit } from "../src/deploy/gitService.js";
+
+/** Capture git stdout (trimmed) from a temp repo with a fixed identity. */
+function gitOut(cwd: string, ...args: string[]): string {
+  return execFileSync("git", ["-c", "user.email=t@e.com", "-c", "user.name=Tester", ...args], {
+    cwd,
+    stdio: ["pipe", "pipe", "pipe"],
+  })
+    .toString()
+    .trim();
+}
 
 /** Run git in a temp repo with a fixed identity (no reliance on global config). */
 function git(cwd: string, ...args: string[]): void {
@@ -68,6 +78,40 @@ test("mergeBranch: 存在しないブランチは ok=false・conflict=false（me
   assert.match(r.message.toLowerCase(), /not something we can merge|did not match|merge/, "原因がmessageに入る");
   // マージは始まっていない（MERGE_HEAD は無い）
   assert.equal(fs.existsSync(path.join(dir, ".git", "MERGE_HEAD")), false);
+});
+
+test("revertCommit: マージコミット(PR取り込み)も -m 1 で取り消せる（is a merge but no -m を回避）", async () => {
+  const dir = initRepo();
+  // feature を作り、別ファイルを追加
+  git(dir, "switch", "-c", "feature/m");
+  fs.writeFileSync(path.join(dir, "feature.txt"), "from feature\n");
+  git(dir, "add", "-A");
+  git(dir, "commit", "-m", "feat");
+  // main に戻り、--no-ff で必ずマージコミットを作る（PR取り込み相当）
+  git(dir, "switch", "main");
+  git(dir, "merge", "--no-ff", "--no-edit", "feature/m");
+  const mergeHash = gitOut(dir, "rev-parse", "HEAD");
+  assert.ok(fs.existsSync(path.join(dir, "feature.txt")), "マージで取り込まれている");
+
+  // このマージコミットを取り消す（従来は -m 無しで失敗していた）
+  const r = await revertCommit(mergeHash, dir);
+  assert.equal(r.ok, true, "マージコミットの取り消しが成功する");
+  assert.equal(r.conflict, false);
+  // 取り消しコミットが新たに積まれ（履歴は壊さない）、feature の変更が消える
+  assert.ok(!fs.existsSync(path.join(dir, "feature.txt")), "取り込んだ変更が打ち消される");
+  assert.notEqual(gitOut(dir, "rev-parse", "HEAD"), mergeHash, "新しい取り消しコミットができている");
+});
+
+test("revertCommit: 通常コミットも従来どおり取り消せる（-m を付けない）", async () => {
+  const dir = initRepo();
+  fs.writeFileSync(path.join(dir, "x.txt"), "x\n");
+  git(dir, "add", "-A");
+  git(dir, "commit", "-m", "add x");
+  const hash = gitOut(dir, "rev-parse", "HEAD");
+  const r = await revertCommit(hash, dir);
+  assert.equal(r.ok, true);
+  assert.equal(r.conflict, false);
+  assert.ok(!fs.existsSync(path.join(dir, "x.txt")), "通常コミットの変更が打ち消される");
 });
 
 test("mergeBranch: 同一行の衝突は conflict=true でマージ状態を維持（abortしない）", async () => {

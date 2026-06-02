@@ -383,15 +383,43 @@ export async function commitFiles(hash: string, cwd: string): Promise<DiffEntry[
 }
 
 /**
+ * `git rev-list --parents -n 1 <hash>` の出力からマージコミットか判定する。
+ * 出力は "<commit> <parent1> [<parent2> …]" 形式で、親が2つ以上（=トークン3つ以上）
+ * ならマージ。空/解析不能なら false。Pure & unit-tested.
+ */
+export function isMergeFromRevListParents(stdout: string): boolean {
+  const tokens = (stdout || "").trim().split(/\s+/).filter(Boolean);
+  return tokens.length >= 3;
+}
+
+/** 指定コミットがマージコミットか（親が2つ以上か）を git に問い合わせる。 */
+async function isMergeCommit(hash: string, cwd: string): Promise<boolean> {
+  const res = await run(
+    "git",
+    ["--no-optional-locks", "rev-list", "--parents", "-n", "1", hash],
+    { cwd, timeout: 10_000 }
+  );
+  return res.code === 0 && isMergeFromRevListParents(res.stdout);
+}
+
+/**
  * Safely roll back by reverting a commit — creates a NEW "undo" commit, never
  * rewrites history, so it's reversible. On conflict we abort and report it
  * rather than leaving the tree half-reverted.
+ *
+ * マージコミット（PRの取り込みなど）は親が2つあるため、`git revert` に `-m`（mainline）が
+ * 無いと "is a merge but no -m option was given" で失敗する。取り込みの取り消しは第1親
+ * （取り込み先ブランチ）基準が通常の意図なので、マージのときは `-m 1` を付ける。
  */
 export async function revertCommit(
   hash: string,
   cwd: string
 ): Promise<{ ok: boolean; conflict: boolean; message: string }> {
-  const res = await run("git", ["--no-optional-locks", "revert", "--no-edit", hash], {
+  const merge = await isMergeCommit(hash, cwd);
+  const revertArgs = merge
+    ? ["--no-optional-locks", "revert", "--no-edit", "-m", "1", hash]
+    : ["--no-optional-locks", "revert", "--no-edit", hash];
+  const res = await run("git", revertArgs, {
     cwd,
     timeout: 30_000,
   });

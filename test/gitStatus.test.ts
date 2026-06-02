@@ -15,6 +15,7 @@ import {
   repoNameError,
   BASELINE_GITATTRIBUTES,
   uncommittedInList,
+  isMergeFromRevListParents,
 } from "../src/deploy/gitService.js";
 
 test("mergeErrorHint: 未コミット変更/ブランチ不在/未完了マージを案内する", () => {
@@ -198,6 +199,22 @@ test("uncommittedInList: デプロイ対象のうち未コミットのものだ�
   assert.deepEqual(uncommittedInList(deploy, []), []);
   // status にあるがデプロイ対象外のパスは無視
   assert.deepEqual(uncommittedInList(deploy, ["README.md"]), []);
+});
+
+test("isMergeFromRevListParents: 親2つ(トークン3)以上ならマージと判定", () => {
+  // 通常コミット: "<commit> <parent>" → トークン2 → 非マージ
+  assert.equal(isMergeFromRevListParents("abc123 def456"), false);
+  // ルートコミット（親なし）: トークン1 → 非マージ
+  assert.equal(isMergeFromRevListParents("abc123"), false);
+  // マージコミット: "<commit> <parent1> <parent2>" → トークン3 → マージ
+  assert.equal(isMergeFromRevListParents("merge1 p1 p2"), true);
+  // オクトパスマージ（親3つ）も真
+  assert.equal(isMergeFromRevListParents("m p1 p2 p3"), true);
+  // 余分な空白・改行に強い
+  assert.equal(isMergeFromRevListParents("  merge1   p1   p2  \n"), true);
+  // 空入力は false
+  assert.equal(isMergeFromRevListParents(""), false);
+  assert.equal(isMergeFromRevListParents("   "), false);
 });
 
 test("baseRefCandidates: preferred first, common fallbacks, deduped", () => {

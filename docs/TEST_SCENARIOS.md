@@ -106,6 +106,7 @@
 - 操作: ⏪ 取り消し → コミット選択
 - 内部: `git revert --no-edit <hash>`（✅）。競合時は `git revert --abort` で**ツリーをクリーンに戻す**（✅検証済）
 - 確認観点: 履歴を壊さない（revert方式）／元に戻せる
+- 堅牢化（✅）: **マージコミット（PR取り込み）も取り消せる** — 親が2つあるマージは `git revert` に `-m 1`（第1親=取り込み先基準）を自動付与（`isMergeFromRevListParents` で判定）。従来は `-m` 無しで「is a merge but no -m option was given」と失敗していた。通常コミット/マージの両方を実gitで統合テスト
 
 ### S2-9. タグ管理 ✅
 - 操作: 🏷️ タグ管理
