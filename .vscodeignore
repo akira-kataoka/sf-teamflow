@@ -4,11 +4,17 @@ preview/**
 src/**
 test/**
 out-test/**
+docs/**
 node_modules/**
 .gitignore
+.gitattributes
 tsconfig.json
 tsconfig.test.json
 esbuild.js
 **/*.map
 **/*.ts
 .editorconfig
+.eslintcache
+*.vsix
+.DS_Store
+Thumbs.db
