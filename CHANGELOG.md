@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.88.9] - 2026-06-03
+
+- 📖 **デプロイ確認画面のテストレベルに平易な補足を表示**: デプロイ/検証の確認ダイアログで「テストレベル: RunLocalTests」のように専門用語のみ表示していたのを、「RunLocalTests（自組織のテストを実行（推奨））」のように**平易な日本語の補足**を添えるようにした（NoTestRun=テストなし／RunSpecifiedTests=指定したテストのみ／RunAllTestsInOrg=組織の全テスト・時間がかかる）。高リスクな本番デプロイ確認で初心者が何が起きるか理解しやすくなる。純粋関数 `testLevelLabel()`（未知の値はそのまま）を追加し単体テストで網羅（計240件pass）。
+
 ## [0.88.8] - 2026-06-03
 
 - 🧪 **`status`/`conflictedFiles`（ホーム状態・競合検出の中核）を実gitで統合テスト**: ホームのほぼ全表示と「次にやること」判定の土台である `status`（`git status --porcelain=v2 --branch` 解析）を end-to-end で検証。ブランチ名・変更/未追跡ファイルの検出・件数、そして実際のマージ競合を `conflictedFiles` が拾うことを実gitで確認し回帰防止（計239件pass）。コード不変・テスト追加のみ（一連の live git 関数の統合テスト整備の一環）。

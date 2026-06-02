@@ -16,7 +16,12 @@ import {
   status,
   uncommittedInList,
 } from "./deploy/gitService.js";
-import { buildDeployArgs, renderCommand, deployConfirmKind } from "./deploy/deployService.js";
+import {
+  buildDeployArgs,
+  renderCommand,
+  deployConfirmKind,
+  testLevelLabel,
+} from "./deploy/deployService.js";
 import {
   baseRefFor,
   defaultConfig,
@@ -782,7 +787,7 @@ async function executeDeploy(ctx: DeployContext, validateOnly: boolean): Promise
   const detailLines = [
     `対象Org: ${ctx.orgAlias}${ctx.isProduction ? " ⚠️ 本番環境" : ""}`,
     `ブランチ: ${ctx.branch} (基準 ${usedBase})`,
-    `テストレベル: ${ctx.testLevel}`,
+    `テストレベル: ${testLevelLabel(ctx.testLevel)}`,
   ];
   // Show exactly which files will be sent so the user can confirm before acting.
   const MAX_LIST = 25;

@@ -67,6 +67,22 @@ export function deployConfirmKind(
   return "normal";
 }
 
+/**
+ * テストレベルを初心者向けに「コード値（平易な説明）」へ整形する。デプロイ確認画面など
+ * 高リスクな表示で、RunLocalTests 等の専門用語に意味を添える。未知の値はそのまま返す。
+ * Pure & unit-tested.
+ */
+export function testLevelLabel(level: string): string {
+  const gloss: Record<string, string> = {
+    NoTestRun: "テストなし",
+    RunSpecifiedTests: "指定したテストのみ",
+    RunLocalTests: "自組織のテストを実行（推奨）",
+    RunAllTestsInOrg: "組織の全テスト（時間がかかる）",
+  };
+  const g = gloss[level];
+  return g ? `${level}（${g}）` : level;
+}
+
 /** Quote an argv element for display / terminal execution. */
 export function quoteArg(arg: string): string {
   if (/^[A-Za-z0-9_./:@=-]+$/.test(arg)) {

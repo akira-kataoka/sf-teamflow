@@ -5,6 +5,7 @@ import {
   quoteArg,
   renderCommand,
   deployConfirmKind,
+  testLevelLabel,
 } from "../src/deploy/deployService.js";
 
 test("buildDeployArgs builds a start command with per-file -d", () => {
@@ -74,6 +75,15 @@ test("quoteArg escapes a backtick by prefixing a backslash", () => {
   const bt = String.fromCharCode(96); // `
   const bs = String.fromCharCode(92); // \
   assert.equal(quoteArg("a" + bt + "b"), '"a' + bs + bt + 'b"');
+});
+
+test("testLevelLabel: 既知レベルは平易な補足付き、未知はそのまま", () => {
+  assert.equal(testLevelLabel("RunLocalTests"), "RunLocalTests（自組織のテストを実行（推奨））");
+  assert.equal(testLevelLabel("NoTestRun"), "NoTestRun（テストなし）");
+  assert.equal(testLevelLabel("RunAllTestsInOrg"), "RunAllTestsInOrg（組織の全テスト（時間がかかる））");
+  assert.equal(testLevelLabel("RunSpecifiedTests"), "RunSpecifiedTests（指定したテストのみ）");
+  // 未知の値はそのまま返す（壊れない）
+  assert.equal(testLevelLabel("Unknown"), "Unknown");
 });
 
 test("deployConfirmKind: 本番＋確認ONは production", () => {
