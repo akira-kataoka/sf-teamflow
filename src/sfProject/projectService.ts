@@ -471,6 +471,38 @@ export function buildPullRequestArgs(opts: PullRequestOptions): string[] {
   return args;
 }
 
+export interface ReleaseCreateOptions {
+  /** リリースのタイトル（未指定なら GitHub 既定＝タグ名）。 */
+  title?: string;
+  /** マージ済みPR/コミットからリリースノートを自動生成（既定 true）。 */
+  generateNotes?: boolean;
+  /** このリリースを「最新(latest)」に印付ける。 */
+  latest?: boolean;
+}
+
+/**
+ * Build `gh release create <tag>` argv. 既定で `--generate-notes` を付け、マージ済みPRや
+ * コミットからリリースノートを自動生成する（チームのリリース記録に有用）。タグは事前に
+ * push されている前提（タグ作成フローの後段で呼ぶ）。Pure & unit-tested.
+ */
+export function buildReleaseCreateArgs(tag: string, opts: ReleaseCreateOptions = {}): string[] {
+  const t = (tag || "").trim();
+  if (!t) {
+    throw new Error("リリースを作成するタグ名が必要です。");
+  }
+  const args = ["release", "create", t];
+  if (opts.generateNotes !== false) {
+    args.push("--generate-notes");
+  }
+  if (opts.title && opts.title.trim()) {
+    args.push("--title", opts.title.trim());
+  }
+  if (opts.latest) {
+    args.push("--latest");
+  }
+  return args;
+}
+
 /** Curated metadata types shown in the retrieve / deploy pickers. */
 export const COMMON_METADATA_TYPES: { label: string; type: string; detail: string }[] = [
   // --- コード ---

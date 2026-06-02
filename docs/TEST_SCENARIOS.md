@@ -119,6 +119,7 @@
 ### S2-9. タグ管理 ✅
 - 操作: 🏷️ タグ管理
 - 内部: `git tag -a` / `git tag --sort=-creatordate`（✅。同時刻作成は副次的に名前順になり得る＝実運用は時刻差で新しい順）
+- 機能: タグ作成時は semver の上げ方（修正/新機能/破壊的）を選択（`suggestNextTags`）。push 済み＆`gh`があれば **GitHubリリース作成を任意提案**（`gh release create <tag> --generate-notes`＝マージ済みPR/コミットから変更ノート自動生成・`buildReleaseCreateArgs`）。`gh`が無ければタグのみで完了
 
 ---
 

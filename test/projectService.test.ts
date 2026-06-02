@@ -23,6 +23,7 @@ import {
   isReleaseLikeBranch,
   isProtectedBranch,
   buildPullRequestArgs,
+  buildReleaseCreateArgs,
   COMMON_METADATA_TYPES,
   buildDevHubOpenArgs,
   buildScratchOrgInfoProbeArgs,
@@ -350,6 +351,23 @@ test("buildPullRequestArgs: web は --fill を付けず（PRテンプレート�
   assert.deepEqual(buildPullRequestArgs({ baseBranch: "main", web: false }), [
     "pr", "create", "--base", "main", "--fill",
   ]);
+});
+
+test("buildReleaseCreateArgs: 既定で --generate-notes 付き、title/latest を任意で追加", () => {
+  assert.deepEqual(buildReleaseCreateArgs("v1.2.0"), [
+    "release", "create", "v1.2.0", "--generate-notes",
+  ]);
+  assert.deepEqual(buildReleaseCreateArgs("v1.2.0", { title: "Release 1.2.0", latest: true }), [
+    "release", "create", "v1.2.0", "--generate-notes", "--title", "Release 1.2.0", "--latest",
+  ]);
+  // generateNotes:false なら付けない／前後空白はtrim
+  assert.deepEqual(buildReleaseCreateArgs("  v2.0.0  ", { generateNotes: false }), [
+    "release", "create", "v2.0.0",
+  ]);
+});
+
+test("buildReleaseCreateArgs: タグ名が空なら例外", () => {
+  assert.throws(() => buildReleaseCreateArgs("  "), /タグ名/);
 });
 
 test("buildScratchCreateArgs rejects empty alias", () => {

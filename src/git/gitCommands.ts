@@ -43,6 +43,7 @@ import {
 import { suggestNextTag, suggestNextTags } from "./tagUtils.js";
 import {
   buildPullRequestArgs,
+  buildReleaseCreateArgs,
   isReleaseLikeBranch,
   isProtectedBranch,
   prBaseCandidates,
@@ -694,7 +695,28 @@ export function registerGitCommands(
       await createTag(name.trim(), message, root);
       if (await hasRemote(root)) {
         await pushTag(name.trim(), root);
-        vscode.window.showInformationMessage(`✅ タグ ${name.trim()} を作成しGitHubへプッシュしました。`);
+        // タグだけでなく GitHub リリース（変更内容のノート付き）も任意で作成できる。
+        // gh があるときだけ提案（無ければタグのみで完了）。
+        const ghOk = await run("gh", ["--version"], { cwd: root, timeout: 10_000 })
+          .then((r) => r.code === 0)
+          .catch(() => false);
+        if (ghOk) {
+          const rel = await vscode.window.showInformationMessage(
+            `✅ タグ ${name.trim()} を作成しGitHubへプッシュしました。GitHubリリースも作成しますか？（マージ済みPR/コミットから変更ノートを自動生成）`,
+            "GitHubリリースを作成",
+            "あとで"
+          );
+          if (rel === "GitHubリリースを作成") {
+            ctx.runInTerminal(
+              renderCommand("gh", buildReleaseCreateArgs(name.trim(), { generateNotes: true }))
+            );
+            ctx.recordActivity(`GitHubリリース: ${name.trim()}`, "run");
+          }
+        } else {
+          vscode.window.showInformationMessage(
+            `✅ タグ ${name.trim()} を作成しGitHubへプッシュしました。`
+          );
+        }
       } else {
         vscode.window.showInformationMessage(`✅ タグ ${name.trim()} を作成しました（ローカル）。`);
       }
