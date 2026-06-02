@@ -282,8 +282,8 @@ export function registerGitCommands(
     }
     const pick = await vscode.window.showQuickPick(
       commits.map((c) => ({
-        label: c.subject || "(メッセージなし)",
-        description: `${c.author} · ${c.rel} · ${c.hash}`,
+        label: `${c.isMerge ? "🔀 " : ""}${c.subject || "(メッセージなし)"}`,
+        description: `${c.author} · ${c.rel} · ${c.hash}${c.isMerge ? " · 取り込み(マージ)" : ""}`,
         hash: c.hash,
       })),
       { title: "取り消す変更を選択（ロールバック）", placeHolder: "この変更を打ち消す“取り消しコミット”を作ります（元に戻せます）" }
@@ -348,8 +348,8 @@ export function registerGitCommands(
     }
     const pick = await vscode.window.showQuickPick(
       commits.map((c) => ({
-        label: c.subject || "(メッセージなし)",
-        description: `👤 ${c.author} · ${c.rel} · ${c.hash}`,
+        label: `${c.isMerge ? "🔀 " : ""}${c.subject || "(メッセージなし)"}`,
+        description: `👤 ${c.author} · ${c.rel} · ${c.hash}${c.isMerge ? " · 取り込み(マージ)" : ""}`,
         hash: c.hash,
         subject: c.subject,
       })),

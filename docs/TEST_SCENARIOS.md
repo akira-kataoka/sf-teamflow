@@ -99,8 +99,9 @@
 
 ### S2-7. 変更履歴 ✅
 - 操作: 🕘 変更履歴
-- 内部: `git log --pretty=%h\t%cr\t%an\t%s`（✅）→ 選択で `git show --name-status`（✅）
+- 内部: `git log --pretty=%h\t%cr\t%an\t%p\t%s`（✅・`%p`=親ハッシュ）→ 選択で `git show --name-status`（✅）
 - 期待: 誰が・いつ・何を→変更ファイル一覧→開く
+- 表示: マージコミット（PR取り込み）は一覧で **🔀＋「取り込み(マージ)」** と明示（`CommitInfo.isMerge`／親2つ以上を判定）。ロールバック一覧でも同様
 - 堅牢化（✅）: **マージコミット（PR取り込み）でも取り込んだ変更ファイルが見える** — 既定の combined diff は全親と異なるファイルしか出ず空に見えるため、マージ時は `git show --first-parent`（第1親＝取り込み先からの差分）に切替（`isMergeFromRevListParents` で判定）。実gitでマージ/通常の両方を統合テスト
 
 ### S2-8. 取り消し（ロールバック）✅

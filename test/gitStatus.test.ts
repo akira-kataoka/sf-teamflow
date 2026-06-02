@@ -229,25 +229,45 @@ test("baseRefCandidates: preferred first, common fallbacks, deduped", () => {
   assert.equal(new Set(c2).size, c2.length);
 });
 
-test("parseCommitLog parses hash/rel/author/subject (subject may contain tabs)", () => {
+test("parseCommitLog parses hash/rel/author/parents/subject (subject may contain tabs)", () => {
+  // フォーマット: %h \t %cr \t %an \t %p \t %s（%pは親ハッシュ・空白区切り）
   const out = [
-    "abc1234\t2 hours ago\t山田\tfeat: 取引先検索を追加",
-    "def5678\tyesterday\t鈴木\tfix: 不具合\tの修正",
+    "abc1234\t2 hours ago\t山田\tp0\tfeat: 取引先検索を追加",
+    "def5678\tyesterday\t鈴木\tp1\tfix: 不具合\tの修正",
     "",
   ].join("\n");
   const c = parseCommitLog(out);
   assert.equal(c.length, 2);
-  assert.deepEqual(c[0], { hash: "abc1234", rel: "2 hours ago", author: "山田", subject: "feat: 取引先検索を追加" });
+  assert.deepEqual(c[0], {
+    hash: "abc1234",
+    rel: "2 hours ago",
+    author: "山田",
+    subject: "feat: 取引先検索を追加",
+    isMerge: false,
+  });
   assert.equal(c[1].author, "鈴木");
   assert.equal(c[1].subject, "fix: 不具合\tの修正");
 });
 
-test("parseCommitLog: 空subject・CRLF・余分な空行・hash欠落行を安全に扱う", () => {
+test("parseCommitLog: 親2つ以上(%p)はマージとして isMerge=true、ルート/通常は false", () => {
   const out = [
-    "abc1234\t3 days ago\t佐藤\t", // 空subject(末尾タブ)
-    "ghi9012\tjust now\tLee\tmerge\r", // CRLF混入
+    "merge01\tjust now\tLeader\tp1 p2\tMerge pull request #12 from feature/x",
+    "norm002\t1 hour ago\t山田\tp1\tfeat: 追加",
+    "root003\t2 days ago\t鈴木\t\tinitial commit", // ルート(親なし=空%p)
+  ].join("\n");
+  const c = parseCommitLog(out);
+  assert.equal(c.find((x) => x.hash === "merge01")!.isMerge, true, "親2つ=マージ");
+  assert.equal(c.find((x) => x.hash === "norm002")!.isMerge, false, "親1つ=通常");
+  assert.equal(c.find((x) => x.hash === "root003")!.isMerge, false, "親なし=通常");
+});
+
+test("parseCommitLog: 空subject・CRLF・余分な空行・hash欠落行を安全に扱う", () => {
+  // 列: hash \t rel \t author \t parents \t subject
+  const out = [
+    "abc1234\t3 days ago\t佐藤\tp0\t", // 空subject(末尾タブ)
+    "ghi9012\tjust now\tLee\tp1\tmerge\r", // CRLF混入
     "", // 空行 → 除外
-    "\thello\thello\tno-hash", // hash欠落(先頭タブ) → 除外される
+    "\thello\thello\tp\tno-hash", // hash欠落(先頭タブ) → 除外される
   ].join("\n");
   const c = parseCommitLog(out);
   // 空subjectは空文字で保持

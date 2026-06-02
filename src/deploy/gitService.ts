@@ -355,24 +355,40 @@ export interface CommitInfo {
   rel: string;
   author: string;
   subject: string;
+  /** 親が2つ以上＝マージコミット（PR取り込みなど）。一覧で 🔀 を出す等に使う。 */
+  isMerge: boolean;
 }
 
-/** Parse `git log --pretty=%h\t%cr\t%an\t%s` output. Pure & unit-tested. */
+/**
+ * Parse `git log --pretty=%h\t%cr\t%an\t%p\t%s` output. The `%p` column holds the
+ * (space-separated) parent hashes — 2つ以上ならマージ。subject はタブを含み得るので
+ * 残り全列を連結する。Pure & unit-tested.
+ */
 export function parseCommitLog(stdout: string): CommitInfo[] {
   return stdout
     .split("\n")
     .map((l) => l.replace(/\r$/, ""))
     .filter(Boolean)
     .map((l) => {
-      const [hash, rel, author, ...rest] = l.split("\t");
-      return { hash: hash ?? "", rel: rel ?? "", author: author ?? "", subject: rest.join("\t") };
+      const [hash, rel, author, parents, ...rest] = l.split("\t");
+      const parentCount = (parents ?? "").trim().split(/\s+/).filter(Boolean).length;
+      return {
+        hash: hash ?? "",
+        rel: rel ?? "",
+        author: author ?? "",
+        subject: rest.join("\t"),
+        isMerge: parentCount >= 2,
+      };
     })
     .filter((c) => c.hash);
 }
 
 /** Most recent commits (newest first) for the rollback / history pickers. */
 export async function recentCommits(cwd: string, limit = 15): Promise<CommitInfo[]> {
-  const out = await git(["log", `-n${limit}`, "--pretty=format:%h%x09%cr%x09%an%x09%s"], cwd);
+  const out = await git(
+    ["log", `-n${limit}`, "--pretty=format:%h%x09%cr%x09%an%x09%p%x09%s"],
+    cwd
+  );
   return parseCommitLog(out);
 }
 
