@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.88.5] - 2026-06-03
+
+- 🩹🪟 **【重大】特殊文字を含むコミットメッセージ等が Windows で壊れる根本原因を修正（shell:true の限定化）**: `run()` は Windows で**無条件に `shell:true`**（`sf.cmd` シム起動のため）だったが、これにより git/gh/openssl など実exeへ渡す引数中の cmd 特殊文字（`& | < > ^ ( )`）が cmd.exe に解釈されて壊れていた。例えば「保存（バックアップ）」で `fix: A & B (100%)` のようなメッセージは `&` がコマンド区切りと解釈され **`pathspec 'A' ...` でコミット失敗**（前版 v0.88.3 の `resolveBaseRef` の `^` 破壊も同根）。`.cmd`/`.bat` シム（`sf`）だけ shell:true、実exeは **shell:false** で引数を逐語的に渡すよう `run()` を修正（`needsWinShell` で判定）。特殊文字メッセージのコミットを実gitで統合テストし、git/gh が shell:false でも正しく解決・実行されることを既存の実git統合テスト群で確認（計234件pass）。`needsWinShell` の単体テストと TEST_SCENARIOS（横断観点）も追加。
+
 ## [0.88.4] - 2026-06-03
 
 - 🧪 **`recentCommits`（変更履歴・ロールバック一覧）を実gitで統合テスト**: 前版の `^` バグを受け、`--pretty=format:%h%x09%cr%x09%an%x09%p%x09%s` の **`%`（cmd.exe の変数展開記号）** が Windows の `shell:true` 実行でログ解析を壊さないかを実gitで検証。結果は健全（未定義の `%h%`/`%cr%` 等は cmd 上で literal のまま保持され、hash/author/subject/相対日時/マージ判定すべて正しくパース）と確認し、Windows 感応の重要パスを回帰テストで固定（計232件pass）。コード不変・テスト追加のみ。

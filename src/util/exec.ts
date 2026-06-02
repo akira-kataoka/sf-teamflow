@@ -29,6 +29,21 @@ export function quoteExecutable(file: string, platform: NodeJS.Platform): string
 }
 
 /**
+ * win32 で shell 経由実行が必要か（＝`.cmd`/`.bat` シムか）。Node のセキュリティ制約で
+ * `.cmd`/`.bat` は shell:true でしか起動できない（例: npm グローバルの `sf` は `sf.cmd`）。
+ * 一方 shell:true は引数中の `& | < > ^ ( )` 等の cmd 特殊文字を破壊するため
+ * （例: コミットメッセージ "A & B" が壊れてコミット失敗）、実exe（git/gh/openssl 等）は
+ * shell:false で逐語的に引数を渡す。win32 以外は常に false。Pure & unit-tested.
+ */
+export function needsWinShell(file: string, platform: NodeJS.Platform): boolean {
+  if (platform !== "win32") {
+    return false;
+  }
+  const base = file.replace(/^.*[\\/]/, "").toLowerCase().replace(/^"|"$/g, "");
+  return base === "sf" || base.endsWith(".cmd") || base.endsWith(".bat");
+}
+
+/**
  * Thin promise wrapper around child_process.execFile — the single choke point
  * through which every `sf` and `git` invocation flows.
  *
@@ -47,20 +62,21 @@ export function run(
   args: string[],
   options: ExecOptions = {}
 ): Promise<ExecResult> {
+  // shell が必要なのは Windows の `.cmd`/`.bat` シム（例: `sf.cmd`）のみ。実exe（git/gh/
+  // openssl 等）に shell:true を使うと、引数中の cmd 特殊文字（& | < > ^ ( )）が壊れる
+  // （例: コミットメッセージ "A & B" がコマンド区切りと解釈され失敗）。実exeは shell:false で
+  // 逐語的に引数を渡す。shell が要るときだけスペース対策の引用符でパスを囲む。
+  const useShell = needsWinShell(file, process.platform);
   return new Promise((resolve) => {
     execFile(
-      quoteExecutable(file, process.platform),
+      useShell ? quoteExecutable(file, process.platform) : file,
       args,
       {
         cwd: options.cwd,
         timeout: options.timeout ?? 0,
         maxBuffer: options.maxBuffer ?? 1024 * 1024 * 64,
         windowsHide: true,
-        // On Windows `sf` / `git` are resolved as .cmd/.exe via PATHEXT, which
-        // requires shell resolution for the .cmd shim. We pass shell:false and
-        // rely on the OS resolving the executable; callers pass the resolved
-        // binary name. `sf` ships a native launcher so this works cross-platform.
-        shell: process.platform === "win32",
+        shell: useShell,
       },
       (error, stdout, stderr) => {
         const errno = error as NodeJS.ErrnoException | null;

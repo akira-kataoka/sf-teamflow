@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { run, quoteExecutable } from "../src/util/exec.js";
+import { run, quoteExecutable, needsWinShell } from "../src/util/exec.js";
 
 test("quoteExecutable: スペース無しの一般ケースは不変(従来動作維持)", () => {
   assert.equal(quoteExecutable("sf", "win32"), "sf");
@@ -20,6 +20,22 @@ test("quoteExecutable: win32 でスペースを含むパスは引用符で囲む
 test("quoteExecutable: 非win32(POSIX)は何もしない(shell:falseのため)", () => {
   assert.equal(quoteExecutable("/usr/local/bin/with space/sf", "linux"), "/usr/local/bin/with space/sf");
   assert.equal(quoteExecutable("/opt/sf", "darwin"), "/opt/sf");
+});
+
+test("needsWinShell: win32 では .cmd/.bat と bare sf のみ shell 必須、実exeは false", () => {
+  // shell 必須（.cmd シム）
+  assert.equal(needsWinShell("sf", "win32"), true, "bare sf は sf.cmd の可能性");
+  assert.equal(needsWinShell("C:\\Users\\u\\AppData\\npm\\sf.cmd", "win32"), true);
+  assert.equal(needsWinShell("foo.bat", "win32"), true);
+  assert.equal(needsWinShell('"C:\\p ath\\sf.cmd"', "win32"), true, "引用符付きでも判定");
+  // 実exe は shell:false（引数を逐語的に渡し特殊文字を壊さない）
+  assert.equal(needsWinShell("git", "win32"), false);
+  assert.equal(needsWinShell("gh", "win32"), false);
+  assert.equal(needsWinShell("openssl", "win32"), false);
+  assert.equal(needsWinShell("C:\\Program Files\\Git\\cmd\\git.exe", "win32"), false);
+  // 非 win32 は常に false（POSIX は shell:false）
+  assert.equal(needsWinShell("sf", "linux"), false);
+  assert.equal(needsWinShell("foo.cmd", "darwin"), false);
 });
 
 test("run: 存在しないコマンドは原因をstderrに載せて非ゼロで返す(rejectしない)", async () => {

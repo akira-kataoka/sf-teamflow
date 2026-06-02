@@ -11,6 +11,8 @@ import {
   abortMerge,
   changedFiles,
   recentCommits,
+  commit,
+  stageAll,
 } from "../src/deploy/gitService.js";
 
 /** Capture git stdout (trimmed) from a temp repo with a fixed identity. */
@@ -222,6 +224,21 @@ test("changedFiles: 追加/変更/削除（コミット済み）＋未追跡を�
   assert.equal(byPath["base.txt"], "M", "変更は M");
   assert.equal(byPath["todelete.txt"], "D", "削除は D");
   assert.ok("untracked.txt" in byPath, "未追跡ファイルも含む");
+});
+
+test("commit: cmd特殊文字を含むメッセージでも壊れず保存される（Windows shell:true）", async () => {
+  const dir = initRepo();
+  fs.writeFileSync(path.join(dir, "x.txt"), "x\n");
+  await stageAll(dir);
+  // & | < > ^ ! % ( ) など cmd.exe が特別扱いする文字を含む実際にありそうなメッセージ
+  const msg = "fix: A & B (100%) <urgent> ^caret! | done";
+  await commit(msg, dir);
+  const commits = await recentCommits(dir, 3);
+  assert.equal(
+    commits[0].subject,
+    msg,
+    "特殊文字を含むコミットメッセージが正確に保存・取得できる"
+  );
 });
 
 test("recentCommits: 実gitのログを正しくパースする（pretty=format の % がshellで壊れない）", async () => {
