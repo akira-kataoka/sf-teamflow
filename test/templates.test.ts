@@ -96,11 +96,17 @@ test("deployWorkflow/prValidation: 複数パッケージdirでも全dirをスコ
   assert.ok(dep.includes("HEAD -- force-app shared"), "差分deployは全dirスコープ");
   // デプロイは diff で得たファイルを -d で個別に渡す（--source-dir 列挙ではない）
   assert.ok(dep.includes("for f in") && dep.includes('DIRS="$DIRS -d $f"'), "差分ファイルを-dで渡す");
+  // 削除パスは存在チェックで除外（sfの「Path does not exist」失敗を防ぐ）／削除のみはスキップ
+  assert.ok(dep.includes('[ -e "$f" ] && DIRS="$DIRS -d $f"'), "存在するファイルのみ-dに渡す");
+  assert.ok(dep.includes('if [ -z "$DIRS" ]'), "削除のみのときはデプロイをスキップ");
   // PR検証: 差分も両dirスコープ / PMDスキャナの--targetも両dir / pathsフィルタも両dir
   const pr = prValidationWorkflow(cfg);
   assert.ok(pr.includes('"origin/$BASE...HEAD" -- force-app shared'), "PR検証diffは全dirスコープ");
   assert.ok(pr.includes('--target "force-app,shared"'), "PMDスキャナも全dirを対象");
   assert.ok(pr.includes('"force-app/**"') && pr.includes('"shared/**"'), "pathsフィルタも全dir");
+  // PR検証も削除パスを除外し、削除のみならスキップ
+  assert.ok(pr.includes('[ -e "$f" ] && DIRS="$DIRS -d $f"'), "PR検証も存在するファイルのみ-dに渡す");
+  assert.ok(pr.includes('if [ -z "$DIRS" ]'), "PR検証も削除のみのときはスキップ");
 });
 
 test("prValidation: JS系ジョブ(Jest/ESLint/Prettier)はLWC/設定が無ければスキップ(Apex専用でCIが失敗しない)", () => {

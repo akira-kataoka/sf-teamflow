@@ -206,7 +206,12 @@ ${envCases}
         if: steps.diff.outputs.files != ''
         run: |
           DIRS=""
-          for f in \${{ steps.diff.outputs.files }}; do DIRS="$DIRS -d $f"; done
+          # 削除されたパスは存在せず sf がエラーになるため -d に渡さない（追加/変更のみ検証）。
+          for f in \${{ steps.diff.outputs.files }}; do [ -e "$f" ] && DIRS="$DIRS -d $f"; done
+          if [ -z "$DIRS" ]; then
+            echo "追加/変更された検証対象はありません（削除のみ）。スキップします。"
+            exit 0
+          fi
           sf project deploy validate $DIRS \\
             --target-org "\${{ steps.target.outputs.alias }}" \\
             --test-level "\${{ steps.target.outputs.level }}"
@@ -349,7 +354,13 @@ ${authStep(env)}
         if: steps.diff.outputs.files != ''
         run: |
           DIRS=""
-          for f in \${{ steps.diff.outputs.files }}; do DIRS="$DIRS -d $f"; done
+          # 削除されたパスは存在せず sf がエラーになるため -d に渡さない（追加/変更のみデプロイ）。
+          # 削除の反映は destructiveChanges が別途必要。
+          for f in \${{ steps.diff.outputs.files }}; do [ -e "$f" ] && DIRS="$DIRS -d $f"; done
+          if [ -z "$DIRS" ]; then
+            echo "追加/変更されたデプロイ対象はありません（削除のみ）。スキップします。"
+            exit 0
+          fi
           sf project deploy start $DIRS \\
             --target-org ${env.orgAlias} \\
             --test-level ${level} \\

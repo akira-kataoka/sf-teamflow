@@ -137,6 +137,7 @@
 - 内部: `.github/workflows/sf-validate.yml`（PRで検証）/`sf-deploy.yml`（mergeでデプロイ）/`CODEOWNERS`/`pull_request_template.md`（PR説明欄の雛形）生成
 - 確認観点: GitHub Flow（feature→develop→main）に対応／要 `workflow` scope（S2-2参照）
 - 堅牢化（✅）: 全ジョブ`permissions: contents: read`＋`timeout-minutes: 45`／環境名が同じslugへ衝突するとCIが壊れるため**生成・シークレット設定・ウィザード・ホーム警告の4箇所で衝突検出**（`envSlugCollisions`）／CODEOWNERSのプレースホルダはコメント化
+- 堅牢化（✅）: 生成YAMLの deploy/validate は `git diff` 由来の変更ファイルを `-d` で渡すが、**削除されたパスは存在チェック（`[ -e "$f" ]`）で除外**し sf の「Path does not exist」失敗を防ぐ。除外後に対象が空（削除のみ）ならジョブをスキップ。削除の反映は destructiveChanges が別途必要
 
 ### S3-5. CI/CDシークレット設定（JWT鍵生成→接続アプリ→gh登録）
 - 内部: `ci-keys/server.key|crt` を openssl で生成（`.gitignore` 済）→ 接続アプリ作成チェックリスト（手動）→ 環境ごとに `gh secret/variable set`（`<PREFIX>_CLIENT_ID/USERNAME/JWT_KEY`＋変数 `_INSTANCE_URL`）→ ブランチ保護へ誘導
