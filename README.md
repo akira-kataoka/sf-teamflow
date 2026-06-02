@@ -112,10 +112,10 @@ flowchart LR
 | テスト | Apexテストを実行 / Orgへ反映してテスト | 結果・カバレッジ表示 / 高速ループ |
 | リリース | 環境を選んでデプロイ / Git差分をデプロイ / 検証 / 差分プレビュー | 開発→ステージング→本番、本番二重確認 |
 | 保存 | 保存してバックアップ / GitHubと同期 / GitHubに公開 | commit+push / pull+push / `gh repo create` |
-| 保存 | 作業ブランチを作成 / ブランチを管理 | feature運用・切替/**取り込み(マージ)**/作成/削除 |
-| 保存 | Pull Requestを作成 | `gh pr create`（マージ先選択） |
-| 保存 | リリースタグを作成 / タグを管理 | 次バージョンを semver で選択（修正=パッチ/新機能=マイナー/破壊的=メジャー）・push/削除 |
-| 保存 | 変更を取り消す（ロールバック） / 変更履歴を見る | `git revert`（履歴を壊さない）/ 誰が・いつ・何を→変更ファイル |
+| 保存 | 作業ブランチを作成 / ブランチを管理 | 種別(feature/hotfix/release)を選んで命名・切替/**取り込み(マージ)**/作成/削除/**取り込み中止(競合からの脱出)** |
+| 保存 | Pull Requestを作成 | `gh pr create`（マージ先選択・PRテンプレート反映） |
+| 保存 | リリースタグを作成 / タグを管理 | 次バージョンを semver で選択（修正=パッチ/新機能=マイナー/破壊的=メジャー）・push/削除・**GitHubリリース(ノート自動生成)** |
+| 保存 | 変更を取り消す（ロールバック） / 変更履歴を見る | `git revert`（履歴を壊さない・マージコミットは-m対応）/ 誰が・いつ・何を→変更ファイル |
 | 設定 | チーム設定を開く / CI/CDを生成 / CI/CDシークレットを設定 / **CI状況(GitHub Actions)を開く** / チーム開発ガイド / 設定 | sf-teamflow.json・GitHub Actions（PR検証＋Apexテスト＋PMD＋LWC Jest／mergeで自動デプロイ）・JWT鍵生成＋シークレット登録・CI実行状況・ガイド |
 
 > ほとんどの操作はサイドバーの「ホーム」からクリックだけで実行できます。
@@ -124,11 +124,11 @@ flowchart LR
 ```bash
 npm install
 npm run check-types      # tsc --noEmit
-npm test                 # ピュアロジックの単体テスト (node:test, 110件)
+npm test                 # ピュアロジック＋実git統合の単体テスト (node:test, 222件)
 npm run build            # esbuild
 npm run package          # .vsix 生成
 ```
-アーキテクチャ：UI（`vscode`依存）とドメインロジック（純粋関数）を分離。`orgService`/`gitService`/`deployService`/`projectService`/`teamflowConfig`/`cicd/templates`/`tagUtils` は副作用のない純粋関数として `node:test` でテスト。
+アーキテクチャ：UI（`vscode`依存）とドメインロジック（純粋関数）を分離。`orgService`/`gitService`/`deployService`/`projectService`/`teamflowConfig`/`cicd/templates`/`tagUtils`/`webview/readiness`/`webview/nextStep` は副作用のない純粋関数として `node:test` でテスト（取り込み・取り消し等は実gitで統合テスト）。
 
 ## ライセンス
 MIT
