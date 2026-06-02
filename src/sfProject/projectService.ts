@@ -423,6 +423,29 @@ export function isReleaseLikeBranch(branch: string): boolean {
   return /^(release|hotfix)\//.test(branch || "");
 }
 
+export interface BranchTypeOption {
+  /** QuickPick の表示ラベル。 */
+  label: string;
+  /** 命名時に前置するプレフィックス（""=なし）。 */
+  prefix: string;
+  /** 補足説明。 */
+  detail: string;
+}
+
+/**
+ * 新しい作業ブランチの「種類」候補（GitHub Flow の慣習）。初心者に feature/hotfix/release の
+ * 使い分けを示しつつ、命名のゆれ（feat/ と feature/ の混在など）を防ぐ。プレフィックスは
+ * いずれも `branchNameError` を通る妥当な接頭辞。Pure & unit-tested.
+ */
+export function branchTypeOptions(): BranchTypeOption[] {
+  return [
+    { label: "$(git-branch) feature/ — 新機能・通常の開発", prefix: "feature/", detail: "おすすめ。1機能=1ブランチ" },
+    { label: "$(flame) hotfix/ — 緊急の修正", prefix: "hotfix/", detail: "本番の不具合など、急ぎの修正" },
+    { label: "$(rocket) release/ — リリース準備", prefix: "release/", detail: "リリース直前の調整・バージョン確定" },
+    { label: "$(edit) プレフィックスなしで入力", prefix: "", detail: "自分で自由に名前を付ける" },
+  ];
+}
+
 /**
  * 共有の基準ブランチ（誤ってローカル削除すると混乱の元）か。
  * `main`/`master`/`develop` と `release/*`・`hotfix/*` を保護対象とみなす。

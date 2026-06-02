@@ -97,6 +97,7 @@
 - 操作: 🌿 ブランチ管理（切替/**取り込み(マージ)**/作成/削除）
 - 内部: `git switch -c` / `switch` / **`git merge --no-edit`（`mergeBranch`）** / `branch -d`（✅ `feature/検索` 日本語ブランチ検証）
 - 確認観点: 作業中ブランチのハイライト／名前検証(`branchNameError`)／**共有基準ブランチ削除時の強い警告(`isProtectedBranch`)**
+- 作成UX: 新規作成時は**種別ピッカー**（`branchTypeOptions`：feature/ 新機能・hotfix/ 緊急修正・release/ リリース準備・プレフィックスなし）を先に選び、名前欄に接頭辞をプリフィル。GitHub Flow の規約を示し命名のゆれ（feat/ と feature/ 混在など）を防ぐ
 - マージ（✅ 実gitで統合テスト）: 「このブランチを現在のブランチに取り込む」= 他ブランチ(例 develop)を現在ブランチへ `merge`。競合時は**マージ状態を維持**し、ホームの競合一覧→各ファイル解決→「バックアップ」で完了（abortしない）。本流(feature→develop/main)への統合は PR 経由を推奨
 - 競合中の脱出口（✅ 実gitで統合テスト）: ホームの競合ボックスに「🛑 やめて取り込み前に戻す（中止）」を追加。確認後 `git merge --abort`（`abortMerge`）で MERGE_HEAD を解消し取り込み前の内容へ復帰。マージ中でなければ ok=false（無害）。`teamflow.abortMerge` コマンド
 

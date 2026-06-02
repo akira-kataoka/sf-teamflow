@@ -45,6 +45,7 @@ import { suggestNextTag, suggestNextTags } from "./tagUtils.js";
 import {
   buildPullRequestArgs,
   buildReleaseCreateArgs,
+  branchTypeOptions,
   isReleaseLikeBranch,
   isProtectedBranch,
   prBaseCandidates,
@@ -494,10 +495,23 @@ export function registerGitCommands(
     }
     try {
       if (pick === NEW) {
+        // GitHub Flow のブランチ種別を選んでから命名（規約を示し、命名のゆれを防ぐ）。
+        const typePick = await vscode.window.showQuickPick(
+          branchTypeOptions().map((o) => ({ label: o.label, detail: o.detail, prefix: o.prefix })),
+          {
+            title: "ブランチの種類",
+            placeHolder: "feature=新機能 / hotfix=緊急修正 / release=リリース準備",
+          }
+        );
+        if (!typePick) {
+          return;
+        }
+        const prefix = typePick.prefix;
         const name = await vscode.window.showInputBox({
           title: "新しい作業ブランチ",
           prompt: "機能ごとにブランチを分けるのが安全です。",
-          value: "feature/",
+          value: prefix,
+          valueSelection: [prefix.length, prefix.length],
           validateInput: (v) => {
             const err = branchNameError(v);
             if (err) {

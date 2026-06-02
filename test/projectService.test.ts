@@ -21,6 +21,7 @@ import {
   scratchAliasForBranch,
   prBaseCandidates,
   isReleaseLikeBranch,
+  branchTypeOptions,
   isProtectedBranch,
   buildPullRequestArgs,
   buildReleaseCreateArgs,
@@ -351,6 +352,20 @@ test("buildPullRequestArgs: web は --fill を付けず（PRテンプレート�
   assert.deepEqual(buildPullRequestArgs({ baseBranch: "main", web: false }), [
     "pr", "create", "--base", "main", "--fill",
   ]);
+});
+
+test("branchTypeOptions: feature/hotfix/release＋自由入力を提供し、プレフィックスは妥当な接頭辞", () => {
+  const opts = branchTypeOptions();
+  const prefixes = opts.map((o) => o.prefix);
+  assert.deepEqual(prefixes, ["feature/", "hotfix/", "release/", ""]);
+  // 末尾スラッシュ付きプレフィックス＋名前 が git ブランチ名の許容文字に収まる
+  for (const o of opts) {
+    const sample = o.prefix + "my-work";
+    assert.ok(/^[A-Za-z0-9._/-]+$/.test(sample), `妥当な文字: ${sample}`);
+    assert.ok(!sample.includes("//") && !sample.includes(".."), `不正連続なし: ${sample}`);
+  }
+  // 各オプションにラベルと説明がある
+  assert.ok(opts.every((o) => o.label.length > 0 && o.detail.length > 0));
 });
 
 test("buildReleaseCreateArgs: 既定で --generate-notes 付き、title/latest を任意で追加", () => {
