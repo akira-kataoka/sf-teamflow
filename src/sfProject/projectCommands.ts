@@ -429,6 +429,28 @@ export function registerProjectCommands(
     if (!org) {
       return;
     }
+    // 「資材反映」は自分の開発環境向け。本番Orgを選ぶと差分確認・二重確認のある
+    // 「環境へデプロイ」を飛ばして直接本番へ反映してしまうため、強く確認して誘導する。
+    if (org.isProduction) {
+      const go = await vscode.window.showWarningMessage(
+        `⚠️「${org.displayName}」は本番環境です。`,
+        {
+          modal: true,
+          detail:
+            "「資材反映」は自分の開発環境へ素早く反映する操作で、差分確認や二重確認はありません。\n" +
+            "本番へ反映するなら「環境へデプロイ」（対象ファイルの確認＋本番の二重確認つき）をおすすめします。",
+        },
+        "デプロイ画面へ",
+        "それでも反映する"
+      );
+      if (go === "デプロイ画面へ") {
+        await vscode.commands.executeCommand("teamflow.deployToEnvironment");
+        return;
+      }
+      if (go !== "それでも反映する") {
+        return;
+      }
+    }
     const scope = await vscode.window.showQuickPick(
       [
         { label: "$(check-all) すべて反映する", detail: "ローカルのソース全体", mode: "all" },

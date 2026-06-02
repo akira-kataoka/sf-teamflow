@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.86.1] - 2026-06-03
+
+- 🛡️ **「資材反映」で本番Orgを選んだら強く警告してデプロイ画面へ誘導（本番事故の防止）**: 「資材反映（sourcePush）」は反映先を選べるが、ここで**本番Orgを選ぶと、デプロイの差分確認・本番二重確認をバイパスして直接本番へ反映**できてしまう安全ギャップがあった（資材反映は本来「自分の開発環境」向け）。反映先が本番のときは modal で警告し、「デプロイ画面へ」（対象ファイル確認＋本番二重確認つきの `teamflow.deployToEnvironment`）へ誘導するようにした（「それでも反映する」で続行も可）。`org.isProduction` による入口ガードで、既存のデプロイ安全策と整合（計219件pass）。TEST_SCENARIOS(S1-4) も更新。
+
 ## [0.86.0] - 2026-06-03
 
 - 🌿 **作業ブランチ作成に「種別ピッカー」を追加（GitHub Flow の命名を初心者に）**: これまでは「feature/」固定の自由入力で、命名の揺れ（feat/・feature/ の混在）や種別の使い分け迷子が起きやすかった。新規ブランチ作成時に、まず種別を選ぶ QuickPick（**feature/ 新機能 ・ hotfix/ 緊急修正 ・ release/ リリース準備 ・ プレフィックスなし**）を出し、選んだ接頭辞を名前欄にプリフィルするようにした。GitHub Flow の慣習を自然に学べ、チーム内のブランチ名が揃う。候補は純粋関数 `branchTypeOptions()`（各接頭辞は `branchNameError` を通る妥当な形）として単体テスト（計219件pass）。README・TEST_SCENARIOS(S2-5) も更新。
