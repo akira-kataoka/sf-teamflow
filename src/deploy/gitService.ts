@@ -401,11 +401,14 @@ export async function revertCommit(
 export const BASELINE_GITIGNORE_ENTRIES = [
   ".sf/", // org認証トークンを含む
   ".sfdx/", // 旧CLIの認証/キャッシュ
+  ".localdevserver/", // LWCローカル開発サーバのキャッシュ
   "ci-keys/", // CI用のJWT秘密鍵
   "node_modules/",
   "coverage/", // LWC Jest（生成CIの test:unit）のカバレッジ出力
+  ".eslintcache", // ESLintのキャッシュ
   "*.log", // sf CLI 等のログ
-  ".DS_Store",
+  ".DS_Store", // macOSのフォルダメタ
+  "Thumbs.db", // Windowsのサムネイルキャッシュ
 ];
 
 /**

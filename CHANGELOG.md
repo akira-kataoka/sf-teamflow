@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.76.1] - 2026-06-02
+
+- 🧹 **`.gitignore` ベースラインに Salesforce 定番の除外を追加**: Git開始時に用意するベースライン `.gitignore` へ、Salesforce公式 `.gitignore` 相当の安全な定番エントリを3つ追加 — `.localdevserver/`（LWCローカル開発サーバのキャッシュ）、`.eslintcache`（ESLintキャッシュ）、`Thumbs.db`（Windowsのサムネイルキャッシュ）。いずれも普遍的にGit管理対象外で、`mergeGitignore` は既存行を尊重し不足分のみ追記するため既存リポジトリにも安全。Windows環境では `Thumbs.db` の混入を防げる。テスト更新（計179件pass）。
+
 ## [0.76.0] - 2026-06-02
 
 - 🧹 **`.forceignore` のベースラインを自動生成（Salesforce DX標準・既存は尊重）**: `sf project deploy/retrieve` の除外リスト `.forceignore` は `sf project generate` が新規プロジェクトに作るが、既存プロジェクトには無いことが多く、無いと LWC の Jest テスト（`**/__tests__/**`）・LWC設定（`jsconfig.json`/`.eslintrc.json`）・`package.xml` といった**デプロイ不可なノイズ**が取得や差分に混ざっていた。「チーム設定（sf-teamflow.json）」初期化時に、`.forceignore` が無い／空のときだけ Salesforce 標準と同等の内容を作成（既存ファイルがあれば一切上書きしない）。除外対象は普遍的に非デプロイなものだけなので、実メタデータの取りこぼし（無言の未デプロイ）は起きない。純粋関数 `BASELINE_FORCEIGNORE` / `shouldWriteBaselineForceignore()` を追加し単体テストで網羅（計179件pass）。.gitignore/.gitattributes の「既存尊重」パターンと同様の最小実装。
