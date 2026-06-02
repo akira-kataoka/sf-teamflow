@@ -337,11 +337,17 @@ test("prBaseCandidates: current除外・develop/mainは常に含む・残りを�
   assert.deepEqual(prBaseCandidates("feature/y", []), ["develop", "main"]);
 });
 
-test("buildPullRequestArgs targets a base branch with --fill", () => {
+test("buildPullRequestArgs: web は --fill を付けず（PRテンプレートを活かす）、非対話は --fill を付ける", () => {
+  // ブラウザ作成: --fill を付けない（GitHubのpull_request_template.mdを本文に反映させるため）
   assert.deepEqual(buildPullRequestArgs({ baseBranch: "develop", web: true }), [
-    "pr", "create", "--base", "develop", "--fill", "--web",
+    "pr", "create", "--base", "develop", "--web",
   ]);
+  // 非対話作成: --fill が無いと gh が入力待ちでハングするので必須
   assert.deepEqual(buildPullRequestArgs({ baseBranch: "main" }), [
+    "pr", "create", "--base", "main", "--fill",
+  ]);
+  // web を明示 false にしても非対話扱い
+  assert.deepEqual(buildPullRequestArgs({ baseBranch: "main", web: false }), [
     "pr", "create", "--base", "main", "--fill",
   ]);
 });

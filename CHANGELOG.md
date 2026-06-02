@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.77.1] - 2026-06-02
+
+- 🔀 **PR作成（ブラウザ）で PRテンプレートが本文に反映されるよう修正**: `gh pr create` を常に `--fill --web` で実行していたが、`--fill` はコミットから本文をURLに埋め込み、それが直前バージョンで追加した GitHub の PRテンプレート（`.github/pull_request_template.md`）を**上書きしてテンプレートが出ない**状態だった。ブラウザ作成時は `--fill` を付けず GitHub のPRフォームにテンプレート展開を任せるよう変更（本文の雛形＝レビュー観点チェックリストが表示される）。非対話作成（web無し）は gh が入力待ちでハングしないよう従来どおり `--fill` を維持。`buildPullRequestArgs` のテストを更新（計180件pass）。
+
 ## [0.77.0] - 2026-06-02
 
 - 📋 **Pull Request テンプレートを CI/CD 生成物に追加**: 「CI/CDを生成」で `.github/pull_request_template.md` も生成するようにした。GitHub では PR 作成時に説明欄へ自動展開され、レビュー観点を毎回ゼロから書かずに済む。内容は Salesforce 開発で確認すべき項目（概要・変更内容・**Apexテスト/カバレッジ**・影響範囲・**破壊的変更の有無**・関連Issue）をチェックリスト化（GitHub のタスクリスト `- [ ]` 形式）。タイルは増やさず生成ファイルが1つ増えるのみ（既存ファイルは生成時の上書き選択に従う）。純粋関数 `pullRequestTemplate()` を追加し、`cicdFiles` の出力（従来3→4ファイル）とテンプレート内容を単体テストで検証（計180件pass）。

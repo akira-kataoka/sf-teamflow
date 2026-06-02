@@ -452,11 +452,21 @@ export interface PullRequestOptions {
   web?: boolean;
 }
 
-/** Build `gh pr create` argv. `--fill` pre-populates title/body from commits. */
+/**
+ * Build `gh pr create` argv.
+ *
+ * ブラウザ作成（web）では `--fill` を **付けない**。`--fill` はコミットから本文を
+ * URLに埋め込み、それが GitHub の Pull Request テンプレート（.github/pull_request_template.md）
+ * を上書きしてしまうため。テンプレートを本文に活かすには web フォームに任せる。
+ * 一方、非対話作成（web 無し）では `--fill` が無いと gh がタイトル/本文の入力待ちで
+ * ハングするので必須。
+ */
 export function buildPullRequestArgs(opts: PullRequestOptions): string[] {
-  const args = ["pr", "create", "--base", opts.baseBranch, "--fill"];
+  const args = ["pr", "create", "--base", opts.baseBranch];
   if (opts.web) {
     args.push("--web");
+  } else {
+    args.push("--fill");
   }
   return args;
 }
