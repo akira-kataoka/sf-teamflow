@@ -58,15 +58,21 @@ test("computeNextAction: feature ブランチを push 済み・保留なしな�
   assert.match(na.t2, /Pull Request/);
 });
 
-test("computeNextAction: 基準ブランチ(develop等)で保留なしは calm（PRは勧めない）", () => {
+test("computeNextAction: 基準ブランチ(develop等)で保留なしは『作業ブランチを作る』へ導く（行き止まりにしない）", () => {
   const na = computeNextAction({ ...base(), branch: "develop", onBaseBranch: true });
-  assert.equal(na.calm, true);
-  assert.equal(na.command, undefined);
+  assert.equal(na.command, "teamflow.gitNewBranch");
+  assert.match(na.t2, /作業ブランチ/);
+  assert.notEqual(na.calm, true);
 });
 
 test("computeNextAction: リモート未接続の feature は PR を勧めず calm", () => {
   const na = computeNextAction({ ...base(), hasRemote: false });
   assert.equal(na.calm, true);
+});
+
+test("computeNextAction: 変更ありは基準ブランチでもまず保存（新ブランチ提案より優先）", () => {
+  const na = computeNextAction({ ...base(), branch: "develop", onBaseBranch: true, changes: 2 });
+  assert.equal(na.command, "teamflow.gitCommitPush");
 });
 
 test("computeNextAction: 変更ありは PR より先にバックアップを優先（順序）", () => {

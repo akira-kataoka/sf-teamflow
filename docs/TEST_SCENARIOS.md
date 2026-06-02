@@ -13,7 +13,7 @@
 - 期待: ホームの「次にやること」が **📂 プロジェクト作成** を指す。②開発以降のタイルは無効（グレー）
 - 確認観点: `hasProject=false` のとき ②③④⑤ が押せないこと／ヒーローが正しい初手を示すこと
 - エッジ: フォルダ未オープン時は各コマンドが「フォルダを開いてください」を出す
-- 内部: ヒーロー（次にやること）はホスト側の純粋関数 `computeNextAction()` で決定（フォルダ→プロジェクト→接続切れ再接続→認証→環境設定→保存→同期→**feature ブランチpush済みならPR作成**→calm）。単体テストで順序・各分岐を網羅
+- 内部: ヒーロー（次にやること）はホスト側の純粋関数 `computeNextAction()` で決定（フォルダ→プロジェクト→接続切れ再接続→認証→環境設定→保存→同期→**feature ブランチpush済みならPR作成**→**基準ブランチで保留なしなら作業ブランチ作成（次の開発へ）**→calm）。GitHub Flow が一巡する導線。単体テストで順序・各分岐を網羅
 
 ### S0-3. チーム開発の準備パネル（🚦 網羅的なセットアップ達成度）
 - 内部: `computeTeamReadiness({hasProject, orgCount, configured, hasRemote, ciScaffolded})` をホストで算出しwebviewへ。`ciScaffolded` は `.github/workflows/sf-deploy.yml|sf-validate.yml` の存在で判定

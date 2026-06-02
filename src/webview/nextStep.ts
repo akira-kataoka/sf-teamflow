@@ -81,5 +81,15 @@ export function computeNextAction(s: NextActionInput): NextAction {
       command: "teamflow.createPullRequest",
     };
   }
+  // 基準ブランチ（develop/main 等）で保留が無いなら、次の開発は feature ブランチから。
+  // 行き止まりにせず GitHub Flow の起点（作業ブランチ作成）へ導く。
+  if (!!s.branch && s.onBaseBranch) {
+    return {
+      em: "🌿",
+      t1: "次にやること",
+      t2: "作業ブランチを作って次の開発を始める",
+      command: "teamflow.gitNewBranch",
+    };
+  }
   return { em: "✅", t1: "準備OK", t2: "いまやる操作はありません", calm: true };
 }
