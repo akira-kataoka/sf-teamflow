@@ -23,6 +23,7 @@ import {
   matchBranch,
   resolveEnvironment,
   testLevelFor,
+  unauthedConfigAliases,
   type TeamflowConfig,
 } from "./config/teamflowConfig.js";
 import {
@@ -160,12 +161,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   register("teamflow.refreshOrgs", () => refreshAll());
 
-  register("teamflow.authorizeOrg", () => {
-    runInTerminal(`${cliPath()} org login web`);
-    vscode.window.showInformationMessage(
-      "ブラウザでログインしてください。完了後、環境一覧を更新します。"
-    );
-  });
+  register("teamflow.authorizeOrg", () => void authorizeOrg());
 
   register("teamflow.setDefaultOrg", (node?: TreeNode) => setDefaultOrg(node));
   register("teamflow.openOrg", (node?: TreeNode) => openOrg(node));
@@ -587,6 +583,76 @@ async function deployOrValidate(validateOnly: boolean): Promise<void> {
     return;
   }
   await executeDeploy(ctx, validateOnly);
+}
+
+/**
+ * 環境を認証（ブラウザログイン）。チーム設定がある場合は、まだ認証されていない
+ * 接続先(orgAlias)を候補として提示し、選んだ別名で `--alias` 付き認証する。これにより
+ * チームメンバーの認証が sf-teamflow.json の接続先に一致し、環境が正しく解決される
+ * （別名なしだとユーザー名のままで環境に紐づかない）。
+ */
+async function authorizeOrg(): Promise<void> {
+  let alias: string | undefined;
+  const root = workspaceRoot();
+  if (root) {
+    let cfg: TeamflowConfig | undefined;
+    try {
+      cfg = await loadConfig(root);
+    } catch {
+      /* 設定が不正でも認証自体は続行 */
+    }
+    if (cfg) {
+      const knownAliases = orgTree.knownOrgs.flatMap((o) =>
+        [o.alias, o.username].filter((x): x is string => !!x)
+      );
+      const pending = unauthedConfigAliases(cfg, knownAliases);
+      if (pending.length > 0) {
+        const CUSTOM = "$(pencil) 別名を自分で入力…";
+        const NONE = "$(circle-slash) 別名なしで認証";
+        const pick = await vscode.window.showQuickPick(
+          [
+            ...pending.map((a) => ({
+              label: `$(plug) ${a}`,
+              detail: `チーム設定の接続先「${a}」として認証（環境に紐づきます）`,
+              value: a,
+            })),
+            { label: CUSTOM, detail: "任意の別名を付ける", value: CUSTOM },
+            { label: NONE, detail: "別名を付けずにログイン", value: NONE },
+          ],
+          {
+            title: "どの接続先として認証しますか？",
+            placeHolder: "チーム設定(sf-teamflow.json)の未認証の接続先",
+          }
+        );
+        if (!pick) {
+          return;
+        }
+        if (pick.value === CUSTOM) {
+          const v = await vscode.window.showInputBox({
+            title: "別名（alias）",
+            prompt: "この環境を呼ぶ短い名前（例: uat, prod）",
+            validateInput: (s) =>
+              /^[A-Za-z0-9._-]+$/.test(s.trim()) || s.trim() === ""
+                ? undefined
+                : "英数字と . - _ のみ使えます（スペース・日本語は不可）。",
+          });
+          alias = v?.trim() || undefined;
+        } else if (pick.value !== NONE) {
+          alias = pick.value;
+        }
+      }
+    }
+  }
+  const args = ["org", "login", "web"];
+  if (alias) {
+    args.push("--alias", alias);
+  }
+  runInTerminal(renderCommand(cliPath(), args));
+  vscode.window.showInformationMessage(
+    alias
+      ? `ブラウザでログインしてください（接続先「${alias}」として認証）。完了後、環境一覧を更新します。`
+      : "ブラウザでログインしてください。完了後、環境一覧を更新します。"
+  );
 }
 
 /**

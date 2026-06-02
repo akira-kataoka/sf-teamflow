@@ -9,6 +9,7 @@ import {
   parseTeamflowConfig,
   resolveEnvironment,
   testLevelFor,
+  unauthedConfigAliases,
 } from "../src/config/teamflowConfig.js";
 
 test("defaultConfig: 新規ユーザー既定の不変条件(GitHub Flow構成・自前検証を通る)", () => {
@@ -185,6 +186,27 @@ test("lintTeamflowConfig: 接続先が全て別なら重複警告は出ない", 
   const c = defaultConfig(); // prod/uat/int で全て別alias
   const w = lintTeamflowConfig(c, c.environments.map((e) => e.orgAlias));
   assert.ok(!w.some((m) => /複数の環境/.test(m)), "no duplicate-alias warning for healthy config");
+});
+
+test("unauthedConfigAliases: 未認証の接続先だけを重複なく返す（別名/ユーザー名どちらでも認証済み扱い）", () => {
+  const c = defaultConfig(); // 接続先: prod / uat / int
+  // 何も認証していない → 全部が未認証（定義順）
+  assert.deepEqual(unauthedConfigAliases(c, []), ["prod", "uat", "int"]);
+  // uat は別名で、prod はユーザー名(prod@example.com 相当ではなく別名一致)で認証済み扱い
+  assert.deepEqual(unauthedConfigAliases(c, ["uat"]), ["prod", "int"]);
+  // ユーザー名側で一致しても認証済み扱い
+  assert.deepEqual(unauthedConfigAliases(c, ["prod", "uat", "int"]), []);
+});
+
+test("unauthedConfigAliases: 同一接続先が複数環境に出ても重複しない", () => {
+  const c = parseTeamflowConfig({
+    environments: [
+      { name: "a", orgAlias: "shared", branch: "develop", type: "sandbox" },
+      { name: "b", orgAlias: "shared", branch: "release/*", type: "sandbox" },
+      { name: "c", orgAlias: "prod", branch: "main", type: "production" },
+    ],
+  });
+  assert.deepEqual(unauthedConfigAliases(c, []), ["shared", "prod"]);
 });
 
 test("lintTeamflowConfig skips org check when no known aliases", () => {

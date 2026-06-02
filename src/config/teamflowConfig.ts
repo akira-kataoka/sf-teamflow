@@ -230,6 +230,24 @@ export function lintTeamflowConfig(config: TeamflowConfig, knownAliases: string[
   return warnings;
 }
 
+/**
+ * チーム設定が参照する接続先(orgAlias)のうち、まだ認証されていないものを重複なく返す。
+ * `knownAliases` は認証済み環境の別名＋ユーザー名（どちらでも環境に紐づくため両方渡す）。
+ * 認証コマンドで「この接続先として認証」する候補提示に使う。Pure & unit-tested.
+ */
+export function unauthedConfigAliases(config: TeamflowConfig, knownAliases: string[]): string[] {
+  const known = new Set(knownAliases.filter(Boolean));
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const e of config.environments) {
+    if (e.orgAlias && !known.has(e.orgAlias) && !seen.has(e.orgAlias)) {
+      seen.add(e.orgAlias);
+      result.push(e.orgAlias);
+    }
+  }
+  return result;
+}
+
 /** Default config written by the init command. */
 export function defaultConfig(packageDirectories: string[] = ["force-app"]): TeamflowConfig {
   return {
