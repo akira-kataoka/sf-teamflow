@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.88.16] - 2026-06-03
+
+- 🔄 **「次にやること」：ローカルとリモートが分岐したとき『先に取り込んでから送る』と案内**: 自分のコミット（ahead）とリモートの更新（behind）が両方ある分岐状態では、単純な push は non-fast-forward で弾かれる。従来は ahead だけを見て「未バックアップN件をGitHubへ」（＝送るだけ）と促していたため、push 拒否で初心者が戸惑っていた。分岐時は「GitHubと同期（先に取り込んでから送る・先行N／遅れM件）」と明示し、同期コマンド（pull→push、ff-only失敗時はマージへ誘導）の実挙動と文言をそろえた。`computeNextAction` の純粋関数なので分岐ケース＝単体テストで固定（計249件pass）。
+
 ## [0.88.15] - 2026-06-03
 
 - ✅ **公開準備: 制限モード（信頼されていないワークスペース）の挙動を確認＋公開要件を回帰テスト化**: `capabilities.untrustedWorkspaces.supported: false` のため、信頼されていない/制限モードのワークスペースでは VS Code が拡張を無効化する設計（git・sf を実行するため信頼が前提。README「信頼が必要」と整合）。`activate()` はフォルダ未オープンでも例外を投げず、重い処理は各コマンド側の「ワークスペース(フォルダ)を開いてください」ガードに委譲されることを確認。あわせて、公開（マーケットプレイス）に必要な `package.json` 不変条件を固定する `manifest.test.ts` を追加（publisher が実在・version が semver・`icon` が 128x128 以上の正方形 PNG・`engines.vscode`↔`@types/vscode` の major.minor 一致・制限モード非対応宣言＋理由・`onStartupFinished`）。将来の編集で公開要件をうっかり壊しても CI で検知できる（計247件pass）。

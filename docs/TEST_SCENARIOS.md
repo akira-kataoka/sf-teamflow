@@ -13,7 +13,7 @@
 - 期待: ホームの「次にやること」が **📂 プロジェクト作成** を指す。②開発以降のタイルは無効（グレー）
 - 確認観点: `hasProject=false` のとき ②③④⑤ が押せないこと／ヒーローが正しい初手を示すこと
 - エッジ: フォルダ未オープン時は各コマンドが「フォルダを開いてください」を出す
-- 内部: ヒーロー（次にやること）はホスト側の純粋関数 `computeNextAction()` で決定（フォルダ→プロジェクト→接続切れ再接続→認証→環境設定→**コンフリクト中は解決へ誘導**→保存→同期→**feature ブランチが push済み(upstreamあり)ならPR作成**→**基準ブランチで保留なしなら作業ブランチ作成（次の開発へ）**→calm）。GitHub Flow が一巡する導線。作りたて未pushのブランチには空PRを促さない（`hasUpstream`）。**競合中は変更がカウントされても『保存』を促さず解決を優先**（`conflictCount`・誤コミット防止）。単体テストで順序・各分岐を網羅
+- 内部: ヒーロー（次にやること）はホスト側の純粋関数 `computeNextAction()` で決定（フォルダ→プロジェクト→接続切れ再接続→認証→環境設定→**コンフリクト中は解決へ誘導**→保存→同期→**feature ブランチが push済み(upstreamあり)ならPR作成**→**基準ブランチで保留なしなら作業ブランチ作成（次の開発へ）**→calm）。GitHub Flow が一巡する導線。作りたて未pushのブランチには空PRを促さない（`hasUpstream`）。**競合中は変更がカウントされても『保存』を促さず解決を優先**（`conflictCount`・誤コミット防止）。**ローカルとリモートが分岐（ahead かつ behind）しているときは単純 push が non-fast-forward で弾かれるため『先に取り込んでから送る』同期を促す**（ahead だけ見て「送る」と促すと push 拒否で戸惑うのを防ぐ）。単体テストで順序・各分岐を網羅
 
 ### S0-3. チーム開発の準備パネル（🚦 網羅的なセットアップ達成度）
 - 内部: `computeTeamReadiness({hasProject, orgCount, configured, hasRemote, ciScaffolded})` をホストで算出しwebviewへ。`ciScaffolded` は `.github/workflows/sf-deploy.yml|sf-validate.yml` の存在で判定

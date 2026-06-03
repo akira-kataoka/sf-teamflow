@@ -80,6 +80,18 @@ export function computeNextAction(s: NextActionInput): NextAction {
   if (s.changes > 0) {
     return { em: "💾", t1: "次にやること", t2: "変更 " + s.changes + "件をバックアップ", command: "teamflow.gitCommitPush" };
   }
+  // ローカルとリモートが分岐（先行も遅れも両方ある）しているときは、単純な push は
+  // non-fast-forward で弾かれる。「送るだけ」ではなく「先に取り込んでから送る」と
+  // 分かる文言にして期待値をそろえる（同期コマンドが pull→push を担い、ff-only 失敗時は
+  // マージへ誘導）。先に ahead だけを見て「GitHubへ送る」と促すと push 拒否で戸惑うため。
+  if (s.ahead > 0 && s.behind > 0) {
+    return {
+      em: "🔄",
+      t1: "次にやること",
+      t2: "GitHubと同期（先に取り込んでから送る・先行" + s.ahead + "／遅れ" + s.behind + "件）",
+      command: "teamflow.gitSync",
+    };
+  }
   if (s.ahead > 0) {
     return { em: "🔄", t1: "次にやること", t2: "未バックアップ " + s.ahead + "件をGitHubへ", command: "teamflow.gitSync" };
   }

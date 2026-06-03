@@ -53,6 +53,22 @@ test("computeNextAction: 日々のループ（保存→同期）を順に促す"
   assert.equal(computeNextAction({ ...base(), behind: 1 }).command, "teamflow.gitSync");
 });
 
+test("computeNextAction: ローカルとリモートが分岐(ahead&behind)なら『先に取り込んでから送る』同期へ導く", () => {
+  // 単純 push は non-fast-forward で弾かれるため、send だけを促さず pull→push を示す。
+  const na = computeNextAction({ ...base(), ahead: 2, behind: 3 });
+  assert.equal(na.command, "teamflow.gitSync");
+  assert.match(na.t2, /取り込んでから送る/);
+  assert.match(na.t2, /先行2/);
+  assert.match(na.t2, /遅れ3/);
+});
+
+test("computeNextAction: ahead のみ(分岐なし)は従来どおり『GitHubへ送る』", () => {
+  const na = computeNextAction({ ...base(), ahead: 2, behind: 0 });
+  assert.equal(na.command, "teamflow.gitSync");
+  assert.match(na.t2, /GitHubへ/);
+  assert.doesNotMatch(na.t2, /取り込んでから/);
+});
+
 test("computeNextAction: feature ブランチを push 済み・保留なしなら PR 作成へ導く（GitHub Flow）", () => {
   const na = computeNextAction(base());
   assert.equal(na.command, "teamflow.createPullRequest");
