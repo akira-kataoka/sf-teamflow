@@ -192,6 +192,22 @@ export const CATEGORY_ORDER: Record<OrgCategory, number> = {
   Other: 4,
 };
 
+/**
+ * 環境カテゴリを初心者向けの日本語ラベルにする（英語の category 名だと伝わりにくいため）。
+ * 環境選択ピッカーなどで使用。英語名も併記して検索性は保つ用途を想定。未知値はそのまま返す。
+ * Pure & unit-tested.
+ */
+export function orgCategoryLabel(category: OrgCategory | string): string {
+  const gloss: Record<OrgCategory, string> = {
+    Production: "本番（お客様が使う）",
+    Sandbox: "Sandbox（検証用）",
+    DevHub: "Dev Hub（使い捨て環境の親）",
+    Scratch: "スクラッチ（使い捨て）",
+    Other: "その他",
+  };
+  return (gloss as Record<string, string>)[category] ?? category;
+}
+
 export interface OrgServiceOptions {
   cliPath?: string;
   cwd?: string;

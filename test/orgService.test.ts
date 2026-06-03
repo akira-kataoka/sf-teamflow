@@ -7,8 +7,18 @@ import {
   scratchRemainingLabel,
   isScratchExpired,
   isScratchExpiringSoon,
+  orgCategoryLabel,
   type RawOrg,
 } from "../src/orgManager/orgService.js";
+
+test("orgCategoryLabel: 各カテゴリを初心者向け日本語にし、未知値はそのまま返す", () => {
+  assert.match(orgCategoryLabel("Production"), /本番/);
+  assert.match(orgCategoryLabel("Sandbox"), /Sandbox/);
+  assert.match(orgCategoryLabel("DevHub"), /Dev Hub/);
+  assert.match(orgCategoryLabel("Scratch"), /スクラッチ/);
+  assert.equal(orgCategoryLabel("Other"), "その他");
+  assert.equal(orgCategoryLabel("不明な値"), "不明な値", "未知値はそのまま");
+});
 
 test("isProductionOrg flags prod login + my-domain, spares sandbox/scratch", () => {
   assert.equal(isProductionOrg({ username: "a", loginUrl: "https://login.salesforce.com" }), true);

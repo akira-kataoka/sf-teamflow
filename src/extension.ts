@@ -4,6 +4,7 @@ import { run } from "./util/exec.js";
 import { runSf, parseSfVersion, isSfVersionOutdated } from "./util/cli.js";
 import { OrgTreeProvider, type TreeNode } from "./orgManager/orgTreeProvider.js";
 import type { OrgInfo } from "./orgManager/orgService.js";
+import { orgCategoryLabel } from "./orgManager/orgService.js";
 import * as path from "node:path";
 import { promises as fsp } from "node:fs";
 import {
@@ -343,11 +344,11 @@ async function resolveOrgFromNode(node?: TreeNode): Promise<OrgInfo | undefined>
   const pick = await vscode.window.showQuickPick(
     orgs.map((o) => ({
       label: `${o.isDefaultUsername ? "★ " : ""}${o.displayName}`,
-      description: `${o.category}${o.isProduction ? " ⚠️本番" : ""}`,
+      description: `${orgCategoryLabel(o.category)}${o.isProduction ? " ⚠️本番" : ""}`,
       detail: o.username,
       org: o,
     })),
-    { placeHolder: "環境を選択" }
+    { placeHolder: "環境を選択", matchOnDetail: true, matchOnDescription: true }
   );
   return pick?.org;
 }

@@ -7,6 +7,7 @@ import { run } from "../util/exec.js";
 import { runSf, summarizeCliError } from "../util/cli.js";
 import { readSfdxPackageDirs } from "../config/configStore.js";
 import type { OrgInfo } from "../orgManager/orgService.js";
+import { orgCategoryLabel } from "../orgManager/orgService.js";
 import { refreshDevHubAuthFlag } from "../orgManager/devHubAuth.js";
 import {
   buildProjectGenerateArgs,
@@ -85,11 +86,16 @@ export function registerProjectCommands(
     const pick = await vscode.window.showQuickPick(
       orgs.map((o) => ({
         label: `${o.isDefaultUsername ? "★ " : ""}${o.displayName}`,
-        description: `${o.category}${o.isProduction ? " ⚠️本番" : ""}`,
+        description: `${orgCategoryLabel(o.category)}${o.isProduction ? " ⚠️本番" : ""}`,
         detail: o.username,
         org: o,
       })),
-      { placeHolder: def ? `${placeHolder} (既定: ${def.displayName})` : placeHolder }
+      {
+        placeHolder: def ? `${placeHolder} (既定: ${def.displayName})` : placeHolder,
+        // ユーザー名(detail)・種別(description)でも絞り込めるように（多数の環境がある場合に便利）。
+        matchOnDetail: true,
+        matchOnDescription: true,
+      }
     );
     return pick?.org;
   }
