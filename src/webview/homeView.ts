@@ -515,7 +515,9 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   details.changed[open] > summary .caret { transform: rotate(90deg); }
   details.changed > summary .bd { font-size: 11px; opacity: .65; margin-left: 2px; }
   .filelist { margin-top: 6px; max-height: 180px; overflow: auto; }
-  .fileitem { display: flex; align-items: center; gap: 7px; padding: 3px 2px; font-size: 11.5px; }
+  .fileitem { display: flex; align-items: center; gap: 7px; padding: 3px 2px; font-size: 11.5px; border-radius: 4px; }
+  .fileitem.openable { cursor: pointer; }
+  .fileitem.openable:hover { background: var(--vscode-list-hoverBackground); }
   .filetag { font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); flex: 0 0 auto; }
   .filepath { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .85; direction: rtl; text-align: left; }
 
@@ -782,9 +784,15 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
 
     // changed-files preview (what "保存してバックアップ" will save) — collapsed by default
     if (s.hasRepo && s.files && s.files.length>0) {
-      const rows = s.files.map(f =>
-        '<div class="fileitem"><span class="filetag">'+escapeHtml(f.label)+'</span>'+
-        '<span class="filepath">'+escapeHtml(f.path)+'</span></div>').join('');
+      // 削除以外はクリックでファイルを開ける（保存前に「何を変えたか」を確認しやすく）。
+      const rows = s.files.map(f => {
+        const openable = f.label !== '削除';
+        const attr = openable
+          ? ' data-openfile="'+escapeAttr(f.path)+'" role="button" tabindex="0" title="クリックで開く"'
+          : '';
+        return '<div class="fileitem'+(openable?' openable':'')+'"'+attr+'><span class="filetag">'+escapeHtml(f.label)+'</span>'+
+          '<span class="filepath">'+escapeHtml(f.path)+'</span></div>';
+      }).join('');
       // 件数はヒーローと一致させるため真の変更数(s.changes)を表示。一覧は先頭のみ載せている場合がある。
       const total = (s.changes && s.changes > s.files.length) ? s.changes : s.files.length;
       const more = total > s.files.length ? '（先頭'+s.files.length+'件を表示）' : '';
