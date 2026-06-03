@@ -34,7 +34,32 @@ import {
   DEVELOPER_EDITION_SIGNUP_URL,
   BASELINE_FORCEIGNORE,
   shouldWriteBaselineForceignore,
+  apexTestClassName,
+  apexTestStub,
+  looksLikeTestClass,
 } from "../src/sfProject/projectService.js";
+
+test("apexTestClassName: ベース名に Test を付ける", () => {
+  assert.equal(apexTestClassName("AccountService"), "AccountServiceTest");
+});
+
+test("looksLikeTestClass: 末尾Test(大小無視)を検出し、FooTestTest を防ぐ", () => {
+  assert.equal(looksLikeTestClass("AccountServiceTest"), true);
+  assert.equal(looksLikeTestClass("accountservicetest"), true);
+  assert.equal(looksLikeTestClass("AccountService"), false);
+  assert.equal(looksLikeTestClass("  FooTest  "), true, "前後空白は無視");
+});
+
+test("apexTestStub: コンパイル可能な最小 @isTest 雛形（クラス名は <Base>Test）", () => {
+  const stub = apexTestStub("AccountService");
+  assert.match(stub, /^@isTest\n/, "先頭は @isTest");
+  assert.match(stub, /private class AccountServiceTest \{/, "テストクラス名は Base+Test");
+  assert.match(stub, /@isTest\n\s+static void behavesAsExpected\(\)/, "テストメソッドに @isTest");
+  assert.match(stub, /Test\.startTest\(\);[\s\S]*Test\.stopTest\(\);/, "start/stopTest を含む");
+  assert.ok(stub.endsWith("}\n"), "末尾は閉じ括弧+改行");
+  // 波括弧の対応が取れている（最小限の健全性チェック）。
+  assert.equal((stub.match(/\{/g) || []).length, (stub.match(/\}/g) || []).length, "波括弧の数が一致");
+});
 
 test("buildProjectGenerateArgs sets name, template, package dir and manifest", () => {
   const args = buildProjectGenerateArgs({

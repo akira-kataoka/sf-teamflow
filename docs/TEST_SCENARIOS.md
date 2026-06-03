@@ -53,6 +53,7 @@
 - 期待: 雛形ファイル生成→自動で開く。失敗時はCLIエラー表示（共有ターミナル経由の無言失敗を解消済）
 - 確認観点: 名前バリデーション（`componentNameError`: 英字始まり・**日本語/記号不可**・**Salesforce API名40字上限**）。LWCは小文字始まりcamelCase
 - エッジ: ターミナルがビジーでも `run()` 実行なので確実に成否が出る。CLI未インストール時は「コマンドが見つかりません」を明示（`run()` がENOENTをstderrへ）
+- テスト誘導（Apexクラス時）: 作成後に**対のテストクラス `<Name>Test` の作成を任意提案**（本番デプロイはApexテストが必須なため）。承諾すると `sf` で生成し**最小 `@isTest` 雛形**（`apexTestStub`：`Test.startTest/stopTest`＋TODO）で上書きして開く。既に末尾 `Test` の名前なら提案しない（`looksLikeTestClass`・FooTestTest 防止）。テスト生成失敗でも本体クラスは残す（純粋関数 `apexTestClassName`/`apexTestStub`/`looksLikeTestClass` は単体テスト済）
 
 ### S1-4. 資材反映（自分の環境へ push）
 - 操作: ⬆️ 資材反映

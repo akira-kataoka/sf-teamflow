@@ -400,6 +400,39 @@ export function componentMainFile(outputDir: string, kind: ComponentKind, name: 
   }
 }
 
+/** 既存クラス名に対応する Apex テストクラス名（`Foo` → `FooTest`）。Pure。 */
+export function apexTestClassName(baseName: string): string {
+  return `${baseName}Test`;
+}
+
+/** 名前が既にテストクラス（末尾 Test、大文字小文字無視）かどうか。Pure。 */
+export function looksLikeTestClass(name: string): boolean {
+  return /test$/i.test(name.trim());
+}
+
+/**
+ * 対象クラス `baseName` 向けの最小 @isTest スタブ（テストクラス名は `${baseName}Test`）。
+ * 本番デプロイにはテストカバレッジが必要なため、初心者がテストを書き始められる雛形を提供する。
+ * Pure & unit-tested.
+ */
+export function apexTestStub(baseName: string): string {
+  const testName = apexTestClassName(baseName);
+  return [
+    "@isTest",
+    `private class ${testName} {`,
+    "    @isTest",
+    "    static void behavesAsExpected() {",
+    `        // TODO: ${baseName} の振る舞いを検証してください。`,
+    "        Test.startTest();",
+    `        // ここで ${baseName} を呼び出す`,
+    "        Test.stopTest();",
+    "        System.assert(true, 'TODO: 実際の検証に置き換えてください');",
+    "    }",
+    "}",
+    "",
+  ].join("\n");
+}
+
 /**
  * Suggested scratch-org alias for a feature branch, so「1機能=1ブランチ=1スクラッチ」
  * を名前で結びつけられる。`feature/account-search` → `scr-account-search`。

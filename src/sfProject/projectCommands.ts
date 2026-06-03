@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "node:path";
+import { promises as fsp } from "node:fs";
 import type { CommandContext } from "../commandContext.js";
 import { renderCommand } from "../deploy/deployService.js";
 import { run } from "../util/exec.js";
@@ -21,6 +22,9 @@ import {
   componentOutputDir,
   componentMainFile,
   componentNameError,
+  apexTestClassName,
+  apexTestStub,
+  looksLikeTestClass,
   projectNameError,
   sobjectNameError,
   testClassNamesError,
@@ -284,6 +288,48 @@ export function registerProjectCommands(
       /* 生成はできたがファイルを開けないだけ — 無視 */
     }
     vscode.window.showInformationMessage(`✅ ${name.trim()} を ${outputDir} に作成しました。`);
+
+    // Apexクラスは本番デプロイにテストカバレッジが必要。対のテストクラス作成を任意で提案。
+    // 既にテストクラス（末尾 Test）を作った場合は提案しない（FooTestTest を防ぐ）。
+    if (kindPick.ckind === "apexClass" && !looksLikeTestClass(name.trim())) {
+      const base = name.trim();
+      const testName = apexTestClassName(base);
+      const mk = await vscode.window.showInformationMessage(
+        `テストクラス ${testName} も作成しますか？（本番デプロイにはApexテストが必要です）`,
+        "テストも作成",
+        "あとで"
+      );
+      if (mk === "テストも作成") {
+        const targs = buildGenerateComponentArgs("apexClass", testName, outputDir);
+        const tres = await vscode.window.withProgress(
+          { location: vscode.ProgressLocation.Notification, title: `${testName} を作成中…` },
+          () => run(ctx.cliPath(), targs, { cwd: root, timeout: 120_000 })
+        );
+        if (tres.code !== 0) {
+          const detail = summarizeCliError(tres.stderr, tres.stdout);
+          vscode.window.showWarningMessage(
+            `テストクラスの作成に失敗しました: ${detail || "不明なエラー"}（本体クラスは作成済みです）`
+          );
+        } else {
+          // 生成直後の空クラスを、@isTest スタブで上書きしてテストを書き始められるようにする。
+          const testMain = path.join(root, componentMainFile(outputDir, "apexClass", testName));
+          try {
+            await fsp.writeFile(testMain, apexTestStub(base), "utf8");
+          } catch {
+            /* 生成はできたがスタブ書き込みに失敗しても、空クラスは残るので致命的でない */
+          }
+          ctx.recordActivity(`新規作成: ${testName}`, "ok");
+          ctx.refreshAll();
+          try {
+            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(testMain));
+            await vscode.window.showTextDocument(doc);
+          } catch {
+            /* 開けないだけ — 無視 */
+          }
+          vscode.window.showInformationMessage(`✅ ${testName} を作成しました（雛形を編集してください）。`);
+        }
+      }
+    }
   });
 
   // メタデータを取得 (種類を選んで sf project retrieve).
