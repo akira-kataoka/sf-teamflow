@@ -83,3 +83,17 @@ test("manifest: activationEvents に onStartupFinished を含む", () => {
     "ホーム/ステータスバーの初期化のため onStartupFinished が必要"
   );
 });
+
+test("manifest: ウォークスルー各ステップは、実在コマンドへの onCommand 完了イベントを持つ", () => {
+  const steps = pkg.contributes?.walkthroughs?.[0]?.steps ?? [];
+  assert.ok(steps.length > 0, "ウォークスルーのステップが必要");
+  const commandIds = new Set((pkg.contributes?.commands ?? []).map((c: { command: string }) => c.command));
+  for (const st of steps) {
+    const events: string[] = st.completionEvents ?? [];
+    assert.ok(events.length > 0, `ステップ「${st.id}」に completionEvents が必要（手動操作でも自動チェックされるように）`);
+    const onCmd = events.find((e) => e.startsWith("onCommand:"));
+    assert.ok(onCmd, `ステップ「${st.id}」に onCommand: 完了イベントが必要`);
+    const cmd = onCmd!.slice("onCommand:".length);
+    assert.ok(commandIds.has(cmd), `ステップ「${st.id}」の完了イベントが実在コマンドを指していない: ${cmd}`);
+  }
+});

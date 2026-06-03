@@ -2,7 +2,7 @@
   "name": "sf-teamflow",
   "displayName": "Salesforce Dev Manager",
   "description": "これ1つでSalesforce開発サイクルを完結。環境管理・各環境への簡単デプロイ(開発→ステージング→本番)・Git/GitHub・テスト・CI/CDを、初心者でもクリック操作で。",
-  "version": "0.88.28",
+  "version": "0.88.29",
   "publisher": "akira-kataoka",
   "license": "MIT",
   "engines": {
@@ -87,7 +87,10 @@
             "description": "新しいSFDXプロジェクトを作るか、既存のフォルダを開きます。\n[新しいプロジェクトを作成](command:teamflow.createProject)",
             "media": {
               "markdown": "media/walkthrough/project.md"
-            }
+            },
+            "completionEvents": [
+              "onCommand:teamflow.createProject"
+            ]
           },
           {
             "id": "auth",
@@ -95,7 +98,10 @@
             "description": "開発・ステージング・本番などの環境にログインします。\n[環境を認証](command:teamflow.authorizeOrg)",
             "media": {
               "markdown": "media/walkthrough/auth.md"
-            }
+            },
+            "completionEvents": [
+              "onCommand:teamflow.authorizeOrg"
+            ]
           },
           {
             "id": "config",
@@ -103,7 +109,10 @@
             "description": "環境⇔ブランチ⇔接続先の対応を定義します (sf-teamflow.json)。\n[チーム設定を初期化](command:teamflow.initTeamProject)",
             "media": {
               "markdown": "media/walkthrough/config.md"
-            }
+            },
+            "completionEvents": [
+              "onCommand:teamflow.initTeamProject"
+            ]
           },
           {
             "id": "cicd",
@@ -111,7 +120,10 @@
             "description": "PR検証とデプロイのGitHub Actionsを自動生成します。\n[CI/CDを生成](command:teamflow.scaffoldCICD)",
             "media": {
               "markdown": "media/walkthrough/cicd.md"
-            }
+            },
+            "completionEvents": [
+              "onCommand:teamflow.scaffoldCICD"
+            ]
           },
           {
             "id": "backup",
@@ -119,7 +131,10 @@
             "description": "変更をコミットしてGitHubに安全に保管します。\n[保存してバックアップ](command:teamflow.gitCommitPush)\n\n複数人開発の進め方は [ガイド](command:teamflow.openWorkflowGuide) を参照。",
             "media": {
               "markdown": "media/walkthrough/backup.md"
-            }
+            },
+            "completionEvents": [
+              "onCommand:teamflow.gitCommitPush"
+            ]
           }
         ]
       }
