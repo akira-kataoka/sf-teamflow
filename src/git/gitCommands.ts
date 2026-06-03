@@ -39,6 +39,7 @@ import {
   revertCommit,
   stageAll,
   status,
+  summarizeChangeCounts,
   switchBranch,
 } from "../deploy/gitService.js";
 import { suggestNextTag, suggestNextTags } from "./tagUtils.js";
@@ -201,7 +202,13 @@ export function registerGitCommands(
         { label: "$(edit) 自分でメッセージを書く", prefix: FREE },
         { label: "$(check) そのまま保存（日時のみ）", prefix: ASIS },
       ],
-      { title: `変更 ${s.changed}件を保存`, placeHolder: "何をしたか選ぶ（クリックだけでもOK）" }
+      {
+        // 種別内訳（新規/変更/削除…）を添え、保存前に範囲を再確認できるように（ホーム表示と一致）。
+        title: `変更 ${s.changed}件を保存${
+          summarizeChangeCounts(s.files) ? `（${summarizeChangeCounts(s.files)}）` : ""
+        }`,
+        placeHolder: "何をしたか選ぶ（クリックだけでもOK）",
+      }
     );
     if (!kind) {
       return;
