@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { isGitRepo, status } from "./deploy/gitService.js";
 import { loadConfig } from "./config/configStore.js";
 import { resolveEnvironment } from "./config/teamflowConfig.js";
+import { formatGitStatusBar } from "./statusBarFormat.js";
 import type { OrgInfo } from "./orgManager/orgService.js";
 
 /**
@@ -50,26 +51,20 @@ export class StatusBar {
     if (root && (await isGitRepo(root))) {
       try {
         const s = await status(root);
-        let envLabel = "";
+        let env: { name: string; type: string } | undefined;
         try {
           const config = await loadConfig(root);
-          const env = config && s.branch ? resolveEnvironment(config, s.branch) : undefined;
-          envLabel = env ? ` → ${env.name}` : "";
+          env = config && s.branch ? resolveEnvironment(config, s.branch) : undefined;
         } catch {
           /* config optional */
         }
-        const dirty = s.changed > 0 ? `$(pencil)${s.changed} ` : "";
-        const up = s.ahead > 0 ? `$(arrow-up)${s.ahead} ` : "";
-        const down = s.behind > 0 ? `$(arrow-down)${s.behind} ` : "";
-        this.gitItem.text = `$(git-branch) ${s.branch}${envLabel} ${up}${down}${dirty}`.trim();
-        const tip = [
-          `ブランチ: ${s.branch}${envLabel ? envLabel.replace(" → ", " → 環境 ") : "（環境未割当）"}`,
-          s.changed > 0 ? `未保存の変更: ${s.changed}件` : "変更なし",
-          s.ahead > 0 ? `未バックアップ: ${s.ahead}件` : undefined,
-          s.behind > 0 ? `取り込み待ち: ${s.behind}件` : undefined,
-          "クリックで保存してGitHubにバックアップ",
-        ].filter(Boolean);
-        this.gitItem.tooltip = tip.join("\n");
+        const parts = formatGitStatusBar(s, env);
+        this.gitItem.text = parts.text;
+        this.gitItem.tooltip = parts.tooltip;
+        // 本番環境のブランチは警告色で「いま本番ラインにいる」ことを常時可視化する。
+        this.gitItem.backgroundColor = parts.isProduction
+          ? new vscode.ThemeColor("statusBarItem.warningBackground")
+          : undefined;
         this.gitItem.show();
       } catch {
         this.gitItem.hide();
