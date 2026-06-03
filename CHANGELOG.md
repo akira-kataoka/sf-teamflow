@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.88.13] - 2026-06-03
+
+- 🚀 **公開準備: 拡張リポジトリ自体に「公開用 CI」(.github/workflows/release.yml) を追加**: `v1.2.3` 形式のタグを push すると、GitHub Actions で **型チェック→単体テスト→本番ビルド→`.vsix` パッケージ→公開** を自動実行する。公開は対応する PAT secret がある時だけ行い、未設定でも `.vsix` の生成＋アーティファクト保存までは必ず成功する安全設計（`VSCE_PAT` で VS Marketplace、`OVSX_PAT` で Open VSX、`if: env.X != ''` でスキップ）。テストは Node の既知のディレクトリ走査問題を避けるためグロブ実行（`node --test "out-test/test/**/*.test.js"`）。`.github/**` は `.vscodeignore` 済みで配布 `.vsix` には含まれない。タグ運用だけで誰でも安全に再公開できる土台が整った（計240件pass）。
+
 ## [0.88.12] - 2026-06-03
 
 - 🏪 **公開準備: README をマーケットプレイス向けに最適化（バッジ＋インストール節）**: 先頭に Marketplace バージョン／インストール数／MIT ライセンスのバッジ（shields.io・公開後に自動で数値表示）を追加し、直後に「📥 インストール」節を新設。Marketplace 検索からの導入・VSIX からの導入（`code --install-extension`）・必要環境（VS Code 1.85+／`sf`／`gh`）・**信頼ワークスペースが必要**な旨を明記し、初見のユーザーが迷わず導入できるようにした。ドキュメントのみ・コード不変（計240件pass）。

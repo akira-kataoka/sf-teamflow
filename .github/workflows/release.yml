@@ -1,0 +1,63 @@
+# タグ（v1.2.3 形式）を push すると、検証 → パッケージ → 公開 を自動実行する。
+# 公開は PAT(secret) がある時だけ行い、未設定でも .vsix の生成・アーティファクト保存までは成功する。
+#   - VS Code Marketplace に公開: リポジトリ secret に VSCE_PAT を設定
+#   - Open VSX に公開:           リポジトリ secret に OVSX_PAT を設定
+name: Release (publish extension)
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run check-types
+
+      - name: Unit tests
+        run: |
+          npx tsc -p tsconfig.test.json
+          node --test "out-test/test/**/*.test.js"
+
+      - name: Build (production bundle)
+        run: npm run build
+
+      - name: Package VSIX
+        run: npx --yes @vscode/vsce package --no-dependencies
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix
+          path: "*.vsix"
+          if-no-files-found: error
+
+      # 以下は対応する PAT secret がある時だけ実行（未設定なら自動スキップ＝失敗しない）。
+      - name: Publish to VS Marketplace
+        if: ${{ env.VSCE_PAT != '' }}
+        run: npx --yes @vscode/vsce publish --no-dependencies -p "$VSCE_PAT"
+
+      - name: Publish to Open VSX
+        if: ${{ env.OVSX_PAT != '' }}
+        run: npx --yes ovsx publish *.vsix -p "$OVSX_PAT"
