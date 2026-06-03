@@ -41,7 +41,22 @@ import {
   metadataNameError,
   scratchAliasError,
   scratchDurationError,
+  parseExistingPr,
 } from "../src/sfProject/projectService.js";
+
+test("parseExistingPr: gh pr view のJSONから番号/URL/状態を取り出す", () => {
+  const pr = parseExistingPr('{"url":"https://github.com/x/y/pull/12","state":"OPEN","number":12}');
+  assert.equal(pr?.number, 12);
+  assert.equal(pr?.state, "OPEN");
+  assert.equal(pr?.url, "https://github.com/x/y/pull/12");
+});
+
+test("parseExistingPr: url 無し/不正JSON/空は undefined", () => {
+  assert.equal(parseExistingPr('{"state":"OPEN"}'), undefined, "url 必須");
+  assert.equal(parseExistingPr("no pull requests found"), undefined, "gh のエラー文");
+  assert.equal(parseExistingPr(""), undefined);
+  assert.equal(parseExistingPr("null"), undefined);
+});
 
 test("scratchDurationError: 1〜30の整数のみ許し、空・小数・範囲外・非数字を弾く", () => {
   assert.equal(scratchDurationError("7"), undefined);

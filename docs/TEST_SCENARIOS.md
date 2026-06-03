@@ -128,6 +128,7 @@
 - 操作: 🔀 Pull Request
 - 内部: `gh pr create --base <選択> --fill --web`
 - 確認観点: マージ先候補はGitHub Flow順（`prBaseCandidates`：release/hotfixからは**main優先**、それ以外は**develop優先**。「おすすめ」ラベルも追従）／ブラウザで内容確認
+- 二重作成の防止（✅）: 作成前に `gh pr view --json url,state,number` で**このブランチの既存PRを検知**（`parseExistingPr`）。状態が OPEN なら「Pull Request（#N）は既に作成されています」と案内し「既存のPRを開く」でブラウザへ（重複作成や gh エラーを回避）。PRが無い/確認失敗なら従来どおり作成フローへ（単体テスト済）
 
 ### S2-7. 変更履歴 ✅
 - 操作: 🕘 変更履歴

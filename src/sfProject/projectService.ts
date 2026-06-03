@@ -594,6 +594,39 @@ export function buildPullRequestArgs(opts: PullRequestOptions): string[] {
   return args;
 }
 
+export interface ExistingPr {
+  number: number;
+  url: string;
+  /** GitHub の状態（OPEN/MERGED/CLOSED）。大文字で返る。 */
+  state: string;
+}
+
+/**
+ * `gh pr view --json url,state,number` の出力（単一オブジェクト）を解釈する。
+ * 現在ブランチにPRが無いと gh はエラー終了するため、その場合は呼び出し側が空文字を渡し
+ * undefined を得る。url が無ければ undefined。Pure & unit-tested.
+ */
+export function parseExistingPr(jsonStr: string): ExistingPr | undefined {
+  let obj: unknown;
+  try {
+    obj = JSON.parse(jsonStr);
+  } catch {
+    return undefined;
+  }
+  if (typeof obj !== "object" || obj === null) {
+    return undefined;
+  }
+  const o = obj as Record<string, unknown>;
+  if (typeof o.url !== "string" || !o.url) {
+    return undefined;
+  }
+  return {
+    number: typeof o.number === "number" ? o.number : 0,
+    url: o.url,
+    state: typeof o.state === "string" ? o.state : "",
+  };
+}
+
 export interface ReleaseCreateOptions {
   /** リリースのタイトル（未指定なら GitHub 既定＝タグ名）。 */
   title?: string;

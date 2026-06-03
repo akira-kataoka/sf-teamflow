@@ -50,6 +50,7 @@ import {
 import { suggestNextTag, suggestNextTags } from "./tagUtils.js";
 import {
   buildPullRequestArgs,
+  parseExistingPr,
   buildReleaseCreateArgs,
   branchTypeOptions,
   isReleaseLikeBranch,
@@ -991,6 +992,27 @@ export function registerGitCommands(
     if (!(await hasRemote(root))) {
       vscode.window.showInformationMessage("先に「GitHubに公開」してください。");
       return;
+    }
+    // このブランチに既にPRがあれば、二重作成せず既存PRを開くよう促す（gh は current ブランチを自動検出）。
+    try {
+      const pv = await run("gh", ["pr", "view", "--json", "url,state,number"], {
+        cwd: root,
+        timeout: 15_000,
+      });
+      const existing = pv.code === 0 ? parseExistingPr(pv.stdout) : undefined;
+      if (existing && existing.state === "OPEN") {
+        const OPEN = "既存のPRを開く";
+        const choice = await vscode.window.showInformationMessage(
+          `このブランチのPull Request（#${existing.number}）は既に作成されています。`,
+          OPEN
+        );
+        if (choice === OPEN) {
+          await vscode.env.openExternal(vscode.Uri.parse(existing.url));
+        }
+        return;
+      }
+    } catch {
+      /* 確認できなくても作成フローは続行（PR未作成として扱う） */
     }
     // 未コミットの変更はPRに入らない（push済みコミットだけが対象）。先にバックアップを促す。
     const prStatus = await status(root);
