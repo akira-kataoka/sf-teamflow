@@ -250,6 +250,23 @@ export function summarizeChangeCounts(files: { label: string }[]): string {
 }
 
 /**
+ * 変更ファイル一覧を「分かりやすい順」（新規→変更→削除→…）で並べ替えた新しい配列を返す。
+ * 内訳ラベル（summarizeChangeCounts）と同じ並びにそろえ、同種をまとめて見せることで保存前の
+ * プレビューを走査しやすくする。同種内はパスの昇順。未知ラベルは末尾。元配列は変更しない。
+ * Pure & unit-tested.
+ */
+export function sortByChangeType<T extends { label: string; path: string }>(files: T[]): T[] {
+  const rank = (label: string): number => {
+    const i = CHANGE_LABEL_ORDER.indexOf(label);
+    return i === -1 ? CHANGE_LABEL_ORDER.length : i;
+  };
+  return [...files].sort((a, b) => {
+    const r = rank(a.label) - rank(b.label);
+    return r !== 0 ? r : a.path.localeCompare(b.path);
+  });
+}
+
+/**
  * Parse `git status --porcelain=v2 --branch -z`? We use the newline form for
  * testability. Handles branch headers, ordinary (1), rename/copy (2) and
  * untracked (?) records. Exported pure for unit testing.

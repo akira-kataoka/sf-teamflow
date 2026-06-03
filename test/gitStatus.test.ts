@@ -17,6 +17,7 @@ import {
   uncommittedInList,
   isMergeFromRevListParents,
   summarizeChangeCounts,
+  sortByChangeType,
 } from "../src/deploy/gitService.js";
 
 test("summarizeChangeCounts: 種別ごとに数え、分かりやすい順(新規→変更→削除…)で並べる", () => {
@@ -43,6 +44,25 @@ test("summarizeChangeCounts: 未知ラベルは末尾に出現順で続ける", 
 test("summarizeChangeCounts: 未追跡・競合も種別として数える", () => {
   const files = [{ label: "未追跡" }, { label: "競合" }, { label: "未追跡" }];
   assert.equal(summarizeChangeCounts(files), "未追跡2・競合1");
+});
+
+test("sortByChangeType: 種別順(新規→変更→削除…)に並べ、同種内はパス昇順", () => {
+  const files = [
+    { label: "削除", path: "b.cls" },
+    { label: "変更", path: "z.cls" },
+    { label: "新規", path: "m.cls" },
+    { label: "変更", path: "a.cls" },
+    { label: "新規", path: "c.cls" },
+  ];
+  const sorted = sortByChangeType(files).map((f) => f.label + ":" + f.path);
+  assert.deepEqual(sorted, ["新規:c.cls", "新規:m.cls", "変更:a.cls", "変更:z.cls", "削除:b.cls"]);
+});
+
+test("sortByChangeType: 未知ラベルは末尾／元配列は変更しない", () => {
+  const files = [{ label: "謎", path: "x" }, { label: "新規", path: "y" }];
+  const sorted = sortByChangeType(files);
+  assert.deepEqual(sorted.map((f) => f.label), ["新規", "謎"]);
+  assert.deepEqual(files.map((f) => f.label), ["謎", "新規"], "元配列は不変");
 });
 
 test("mergeErrorHint: 未コミット変更/ブランチ不在/未完了マージを案内する", () => {

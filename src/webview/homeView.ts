@@ -13,6 +13,7 @@ import {
   classifyChanges,
   conflictedFiles,
   summarizeChangeCounts,
+  sortByChangeType,
 } from "../deploy/gitService.js";
 import { configExists, loadConfig, readSfdxPackageDirs } from "../config/configStore.js";
 import { baseRefFor, lintTeamflowConfig, resolveEnvironment } from "../config/teamflowConfig.js";
@@ -257,7 +258,10 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
           hasUpstream = !!s.upstream;
           // 内訳は全件から算出（一覧は先頭40件のみ載せる場合があるため別途保持）。
           changeBreakdown = summarizeChangeCounts(s.files);
-          files = s.files.slice(0, 40).map((f) => ({ path: f.path, label: f.label }));
+          // プレビューは種別順（新規→変更→削除…）に並べ、内訳ラベルと一致させて走査しやすく。
+          files = sortByChangeType(s.files)
+            .slice(0, 40)
+            .map((f) => ({ path: f.path, label: f.label }));
           conflicts = conflictedFiles(s);
         } catch {
           /* ignore */
