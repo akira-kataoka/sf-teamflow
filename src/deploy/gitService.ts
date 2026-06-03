@@ -231,6 +231,24 @@ function changeLabel(code: string): string {
   }
 }
 
+/** 変更ラベルの並び順（読み手に分かりやすい順：作る→直す→消す→その他）。 */
+const CHANGE_LABEL_ORDER = ["新規", "変更", "削除", "リネーム", "コピー", "未追跡", "競合"];
+
+/**
+ * 変更ファイル一覧を種別ごとに数え、「新規2・変更3・削除1」のような短い内訳文字列にする。
+ * バックアップ（保存）前に "何をどれだけ保存するか" を一目で把握できるようにするための表示用。
+ * 既知の並び順を優先し、未知ラベルは末尾に出現順で続ける。空なら空文字。Pure & unit-tested.
+ */
+export function summarizeChangeCounts(files: { label: string }[]): string {
+  const counts = new Map<string, number>();
+  for (const f of files) counts.set(f.label, (counts.get(f.label) ?? 0) + 1);
+  const ordered = [
+    ...CHANGE_LABEL_ORDER.filter((l) => counts.has(l)),
+    ...[...counts.keys()].filter((l) => !CHANGE_LABEL_ORDER.includes(l)),
+  ];
+  return ordered.map((l) => l + counts.get(l)!).join("・");
+}
+
 /**
  * Parse `git status --porcelain=v2 --branch -z`? We use the newline form for
  * testability. Handles branch headers, ordinary (1), rename/copy (2) and

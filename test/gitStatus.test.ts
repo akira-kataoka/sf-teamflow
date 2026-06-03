@@ -16,7 +16,34 @@ import {
   BASELINE_GITATTRIBUTES,
   uncommittedInList,
   isMergeFromRevListParents,
+  summarizeChangeCounts,
 } from "../src/deploy/gitService.js";
+
+test("summarizeChangeCounts: 種別ごとに数え、分かりやすい順(新規→変更→削除…)で並べる", () => {
+  const files = [
+    { label: "変更" },
+    { label: "新規" },
+    { label: "削除" },
+    { label: "変更" },
+    { label: "新規" },
+    { label: "変更" },
+  ];
+  assert.equal(summarizeChangeCounts(files), "新規2・変更3・削除1");
+});
+
+test("summarizeChangeCounts: 空配列は空文字", () => {
+  assert.equal(summarizeChangeCounts([]), "");
+});
+
+test("summarizeChangeCounts: 未知ラベルは末尾に出現順で続ける", () => {
+  const files = [{ label: "謎" }, { label: "新規" }, { label: "別" }];
+  assert.equal(summarizeChangeCounts(files), "新規1・謎1・別1");
+});
+
+test("summarizeChangeCounts: 未追跡・競合も種別として数える", () => {
+  const files = [{ label: "未追跡" }, { label: "競合" }, { label: "未追跡" }];
+  assert.equal(summarizeChangeCounts(files), "未追跡2・競合1");
+});
 
 test("mergeErrorHint: 未コミット変更/ブランチ不在/未完了マージを案内する", () => {
   assert.match(

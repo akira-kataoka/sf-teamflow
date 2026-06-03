@@ -12,6 +12,7 @@ import {
   changedFiles,
   classifyChanges,
   conflictedFiles,
+  summarizeChangeCounts,
 } from "../deploy/gitService.js";
 import { configExists, loadConfig, readSfdxPackageDirs } from "../config/configStore.js";
 import { baseRefFor, lintTeamflowConfig, resolveEnvironment } from "../config/teamflowConfig.js";
@@ -56,6 +57,8 @@ interface HomeState {
   behind: number;
   /** Working-tree changed files, for the "保存される変更" preview. */
   files: { path: string; label: string }[];
+  /** 変更の種別内訳（例「新規2・変更3・削除1」）。全件から算出（一覧は先頭のみの場合があるため別途保持）。 */
+  changeBreakdown: string;
   /** Metadata files that a Git-diff deploy would push (vs base ref). */
   deployCount: number;
   /** Recent actions (newest first) for the "最近の操作" list. */
@@ -232,6 +235,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     let ahead = 0;
     let behind = 0;
     let files: { path: string; label: string }[] = [];
+    let changeBreakdown = "";
     let deployCount = 0;
     let conflicts: string[] = [];
     let pipeline: HomeState["pipeline"] = [];
@@ -251,6 +255,8 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
           ahead = s.ahead;
           behind = s.behind;
           hasUpstream = !!s.upstream;
+          // 内訳は全件から算出（一覧は先頭40件のみ載せる場合があるため別途保持）。
+          changeBreakdown = summarizeChangeCounts(s.files);
           files = s.files.slice(0, 40).map((f) => ({ path: f.path, label: f.label }));
           conflicts = conflictedFiles(s);
         } catch {
@@ -336,6 +342,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       ahead,
       behind,
       files,
+      changeBreakdown,
       deployCount,
       activity: allActivity.slice(0, 3).map((a) => ({
         label: a.label,
@@ -498,6 +505,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   details.changed > summary::-webkit-details-marker { display: none; }
   details.changed > summary .caret { transition: transform .15s; opacity: .6; }
   details.changed[open] > summary .caret { transform: rotate(90deg); }
+  details.changed > summary .bd { font-size: 11px; opacity: .65; margin-left: 2px; }
   .filelist { margin-top: 6px; max-height: 180px; overflow: auto; }
   .fileitem { display: flex; align-items: center; gap: 7px; padding: 3px 2px; font-size: 11.5px; }
   .filetag { font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); flex: 0 0 auto; }
@@ -772,8 +780,10 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       // 件数はヒーローと一致させるため真の変更数(s.changes)を表示。一覧は先頭のみ載せている場合がある。
       const total = (s.changes && s.changes > s.files.length) ? s.changes : s.files.length;
       const more = total > s.files.length ? '（先頭'+s.files.length+'件を表示）' : '';
+      // 種別内訳（新規/変更/削除…）を畳んだ状態でも見せ、保存範囲を一目で把握できるように。
+      const bd = s.changeBreakdown ? ' <span class="bd">'+escapeHtml(s.changeBreakdown)+'</span>' : '';
       $('changedbox').innerHTML = '<details class="changed"><summary><span class="caret">▶</span>'+
-        '📝 保存される変更 '+total+'件'+more+'</summary><div class="filelist">'+rows+'</div></details>';
+        '📝 保存される変更 '+total+'件'+bd+more+'</summary><div class="filelist">'+rows+'</div></details>';
     } else {
       $('changedbox').innerHTML = '';
     }
