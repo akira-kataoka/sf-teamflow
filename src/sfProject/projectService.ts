@@ -382,6 +382,16 @@ export function testClassNamesError(input: string): string | undefined {
 }
 
 /**
+ * Apexクラスファイルのパス（`.cls`、フォワード/バックスラッシュ混在可）からクラス名を取り出す。
+ * 例: `force-app/main/default/classes/FooTest.cls` → `FooTest`。テスト実行時にワークスペースの
+ * テストクラス候補を一覧化するための表示名。Pure & unit-tested.
+ */
+export function apexClassNameFromPath(p: string): string {
+  const base = p.replace(/\\/g, "/").split("/").pop() ?? p;
+  return base.replace(/\.cls$/i, "");
+}
+
+/**
  * Path (relative to the workspace root) of the primary editable file a scaffold
  * produces, so the command can open it right after creation — confirming to the
  * user that the file really exists. Pure & unit-tested.

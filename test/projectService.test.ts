@@ -37,7 +37,21 @@ import {
   apexTestClassName,
   apexTestStub,
   looksLikeTestClass,
+  apexClassNameFromPath,
 } from "../src/sfProject/projectService.js";
+
+test("apexClassNameFromPath: .cls パスからクラス名を取り出す（区切り混在・大小無視）", () => {
+  assert.equal(
+    apexClassNameFromPath("force-app/main/default/classes/AccountServiceTest.cls"),
+    "AccountServiceTest"
+  );
+  assert.equal(
+    apexClassNameFromPath("force-app\\main\\default\\classes\\FooTest.CLS"),
+    "FooTest",
+    "バックスラッシュ＋大文字拡張子"
+  );
+  assert.equal(apexClassNameFromPath("Bare.cls"), "Bare");
+});
 
 test("apexTestClassName: ベース名に Test を付ける", () => {
   assert.equal(apexTestClassName("AccountService"), "AccountServiceTest");

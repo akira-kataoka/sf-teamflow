@@ -136,6 +136,7 @@
 ### S3-1. テスト実行
 - 内部: `sf apex run test --tests ... / RunLocalTests`（✅ 以前 AccountServiceTest 3件pass）
 - 確認観点: ローカル全件/クラス指定/全件の選択
+- クラス指定UX: **ワークスペースの `*Test.cls` を探して複数選択ピッカーで提示**（名前を記憶に頼らず選べる・`apexClassNameFromPath` で表示名抽出＝区切り混在/大文字拡張子も吸収）。見つからない場合や「✏️ 名前を直接入力」選択時は従来のカンマ区切り手入力にフォールバック（`testClassNamesError` で検証）
 
 ### S3-2. デプロイ前チェック（dry-run）
 - 内部: `sf project deploy validate`（check-only。本番に触れず可否確認）

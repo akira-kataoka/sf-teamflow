@@ -25,6 +25,7 @@ import {
   apexTestClassName,
   apexTestStub,
   looksLikeTestClass,
+  apexClassNameFromPath,
   projectNameError,
   sobjectNameError,
   testClassNamesError,
@@ -402,17 +403,52 @@ export function registerProjectCommands(
     let classNames: string[] | undefined;
     let level: "RunLocalTests" | "RunAllTestsInOrg" = "RunLocalTests";
     if (choice.mode === "class") {
-      const input = await vscode.window.showInputBox({
-        title: "テストクラス名",
-        prompt: "カンマ区切りで複数可",
-        placeHolder: "AccountServiceTest, ContactServiceTest",
-        // 入力時点で不正なクラス名（.cls付き・日本語・記号など）を弾き、CLIの不可解な失敗を防ぐ。
-        validateInput: (v) => testClassNamesError(v),
-      });
-      if (!input) {
+      // 命名規約のテストクラス（*Test.cls）をワークスペースから探し、一覧から選べるようにする。
+      // 名前を記憶に頼らず選択できる。見つからなければ従来どおり手入力にフォールバック。
+      const MANUAL = "$(edit) 名前を直接入力…";
+      const found = await vscode.workspace.findFiles(
+        "**/*Test.cls",
+        "**/node_modules/**",
+        500
+      );
+      const names = [...new Set(found.map((u) => apexClassNameFromPath(u.fsPath)))].sort((a, b) =>
+        a.localeCompare(b)
+      );
+      let useManual = names.length === 0;
+      if (names.length > 0) {
+        const picked = await vscode.window.showQuickPick(
+          [...names.map((n) => ({ label: n })), { label: MANUAL }],
+          {
+            title: "実行するテストクラスを選択",
+            placeHolder: "複数選択できます（スペースキー）。手入力もできます。",
+            canPickMany: true,
+          }
+        );
+        if (!picked || picked.length === 0) {
+          return;
+        }
+        if (picked.some((p) => p.label === MANUAL)) {
+          useManual = true;
+        } else {
+          classNames = picked.map((p) => p.label);
+        }
+      }
+      if (useManual) {
+        const input = await vscode.window.showInputBox({
+          title: "テストクラス名",
+          prompt: "カンマ区切りで複数可",
+          placeHolder: "AccountServiceTest, ContactServiceTest",
+          // 入力時点で不正なクラス名（.cls付き・日本語・記号など）を弾き、CLIの不可解な失敗を防ぐ。
+          validateInput: (v) => testClassNamesError(v),
+        });
+        if (!input) {
+          return;
+        }
+        classNames = input.split(",").map((s) => s.trim()).filter(Boolean);
+      }
+      if (!classNames || classNames.length === 0) {
         return;
       }
-      classNames = input.split(",").map((s) => s.trim()).filter(Boolean);
     } else if (choice.mode === "all") {
       level = "RunAllTestsInOrg";
     }
