@@ -169,6 +169,42 @@ export function baseRefFor(config: TeamflowConfig, env?: TeamEnvironment): strin
   return env?.baseRef || config.defaultBaseRef;
 }
 
+/**
+ * デプロイ先選択の並び順ランク（小さいほど先＝開発寄り、本番は必ず最後）。
+ * 「開発 → ステージング → 本番」の安全な進行に揃え、本番を一番下に置いて誤クリックを減らす。
+ */
+function environmentDeployRank(type: EnvironmentType | string): number {
+  switch (type) {
+    case "dev":
+      return 0;
+    case "scratch":
+      return 1;
+    case "sandbox":
+      return 2;
+    case "production":
+      return 4;
+    default:
+      return 3; // 未知の種別は本番より手前
+  }
+}
+
+/**
+ * 環境をデプロイ先ピッカー用に「開発 → … → 本番」の順へ並べ替えた新しい配列を返す。
+ * 同ランク内は元の定義順を保つ（安定ソート）。元配列は変更しない。本番を必ず末尾に置くことで
+ * 誤って本番を先頭で選ぶ事故を減らす。Pure & unit-tested.
+ */
+export function sortEnvironmentsForDeploy<T extends { type: EnvironmentType | string }>(
+  envs: T[]
+): T[] {
+  return envs
+    .map((e, i) => ({ e, i }))
+    .sort((a, b) => {
+      const r = environmentDeployRank(a.e.type) - environmentDeployRank(b.e.type);
+      return r !== 0 ? r : a.i - b.i;
+    })
+    .map((x) => x.e);
+}
+
 export function testLevelFor(config: TeamflowConfig, env?: TeamEnvironment): TestLevel {
   const level = env?.testLevel || config.testLevel;
   // 本番はApexテスト実行が必須（NoTestRun では Salesforce が必ずデプロイを拒否する）。

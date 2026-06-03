@@ -29,6 +29,7 @@ import {
   matchBranch,
   resolveEnvironment,
   testLevelFor,
+  sortEnvironmentsForDeploy,
   unauthedConfigAliases,
   type TeamflowConfig,
 } from "./config/teamflowConfig.js";
@@ -704,7 +705,8 @@ async function deployToEnvironment(): Promise<void> {
     dev: "🛠️",
   };
   const pick = await vscode.window.showQuickPick(
-    config.environments.map((e) => {
+    // 「開発 → ステージング → 本番」の順に並べ、本番を末尾に置いて誤選択を減らす。
+    sortEnvironmentsForDeploy(config.environments).map((e) => {
       const matched = orgs.find((o) => o.alias === e.orgAlias || o.username === e.orgAlias);
       const emoji = TYPE_EMOJI[e.name.toLowerCase()] ?? TYPE_EMOJI[e.type] ?? "☁️";
       return {

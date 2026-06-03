@@ -9,8 +9,41 @@ import {
   parseTeamflowConfig,
   resolveEnvironment,
   testLevelFor,
+  sortEnvironmentsForDeploy,
   unauthedConfigAliases,
 } from "../src/config/teamflowConfig.js";
+
+test("sortEnvironmentsForDeploy: 開発→…→本番の順に並べ、本番を末尾にする", () => {
+  const envs = [
+    { name: "prod", type: "production" },
+    { name: "dev", type: "dev" },
+    { name: "stg", type: "sandbox" },
+    { name: "scr", type: "scratch" },
+  ];
+  const sorted = sortEnvironmentsForDeploy(envs).map((e) => e.name);
+  assert.deepEqual(sorted, ["dev", "scr", "stg", "prod"], "本番が必ず最後");
+});
+
+test("sortEnvironmentsForDeploy: 同種は定義順を保ち、元配列は変更しない", () => {
+  const envs = [
+    { name: "sandbox-b", type: "sandbox" },
+    { name: "sandbox-a", type: "sandbox" },
+    { name: "prod", type: "production" },
+  ];
+  const sorted = sortEnvironmentsForDeploy(envs).map((e) => e.name);
+  assert.deepEqual(sorted, ["sandbox-b", "sandbox-a", "prod"], "同ランクは安定（定義順）");
+  assert.equal(envs[0].name, "sandbox-b", "元配列は不変");
+});
+
+test("sortEnvironmentsForDeploy: 未知の種別は本番より手前に置く", () => {
+  const envs = [
+    { name: "prod", type: "production" },
+    { name: "mystery", type: "weird" },
+    { name: "dev", type: "dev" },
+  ];
+  const sorted = sortEnvironmentsForDeploy(envs).map((e) => e.name);
+  assert.deepEqual(sorted, ["dev", "mystery", "prod"]);
+});
 
 test("defaultConfig: 新規ユーザー既定の不変条件(GitHub Flow構成・自前検証を通る)", () => {
   const c = defaultConfig();
