@@ -381,6 +381,26 @@ export async function listBranches(cwd: string): Promise<string[]> {
     .filter(Boolean);
 }
 
+/**
+ * `git branch --merged` の出力から「現在のブランチに取り込み済み」のブランチ名を取り出す。
+ * 先頭の `* `（現在）/`+ `（worktree）マーカーを除去し、現在ブランチ・detached HEAD 行・空行は
+ * 除外する。掃除候補の算出に使う（呼び出し側で保護ブランチを更に除く）。Pure & unit-tested.
+ */
+export function parseMergedBranches(stdout: string): string[] {
+  return (stdout || "")
+    .split("\n")
+    .map((l) => l.replace(/\r$/, ""))
+    .filter((l) => l.trim() && !l.startsWith("*") && !l.includes("(HEAD detached"))
+    .map((l) => l.replace(/^[+\s]+/, "").trim())
+    .filter(Boolean);
+}
+
+/** 現在のブランチに取り込み（マージ）済みのローカルブランチ一覧（現在ブランチ自身は含まない）。 */
+export async function mergedBranches(cwd: string): Promise<string[]> {
+  const out = await git(["branch", "--merged"], cwd);
+  return parseMergedBranches(out);
+}
+
 /** Local tags, newest first (by creation). */
 export async function listTags(cwd: string): Promise<string[]> {
   const out = await git(["tag", "--sort=-creatordate"], cwd);

@@ -32,6 +32,7 @@ import {
   remoteUrl,
   removeRemote,
   listBranches,
+  mergedBranches,
   listTags,
   pull,
   pullMerge,
@@ -619,6 +620,68 @@ export function registerGitCommands(
     }
   });
 
+  // 取り込み済み（現在ブランチにマージ済み）のローカルブランチをまとめて掃除する。
+  // GitHub Flow で PR 取り込み後に溜まる古い feature ブランチの片付け。安全のため
+  // 保護ブランチ（main/develop/release 等）は候補から除き、削除は -d（未マージなら失敗）。
+  async function cleanupMergedBranches(root: string, current: string): Promise<void> {
+    let candidates: string[];
+    try {
+      candidates = (await mergedBranches(root)).filter((b) => b !== current && !isProtectedBranch(b));
+    } catch (err) {
+      vscode.window.showErrorMessage(`取り込み済みブランチを取得できませんでした: ${String(err)}`);
+      return;
+    }
+    if (candidates.length === 0) {
+      vscode.window.showInformationMessage(
+        `掃除できるブランチはありません（「${current}」に取り込み済みで、保護対象でないものが対象です）。`
+      );
+      return;
+    }
+    const picked = await vscode.window.showQuickPick(
+      candidates.map((b) => ({ label: `$(git-branch) ${b}`, branch: b, picked: true })),
+      {
+        title: `取り込み済みブランチを掃除（${current} にマージ済み）`,
+        placeHolder: "削除するブランチを選択（スペースで選択／既定は全選択）",
+        canPickMany: true,
+      }
+    );
+    if (!picked || picked.length === 0) {
+      return;
+    }
+    const ok = await vscode.window.showWarningMessage(
+      `${picked.length}件のブランチを削除します。`,
+      {
+        modal: true,
+        detail:
+          picked.map((p) => `・${p.branch}`).join("\n") +
+          "\n\nいずれも現在のブランチに取り込み済みです（変更は失われません）。",
+      },
+      "削除する"
+    );
+    if (ok !== "削除する") {
+      return;
+    }
+    let deleted = 0;
+    const failed: string[] = [];
+    for (const p of picked) {
+      try {
+        await deleteBranch(p.branch, root, false);
+        deleted++;
+      } catch {
+        failed.push(p.branch);
+      }
+    }
+    ctx.recordActivity(`ブランチ掃除: ${deleted}件削除`, failed.length ? "error" : "ok");
+    ctx.refreshAll();
+    if (failed.length) {
+      vscode.window.showWarningMessage(
+        `✅ ${deleted}件を削除しました。${failed.length}件は削除できませんでした: ${failed.join(", ")}`
+      );
+    } else {
+      vscode.window.showInformationMessage(`✅ 取り込み済みブランチ ${deleted}件を掃除しました。`);
+    }
+  }
+
   // ブランチ管理: 切り替え / 新規作成 / 削除（クリック中心）.
   reg("teamflow.manageBranches", async () => {
     const root = await ensureRepo();
@@ -626,10 +689,11 @@ export function registerGitCommands(
       return;
     }
     const NEW = "$(add) 新しい作業ブランチを作成…";
+    const CLEAN = "$(trash) 取り込み済みブランチを掃除（マージ済み）…";
     const current = await currentBranch(root).catch(() => "");
     const branches = await listBranches(root);
     const pick = await vscode.window.showQuickPick(
-      [NEW, ...branches.map((b) => (b === current ? `$(check) ${b}（現在）` : `$(git-branch) ${b}`))],
+      [NEW, CLEAN, ...branches.map((b) => (b === current ? `$(check) ${b}（現在）` : `$(git-branch) ${b}`))],
       { title: "ブランチ管理", placeHolder: "操作するブランチを選択" }
     );
     if (!pick) {
@@ -637,6 +701,10 @@ export function registerGitCommands(
     }
     if (pick === NEW) {
       await vscode.commands.executeCommand("teamflow.gitNewBranch");
+      return;
+    }
+    if (pick === CLEAN) {
+      await cleanupMergedBranches(root, current);
       return;
     }
     const name = pick.replace(/^\$\([a-z-]+\)\s*/, "").replace(/（現在）$/, "");

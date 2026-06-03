@@ -21,7 +21,25 @@ import {
   isNotFullyMergedError,
   isGhNotAuthenticatedError,
   formatCommitMeta,
+  parseMergedBranches,
 } from "../src/deploy/gitService.js";
+
+test("parseMergedBranches: 現在(*)・detached・空行を除き、マーカーを外して名前を返す", () => {
+  const out = [
+    "  feature/a",
+    "* develop",
+    "  feature/b",
+    "+ feature/wt", // worktree マーカー
+    "  (HEAD detached at abc1234)",
+    "   ",
+  ].join("\n");
+  assert.deepEqual(parseMergedBranches(out), ["feature/a", "feature/b", "feature/wt"]);
+});
+
+test("parseMergedBranches: CRLF も処理し、空入力は空配列", () => {
+  assert.deepEqual(parseMergedBranches("  feature/x\r\n* main\r\n"), ["feature/x"]);
+  assert.deepEqual(parseMergedBranches(""), []);
+});
 
 test("formatCommitMeta: 著者・相対日時・ハッシュを含み、マージは注記する", () => {
   const s = formatCommitMeta({ author: "akira", rel: "2時間前", hash: "abc1234", isMerge: false });

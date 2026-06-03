@@ -118,6 +118,7 @@
 - 作成UX: 新規作成時は**種別ピッカー**（`branchTypeOptions`：feature/ 新機能・hotfix/ 緊急修正・release/ リリース準備・プレフィックスなし）を先に選び、名前欄に接頭辞をプリフィル。GitHub Flow の規約を示し命名のゆれ（feat/ と feature/ 混在など）を防ぐ
 - マージ（✅ 実gitで統合テスト）: 「このブランチを現在のブランチに取り込む」= 他ブランチ(例 develop)を現在ブランチへ `merge`。競合時は**マージ状態を維持**し、ホームの競合一覧→各ファイル解決→「バックアップ」で完了（abortしない）。本流(feature→develop/main)への統合は PR 経由を推奨
 - 競合中の脱出口（✅ 実gitで統合テスト）: ホームの競合ボックスに「🛑 やめて取り込み前に戻す（中止）」を追加。確認後 `git merge --abort`（`abortMerge`）で MERGE_HEAD を解消し取り込み前の内容へ復帰。マージ中でなければ ok=false（無害）。`teamflow.abortMerge` コマンド
+- 取り込み済みブランチの掃除（✅ 実gitで統合テスト）: ブランチ管理の先頭に「🧹 取り込み済みブランチを掃除（マージ済み）」を追加（新規タイルは増やさない）。`git branch --merged` から現在ブランチに取り込み済みのものを `parseMergedBranches` で抽出し、**現在ブランチ・保護ブランチ（main/develop/release等）を除外**して複数選択（既定全選択）→確認→`-d` で一括削除。PR取り込み後に溜まる古い feature ブランチの片付けを、変更を失わずに安全に行える（未マージは候補に出ない／`-d` なので保険も二重）
 
 ### S2-6. Pull Request作成
 - 操作: 🔀 Pull Request

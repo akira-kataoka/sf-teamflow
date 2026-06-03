@@ -7,6 +7,7 @@ import * as path from "node:path";
 import {
   mergeBranch,
   pullMerge,
+  mergedBranches,
   revertCommit,
   commitFiles,
   abortMerge,
@@ -383,6 +384,28 @@ test("pullMerge: 同じ行の分岐は conflict=true（作業ツリーはマー�
   assert.equal(m.conflict, true, "同一行の分岐は競合として返す");
   const s = await status(b);
   assert.ok(conflictedFiles(s).includes("f.txt"), "競合ファイルがホームの一覧で解決できる");
+});
+
+test("mergedBranches: 取り込み済みブランチだけを返す（現在ブランチ・未マージは含まない）", async () => {
+  const dir = initRepo(); // main
+  // feature/done を作って main に取り込む（マージ済みになる）
+  git(dir, "switch", "-c", "feature/done");
+  fs.writeFileSync(path.join(dir, "done.txt"), "x\n");
+  git(dir, "add", "-A");
+  git(dir, "commit", "-m", "done");
+  git(dir, "switch", "main");
+  git(dir, "merge", "--no-edit", "feature/done");
+  // feature/wip は未マージのまま残す
+  git(dir, "switch", "-c", "feature/wip");
+  fs.writeFileSync(path.join(dir, "wip.txt"), "y\n");
+  git(dir, "add", "-A");
+  git(dir, "commit", "-m", "wip");
+  git(dir, "switch", "main");
+
+  const merged = await mergedBranches(dir);
+  assert.ok(merged.includes("feature/done"), "取り込み済みは含む");
+  assert.ok(!merged.includes("feature/wip"), "未マージは含まない");
+  assert.ok(!merged.includes("main"), "現在ブランチ(*)は含まない");
 });
 
 test("changedFiles: 基準refが存在しなくても落ちない（committed差分は空・作業ツリーは拾う）", async () => {
