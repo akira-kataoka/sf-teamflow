@@ -382,6 +382,27 @@ export function testClassNamesError(input: string): string | undefined {
 }
 
 /**
+ * 手入力のメタデータ指定（カンマ区切り）を検証する。各トークンは「種類」または
+ * 「種類:メンバー」形式で、種類は英字始まりのAPI名。空白・日本語・`.cls`付きなどの
+ * よくある誤りを入力時点で弾き、sf の不可解な失敗を防ぐ。問題なければ undefined。
+ * Pure & unit-tested.
+ */
+export function metadataNameError(input: string): string | undefined {
+  const tokens = (input || "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (tokens.length === 0) {
+    return "メタデータ名を入力してください（例: Flow, CustomObject:Account）。";
+  }
+  // 種類: 英字始まりのAPI名。メンバー(任意): 英数字・_・.・* （ワイルドカード可）。
+  const re = /^[A-Za-z][A-Za-z0-9_]*(:[A-Za-z0-9_.*]+)?$/;
+  for (const t of tokens) {
+    if (!re.test(t)) {
+      return `「${t}」: 「種類」または「種類:メンバー」形式で指定してください（例: Flow, CustomObject:Account）。`;
+    }
+  }
+  return undefined;
+}
+
+/**
  * Apexクラスファイルのパス（`.cls`、フォワード/バックスラッシュ混在可）からクラス名を取り出す。
  * 例: `force-app/main/default/classes/FooTest.cls` → `FooTest`。テスト実行時にワークスペースの
  * テストクラス候補を一覧化するための表示名。Pure & unit-tested.

@@ -55,6 +55,7 @@
 - 確認観点: 名前バリデーション（`componentNameError`: 英字始まり・**日本語/記号不可**・**Salesforce API名40字上限**）。LWCは小文字始まりcamelCase
 - エッジ: ターミナルがビジーでも `run()` 実行なので確実に成否が出る。CLI未インストール時は「コマンドが見つかりません」を明示（`run()` がENOENTをstderrへ）
 - テスト誘導（Apexクラス時）: 作成後に**対のテストクラス `<Name>Test` の作成を任意提案**（本番デプロイはApexテストが必須なため）。承諾すると `sf` で生成し**最小 `@isTest` 雛形**（`apexTestStub`：`Test.startTest/stopTest`＋TODO）で上書きして開く。既に末尾 `Test` の名前なら提案しない（`looksLikeTestClass`・FooTestTest 防止）。テスト生成失敗でも本体クラスは残す（純粋関数 `apexTestClassName`/`apexTestStub`/`looksLikeTestClass` は単体テスト済）
+- メタデータ取得/反映の種類選択: 39種を**日本語ラベル＋カテゴリ＋英語API名で絞り込める**（`matchOnDetail`/`matchOnDescription`＝「自動化」や「Flow」で検索可）。「その他」手入力は**入力時検証**（`metadataNameError`：「種類」or「種類:メンバー」形式・ワイルドカード可／空白・日本語・`.cls`付き・数字始まりを弾く＝単体テスト済）で sf の不可解な失敗を防ぐ
 
 ### S1-4. 資材反映（自分の環境へ push）
 - 操作: ⬆️ 資材反映

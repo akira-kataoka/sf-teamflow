@@ -38,7 +38,29 @@ import {
   apexTestStub,
   looksLikeTestClass,
   apexClassNameFromPath,
+  metadataNameError,
 } from "../src/sfProject/projectService.js";
+
+test("metadataNameError: 種類 / 種類:メンバー / ワイルドカードを許可", () => {
+  assert.equal(metadataNameError("Flow"), undefined);
+  assert.equal(metadataNameError("ApexClass, CustomObject:Account"), undefined);
+  assert.equal(metadataNameError("CustomField:Account.Name"), undefined);
+  assert.equal(metadataNameError("ApexClass:*"), undefined, "ワイルドカードのメンバー");
+});
+
+test("metadataNameError: 空・日本語・空白入り・.cls付き・数字始まりを弾く", () => {
+  assert.match(metadataNameError("") || "", /入力してください/);
+  assert.match(metadataNameError("   ") || "", /入力してください/);
+  assert.match(metadataNameError("フロー") || "", /種類/);
+  assert.match(metadataNameError("Apex Class") || "", /Apex Class/, "空白入りは不可");
+  assert.match(metadataNameError("AccountService.cls") || "", /種類/, ".cls付きは不可");
+  assert.match(metadataNameError("1Flow") || "", /種類/, "数字始まりは不可");
+});
+
+test("metadataNameError: 複数のうち1つでも不正なら、その語を指摘", () => {
+  const err = metadataNameError("Flow, 駄目, ApexClass") || "";
+  assert.match(err, /駄目/);
+});
 
 test("apexClassNameFromPath: .cls パスからクラス名を取り出す（区切り混在・大小無視）", () => {
   assert.equal(

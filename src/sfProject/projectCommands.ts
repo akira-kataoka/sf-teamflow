@@ -26,6 +26,7 @@ import {
   apexTestStub,
   looksLikeTestClass,
   apexClassNameFromPath,
+  metadataNameError,
   projectNameError,
   sobjectNameError,
   testClassNamesError,
@@ -113,7 +114,14 @@ export function registerProjectCommands(
         })),
         { label: CUSTOM, description: "", detail: "例: Flow, CustomObject:Account", type: CUSTOM },
       ],
-      { title, placeHolder: "種類を選択（複数可・絞り込み入力できます）", canPickMany: true }
+      {
+        title,
+        placeHolder: "種類を選択（複数可・名前/カテゴリ/英語名で絞り込めます）",
+        canPickMany: true,
+        // 日本語カテゴリ(detail 例:「自動化」)や英語API名(description 例:「Flow」)でも絞り込めるように。
+        matchOnDetail: true,
+        matchOnDescription: true,
+      }
     );
     if (!picks || picks.length === 0) {
       return undefined;
@@ -125,6 +133,8 @@ export function registerProjectCommands(
           title: "メタデータ名",
           prompt: "カンマ区切りで複数指定できます",
           placeHolder: "ApexClass, CustomObject:Account",
+          // 空白・日本語・.cls付きなどの誤りを入力時点で弾き、sf の不可解な失敗を防ぐ。
+          validateInput: (v) => metadataNameError(v),
         });
         if (custom) {
           metadata.push(...custom.split(",").map((s) => s.trim()).filter(Boolean));
