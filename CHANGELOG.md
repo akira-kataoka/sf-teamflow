@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.88.12] - 2026-06-03
+
+- 🏪 **公開準備: README をマーケットプレイス向けに最適化（バッジ＋インストール節）**: 先頭に Marketplace バージョン／インストール数／MIT ライセンスのバッジ（shields.io・公開後に自動で数値表示）を追加し、直後に「📥 インストール」節を新設。Marketplace 検索からの導入・VSIX からの導入（`code --install-extension`）・必要環境（VS Code 1.85+／`sf`／`gh`）・**信頼ワークスペースが必要**な旨を明記し、初見のユーザーが迷わず導入できるようにした。ドキュメントのみ・コード不変（計240件pass）。
+
 ## [0.88.11] - 2026-06-03
 
 - 🏪 **公開準備: マーケットプレイス用メタデータを `package.json` に追加**: 公開時の品質・安全性表示のため次を設定 — `bugs`（Issues URL）/`homepage`（README）/`qna`（marketplace）/`galleryBanner`（Salesforce ネイビー `#032D60`・dark）/`extensionKind: ["workspace"]`（git・sf を**ワークスペース側**で実行する拡張だと明示。Remote/SSH/WSL でも正しく動く）/`capabilities.untrustedWorkspaces`（`supported: false`＝git・sf CLI を実行するため**信頼されたワークスペースが必要**と宣言。制限モードでの誤動作を防ぐ）。`vsce package` でメタデータ検証が通ることを確認（警告なし・計240件pass・挙動不変）。

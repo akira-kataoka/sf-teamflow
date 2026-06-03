@@ -2,9 +2,20 @@
 
 ![icon](resources/icon.png)
 
+[![Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/akira-kataoka.sf-teamflow?label=Marketplace&color=032D60)](https://marketplace.visualstudio.com/items?itemName=akira-kataoka.sf-teamflow)
+[![Installs](https://img.shields.io/visual-studio-marketplace/i/akira-kataoka.sf-teamflow)](https://marketplace.visualstudio.com/items?itemName=akira-kataoka.sf-teamflow)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 **これ1つで Salesforce の開発サイクルを完結。** Org/環境の管理・各環境への簡単デプロイ（開発→ステージング→本番）・Git/GitHub・テスト・CI/CD を、**初心者でもほぼクリック操作だけ**で回せる VSCode 拡張です。
 
 > 💡 はじめての方へ：左のアクティビティバーの **Salesforce Dev Manager** アイコンを開くと「ホーム」が出ます。上部の **「次にやること」** に従って進めば、迷わずセットアップ〜開発できます。
+
+## 📥 インストール
+
+- **Marketplace から**：VS Code の拡張機能ビュー（`Ctrl+Shift+X`）で「**Salesforce Dev Manager**」を検索 → インストール
+- **VSIX ファイルから**：配布された `sf-teamflow-*.vsix` を、拡張機能ビュー右上「…」→「**VSIX からインストール**」、または `code --install-extension sf-teamflow-<version>.vsix`
+- **必要環境**：VS Code 1.85 以上 ／ [Salesforce CLI (`sf`)](https://developer.salesforce.com/tools/salesforcecli)（PATH 必須）／ Git（GitHub 連携は [GitHub CLI (`gh`)](https://cli.github.com/)）
+- **信頼が必要**：git・sf をワークスペースで実行するため、フォルダを「信頼」して開いてください（制限モードでは動作しません）
 
 ---
 
