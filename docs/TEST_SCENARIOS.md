@@ -177,6 +177,12 @@
 - 確認観点: gh未ログイン/未接続/鍵未生成の各前提を事前ガード／slug衝突を事前検出
 - 堅牢化（✅）: **入力検証**で空値の登録を阻止（`validateInput`）— Consumer Key＝空/内部空白を拒否（`consumerKeyError`）、ユーザー名＝空/空白入りを拒否（`integrationUsernameError`）、ログインURL＝`https://`形式のみ許可（`loginUrlError`）。空のままEnterしてもキャンセル扱いにならず空シークレットが登録されCIが静かに壊れる問題への対処
 
+### S3-6. CI状況の確認（GitHub Actions）
+- 操作: 「CI状況(GitHub Actions)を開く」
+- 内部: `gh repo view --json url` でURL取得 → **`gh run list --limit 1 --json status,conclusion,workflowName,headBranch` で最新実行を取得**し `summarizeCiRun` で日本語要約
+- 期待: ブラウザを開く前に「最新のCI（ワークフロー / ブランチ）: ✅ 成功 / ❌ 失敗 / 🟡 実行中」を通知し、「ブラウザで開く」で詳細へ。失敗時は警告色で目立たせる
+- 確認観点: 実行が無い/JSON不正/取得失敗でも落ちずブラウザは開ける（`summarizeCiRun` は undefined を返し従来動作）／PR後にエディタを離れずCIの合否が分かる（単体テスト済）
+
 ---
 
 ## フェーズ4: 設定・運用

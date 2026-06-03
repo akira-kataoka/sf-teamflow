@@ -7,7 +7,37 @@ import {
   isSfVersionOutdated,
   summarizeCliError,
   sfDeployErrorHint,
+  summarizeCiRun,
 } from "../src/util/cli.js";
+
+test("summarizeCiRun: 完了の結論を日本語アイコンに（成功/失敗/キャンセル/スキップ）", () => {
+  const ok = summarizeCiRun(
+    JSON.stringify([{ status: "completed", conclusion: "success", workflowName: "CI", headBranch: "main" }])
+  );
+  assert.equal(ok?.icon, "✅");
+  assert.equal(ok?.label, "成功");
+  assert.equal(ok?.failed, false);
+  assert.equal(ok?.workflow, "CI");
+  assert.equal(ok?.branch, "main");
+
+  const ng = summarizeCiRun(JSON.stringify([{ status: "completed", conclusion: "failure" }]));
+  assert.equal(ng?.icon, "❌");
+  assert.equal(ng?.failed, true);
+  assert.equal(summarizeCiRun(JSON.stringify([{ status: "completed", conclusion: "cancelled" }]))?.label, "キャンセル");
+  assert.equal(summarizeCiRun(JSON.stringify([{ status: "completed", conclusion: "skipped" }]))?.label, "スキップ");
+});
+
+test("summarizeCiRun: 未完了は実行中/待機中（failed=false）", () => {
+  assert.equal(summarizeCiRun(JSON.stringify([{ status: "in_progress" }]))?.label, "実行中");
+  assert.equal(summarizeCiRun(JSON.stringify([{ status: "queued" }]))?.label, "待機中");
+  assert.equal(summarizeCiRun(JSON.stringify([{ status: "in_progress" }]))?.icon, "🟡");
+});
+
+test("summarizeCiRun: 実行なし・不正JSONは undefined", () => {
+  assert.equal(summarizeCiRun("[]"), undefined);
+  assert.equal(summarizeCiRun("not json"), undefined);
+  assert.equal(summarizeCiRun(""), undefined);
+});
 
 test("sfDeployErrorHint: よくあるデプロイ/テスト失敗を初心者向けの対処に翻訳", () => {
   assert.match(

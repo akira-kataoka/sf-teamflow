@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { logger } from "./util/logger.js";
 import { run } from "./util/exec.js";
-import { runSf, parseSfVersion, isSfVersionOutdated } from "./util/cli.js";
+import { runSf, parseSfVersion, isSfVersionOutdated, summarizeCiRun } from "./util/cli.js";
 import { OrgTreeProvider, type TreeNode } from "./orgManager/orgTreeProvider.js";
 import type { OrgInfo } from "./orgManager/orgService.js";
 import { orgCategoryLabel } from "./orgManager/orgService.js";
@@ -316,6 +316,31 @@ async function openGitHubActions(): Promise<void> {
       "リポジトリURLを取得できませんでした（GitHub CLI のログインを確認してください）。"
     );
     return;
+  }
+  // 最新のCI実行の状態を取得して、ブラウザを開かずとも合否がすぐ分かるようにする（単発・ポーリングなし）。
+  const OPEN = "ブラウザで開く";
+  let ci: ReturnType<typeof summarizeCiRun>;
+  try {
+    const runs = await run(
+      "gh",
+      ["run", "list", "--limit", "1", "--json", "status,conclusion,workflowName,headBranch"],
+      { cwd: root, timeout: 15_000 }
+    );
+    if (runs.code === 0) {
+      ci = summarizeCiRun(runs.stdout);
+    }
+  } catch {
+    /* 取得できなくてもブラウザは開ける */
+  }
+  if (ci) {
+    const detail = [ci.workflow, ci.branch].filter(Boolean).join(" / ");
+    const msg = `最新のCI${detail ? `（${detail}）` : ""}: ${ci.icon} ${ci.label}`;
+    const choice = ci.failed
+      ? await vscode.window.showWarningMessage(msg, OPEN)
+      : await vscode.window.showInformationMessage(msg, OPEN);
+    if (choice !== OPEN) {
+      return;
+    }
   }
   await vscode.env.openExternal(vscode.Uri.parse(`${repoUrl}/actions`));
 }

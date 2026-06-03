@@ -50,6 +50,54 @@ export function summarizeCliError(stderr: string, stdout: string): string {
     .join(" / ");
 }
 
+export interface CiRunSummary {
+  /** 状態アイコン（✅/❌/⏹/⏭/🟡）。 */
+  icon: string;
+  /** 日本語の状態ラベル（成功/失敗/実行中 など）。 */
+  label: string;
+  /** ワークフロー名（取得できれば）。 */
+  workflow?: string;
+  /** 対象ブランチ（取得できれば）。 */
+  branch?: string;
+  /** 完了して失敗しているか（UIの強調に使う）。 */
+  failed: boolean;
+}
+
+/**
+ * `gh run list --json status,conclusion,workflowName,headBranch` の出力（配列JSON）から、
+ * 最新のCI実行を初心者向けに要約する。完了前は実行中/待機中、完了後は結論を日本語化。
+ * 実行が無い/JSON不正なら undefined。Pure & unit-tested.
+ */
+export function summarizeCiRun(jsonStr: string): CiRunSummary | undefined {
+  let arr: unknown;
+  try {
+    arr = JSON.parse(jsonStr);
+  } catch {
+    return undefined;
+  }
+  if (!Array.isArray(arr) || arr.length === 0) {
+    return undefined;
+  }
+  const r = arr[0] as Record<string, unknown>;
+  const status = String(r.status ?? "");
+  const conclusion = String(r.conclusion ?? "");
+  const workflow = typeof r.workflowName === "string" ? r.workflowName : undefined;
+  const branch = typeof r.headBranch === "string" ? r.headBranch : undefined;
+  if (status !== "completed") {
+    const label = status === "queued" ? "待機中" : "実行中";
+    return { icon: "🟡", label, workflow, branch, failed: false };
+  }
+  const map: Record<string, { icon: string; label: string; failed: boolean }> = {
+    success: { icon: "✅", label: "成功", failed: false },
+    failure: { icon: "❌", label: "失敗", failed: true },
+    cancelled: { icon: "⏹", label: "キャンセル", failed: false },
+    timed_out: { icon: "❌", label: "タイムアウト", failed: true },
+    skipped: { icon: "⏭", label: "スキップ", failed: false },
+  };
+  const m = map[conclusion] ?? { icon: "ℹ️", label: conclusion || "完了", failed: false };
+  return { icon: m.icon, label: m.label, workflow, branch, failed: m.failed };
+}
+
 /**
  * Salesforce のデプロイ/テスト失敗出力から、初心者向けの「次にどうするか」を1行で返す
  * （該当しなければ undefined）。生のCLI要約（summarizeCliError）に添えて表示する用途。
