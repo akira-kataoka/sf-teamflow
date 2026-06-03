@@ -2,7 +2,7 @@
   "name": "sf-teamflow",
   "displayName": "Salesforce Dev Manager",
   "description": "これ1つでSalesforce開発サイクルを完結。環境管理・各環境への簡単デプロイ(開発→ステージング→本番)・Git/GitHub・テスト・CI/CDを、初心者でもクリック操作で。",
-  "version": "0.88.10",
+  "version": "0.88.11",
   "publisher": "akira-kataoka",
   "license": "MIT",
   "engines": {
@@ -25,6 +25,24 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/akira-kataoka/sf-teamflow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/akira-kataoka/sf-teamflow/issues"
+  },
+  "homepage": "https://github.com/akira-kataoka/sf-teamflow#readme",
+  "qna": "marketplace",
+  "galleryBanner": {
+    "color": "#032D60",
+    "theme": "dark"
+  },
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "git や Salesforce CLI (sf) をワークスペースで実行するため、信頼されたワークスペースが必要です。"
+    }
   },
   "activationEvents": [
     "onStartupFinished",

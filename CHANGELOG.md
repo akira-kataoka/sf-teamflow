@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.88.11] - 2026-06-03
+
+- 🏪 **公開準備: マーケットプレイス用メタデータを `package.json` に追加**: 公開時の品質・安全性表示のため次を設定 — `bugs`（Issues URL）/`homepage`（README）/`qna`（marketplace）/`galleryBanner`（Salesforce ネイビー `#032D60`・dark）/`extensionKind: ["workspace"]`（git・sf を**ワークスペース側**で実行する拡張だと明示。Remote/SSH/WSL でも正しく動く）/`capabilities.untrustedWorkspaces`（`supported: false`＝git・sf CLI を実行するため**信頼されたワークスペースが必要**と宣言。制限モードでの誤動作を防ぐ）。`vsce package` でメタデータ検証が通ることを確認（警告なし・計240件pass・挙動不変）。
+
 ## [0.88.10] - 2026-06-03
 
 - 📦 **公開準備: 配布パッケージ(.vsix)から開発専用ファイルを除外してクリーン化**: `.vscodeignore` に `docs/**`（`TEST_SCENARIOS.md`・`TEAM_WORKFLOW.md` など開発専用ドキュメント）・`.gitattributes`・`*.vsix`・`.eslintcache`・`.DS_Store`/`Thumbs.db` を追加。これにより公開する .vsix は実行時に必要なファイルのみ（`dist/extension.js`・`resources/`・`media/walkthrough/` ＋ `README`/`LICENSE`/`CHANGELOG`/`package.json`）の12点に絞られ、マーケットプレイス公開に適した最小構成になった（ガイド本体は `dist` にバンドル済みのため docs/ は不要）。挙動・コードは不変（計240件pass）。
