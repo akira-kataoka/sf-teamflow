@@ -50,6 +50,37 @@ export function summarizeCliError(stderr: string, stdout: string): string {
     .join(" / ");
 }
 
+/**
+ * Salesforce のデプロイ/テスト失敗出力から、初心者向けの「次にどうするか」を1行で返す
+ * （該当しなければ undefined）。生のCLI要約（summarizeCliError）に添えて表示する用途。
+ * よくある原因を日本語の対処に翻訳する。Pure & unit-tested.
+ */
+export function sfDeployErrorHint(output: string): string | undefined {
+  const t = (output || "").toLowerCase();
+  if (/coverage/.test(t) && /(75|below|less than|0%|insufficient|requires)/.test(t)) {
+    return "テストカバレッジが不足しています（本番デプロイには全体75%以上が必要）。テストクラスを追加・実行してから再度お試しください。";
+  }
+  if (/invalid_field|invalid field|no such column|field .* does not exist|invalid_field_for_insert_update/.test(t)) {
+    return "存在しない項目（フィールド）を参照しています。対象Orgにその項目があるか、API参照名が正しいか確認してください。";
+  }
+  if (/insufficient access|insufficient_access|insufficient privileges|insufficient permissions/.test(t)) {
+    return "権限が不足しています。デプロイ先Orgの権限（プロファイル/権限セット）を確認してください。";
+  }
+  if (/duplicate value|duplicate_developer_name|duplicate_value/.test(t)) {
+    return "同じ名前/値が既に存在します（重複）。名前を変えるか、既存のものを確認してください。";
+  }
+  if (/tests? failed|test failure|run_test.*fail|methodname.*fail|system\.assert/.test(t)) {
+    return "Apexテストが失敗しました。出力ログで失敗したテスト・行を確認して修正してください。";
+  }
+  if (/dependent class is invalid|variable does not exist|method does not exist|unexpected token|expecting .* found/.test(t)) {
+    return "Apexのコンパイルエラーです。出力ログのクラス名・行番号を確認して修正してください。";
+  }
+  if (/required_field_missing|required field is missing|missing required field/.test(t)) {
+    return "必須項目が不足しています。メタデータに必要な項目が含まれているか確認してください。";
+  }
+  return undefined;
+}
+
 /** Shape of every `sf ... --json` envelope. */
 export interface SfJson<T> {
   status: number;

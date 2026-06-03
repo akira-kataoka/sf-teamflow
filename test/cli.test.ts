@@ -6,7 +6,25 @@ import {
   parseSfVersion,
   isSfVersionOutdated,
   summarizeCliError,
+  sfDeployErrorHint,
 } from "../src/util/cli.js";
+
+test("sfDeployErrorHint: よくあるデプロイ/テスト失敗を初心者向けの対処に翻訳", () => {
+  assert.match(
+    sfDeployErrorHint("Your code coverage is 0%. You need at least 75% coverage") || "",
+    /カバレッジ/
+  );
+  assert.match(sfDeployErrorHint("INVALID_FIELD: No such column 'Foo__c'") || "", /項目/);
+  assert.match(sfDeployErrorHint("INSUFFICIENT_ACCESS_OR_READONLY") || "", /権限/);
+  assert.match(sfDeployErrorHint("DUPLICATE_DEVELOPER_NAME: duplicate value found") || "", /重複/);
+  assert.match(sfDeployErrorHint("Test failure: System.AssertException") || "", /テスト/);
+  assert.match(sfDeployErrorHint("Variable does not exist: acc (line 12)") || "", /コンパイル/);
+});
+
+test("sfDeployErrorHint: 該当しない/空は undefined", () => {
+  assert.equal(sfDeployErrorHint("Deploy succeeded"), undefined);
+  assert.equal(sfDeployErrorHint(""), undefined);
+});
 
 test("summarizeCliError: stderr優先・update availableノイズ除去・末尾3行を連結", () => {
   assert.equal(summarizeCliError("ERR a", "OUT b"), "ERR a", "stderr優先");

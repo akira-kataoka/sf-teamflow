@@ -4,7 +4,7 @@ import { promises as fsp } from "node:fs";
 import type { CommandContext } from "../commandContext.js";
 import { renderCommand } from "../deploy/deployService.js";
 import { run } from "../util/exec.js";
-import { runSf, summarizeCliError } from "../util/cli.js";
+import { runSf, summarizeCliError, sfDeployErrorHint } from "../util/cli.js";
 import { readSfdxPackageDirs } from "../config/configStore.js";
 import type { OrgInfo } from "../orgManager/orgService.js";
 import { orgCategoryLabel } from "../orgManager/orgService.js";
@@ -507,7 +507,11 @@ export function registerProjectCommands(
     );
     if (res.code !== 0) {
       const detail = summarizeCliError(res.stderr, res.stdout);
-      vscode.window.showErrorMessage(`反映に失敗しました（テストは実行しません）: ${detail || "不明なエラー"}`);
+      // よくある失敗（コンパイル/項目不正/権限/カバレッジ等）は初心者向けの対処を添える。
+      const hint = sfDeployErrorHint(`${res.stderr}\n${res.stdout}`);
+      vscode.window.showErrorMessage(
+        `反映に失敗しました（テストは実行しません）: ${detail || "不明なエラー"}${hint ? `\n💡 ${hint}` : ""}`
+      );
       ctx.recordActivity(`反映してテスト: ${org.displayName}`, "error");
       return;
     }
