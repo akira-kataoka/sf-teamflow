@@ -162,6 +162,28 @@ export function isScratchExpired(
   return !Number.isNaN(exp) && exp < nowMs;
 }
 
+/**
+ * True when a scratch org is still valid but expires within `thresholdDays`
+ * (default 2) — i.e. nearly out of time. 失効前に「巻き取る/延長する」よう促すための
+ * 警告表示用。既に期限切れ（isScratchExpired）のものは含めない。Pure & unit-tested.
+ */
+export function isScratchExpiringSoon(
+  category: OrgCategory | string,
+  expirationDate: string | undefined,
+  nowMs: number,
+  thresholdDays = 2
+): boolean {
+  if (category !== "Scratch" || !expirationDate) {
+    return false;
+  }
+  const exp = new Date(expirationDate).getTime();
+  if (Number.isNaN(exp) || exp < nowMs) {
+    return false;
+  }
+  const days = Math.ceil((exp - nowMs) / 86_400_000);
+  return days <= thresholdDays;
+}
+
 export const CATEGORY_ORDER: Record<OrgCategory, number> = {
   Production: 0,
   Sandbox: 1,

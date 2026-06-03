@@ -6,6 +6,7 @@ import {
   parseOrgList,
   scratchRemainingLabel,
   isScratchExpired,
+  isScratchExpiringSoon,
   type RawOrg,
 } from "../src/orgManager/orgService.js";
 
@@ -167,4 +168,21 @@ test("isScratchExpired: true only for past-dated scratch orgs", () => {
   assert.equal(isScratchExpired("Scratch", undefined, now), false);
   assert.equal(isScratchExpired("Scratch", "bad-date", now), false);
   assert.equal(isScratchExpired("Sandbox", "2026-01-05", now), false);
+});
+
+test("isScratchExpiringSoon: 失効間近(既定2日以内)のスクラッチのみ true", () => {
+  const now = Date.UTC(2026, 0, 10);
+  assert.equal(isScratchExpiringSoon("Scratch", "2026-01-11", now), true, "残り1日");
+  assert.equal(isScratchExpiringSoon("Scratch", "2026-01-12", now), true, "残り2日");
+  assert.equal(isScratchExpiringSoon("Scratch", "2026-01-13", now), false, "残り3日は対象外");
+  assert.equal(isScratchExpiringSoon("Scratch", "2026-01-05", now), false, "既に期限切れは含めない");
+  assert.equal(isScratchExpiringSoon("Scratch", undefined, now), false);
+  assert.equal(isScratchExpiringSoon("Scratch", "bad-date", now), false);
+  assert.equal(isScratchExpiringSoon("Sandbox", "2026-01-11", now), false, "スクラッチ以外は対象外");
+});
+
+test("isScratchExpiringSoon: しきい値を渡せる", () => {
+  const now = Date.UTC(2026, 0, 10);
+  assert.equal(isScratchExpiringSoon("Scratch", "2026-01-14", now, 5), true, "残り4日・閾値5");
+  assert.equal(isScratchExpiringSoon("Scratch", "2026-01-16", now, 5), false, "残り6日・閾値5");
 });

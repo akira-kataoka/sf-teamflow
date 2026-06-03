@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { OrgTreeProvider } from "../orgManager/orgTreeProvider.js";
-import { scratchRemainingLabel, isScratchExpired } from "../orgManager/orgService.js";
+import { scratchRemainingLabel, isScratchExpired, isScratchExpiringSoon } from "../orgManager/orgService.js";
 import {
   isGitRepo,
   status,
@@ -36,6 +36,8 @@ interface HomeOrg {
   expires?: string;
   /** True when a scratch org is past its expiration date (gray out + cleanup). */
   expired?: boolean;
+  /** True when a scratch org is still valid but expires within ~2 days (warn). */
+  expiringSoon?: boolean;
 }
 
 interface HomeState {
@@ -224,6 +226,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       connected: o.connected,
       expires: scratchRemainingLabel(o.category, o.expirationDate, Date.now()),
       expired: isScratchExpired(o.category, o.expirationDate, Date.now()),
+      expiringSoon: isScratchExpiringSoon(o.category, o.expirationDate, Date.now()),
     }));
 
     let configured = false;
@@ -494,6 +497,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .card.expired { opacity: .5; border-style: dashed; }
   .card.expired:hover { opacity: .75; }
   .card .expiredtag { color: var(--vscode-inputValidation-errorBorder, #e5534b); font-weight: 600; }
+  .card .expiringsoon { color: var(--vscode-inputValidation-warningBorder, #d9a23b); font-weight: 600; }
   .card .open.delscratch { border-color: var(--vscode-inputValidation-errorBorder, #e5534b); color: var(--vscode-inputValidation-errorBorder, #e5534b); }
   .card .open.delscratch:hover { background: var(--vscode-inputValidation-errorBorder, #e5534b); color: #fff; }
   .row { display: flex; gap: 6px; align-items: center; }
@@ -856,9 +860,12 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
           : (o.connected
             ? '<button class="open" data-open="'+escapeAttr(o.username)+'">開く</button>'
             : '<button class="open reconnect" data-reconnect="'+escapeAttr(o.username)+'">再接続</button>');
+        // 失効間近（残り2日以内）は警告色＋⚠️で「巻き取り/延長」を促す。期限切れは従来どおり赤。
         const expiryTag = o.expired
           ? ' · <span class="expiredtag">⏳期限切れ</span>'
-          : (o.expires?' · ⏳'+escapeHtml(o.expires):'');
+          : (o.expires
+            ? ' · <span class="'+(o.expiringSoon?'expiringsoon':'')+'">'+(o.expiringSoon?'⚠️':'⏳')+escapeHtml(o.expires)+'</span>'
+            : '');
         return '<div class="card '+(o.isDefault?'active':'')+(o.connected?'':' disc')+(o.expired?' expired':'')+'" data-org="'+escapeAttr(o.username)+'" role="button" tabindex="0" aria-label="'+escapeAttr(o.displayName+' を既定に設定')+'">'+
           '<span class="dot" style="background:'+(colors[o.category]||'#888')+'"></span>'+
           '<span class="name">'+(o.isDefault?'★ ':'')+escapeHtml(o.displayName)+
