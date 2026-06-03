@@ -39,7 +39,19 @@ import {
   looksLikeTestClass,
   apexClassNameFromPath,
   metadataNameError,
+  scratchAliasError,
 } from "../src/sfProject/projectService.js";
+
+test("scratchAliasError: 英数字と . - _ を許し、空・スペース・日本語・重複を弾く", () => {
+  assert.equal(scratchAliasError("scratch-dev"), undefined);
+  assert.equal(scratchAliasError("dev_01.test"), undefined);
+  assert.match(scratchAliasError("") || "", /入力してください/);
+  assert.match(scratchAliasError("   ") || "", /入力してください/);
+  assert.match(scratchAliasError("my scratch") || "", /スペース・日本語は不可/);
+  assert.match(scratchAliasError("開発") || "", /スペース・日本語は不可/);
+  assert.match(scratchAliasError("dev", ["dev", "prod"]) || "", /既に別の環境/);
+  assert.equal(scratchAliasError("dev2", ["dev", "prod"]), undefined, "重複しなければOK");
+});
 
 test("metadataNameError: 種類 / 種類:メンバー / ワイルドカードを許可", () => {
   assert.equal(metadataNameError("Flow"), undefined);

@@ -29,6 +29,7 @@ import {
   apexClassNameFromPath,
   metadataNameError,
   projectNameError,
+  scratchAliasError,
   sobjectNameError,
   testClassNamesError,
   buildTailLogArgs,
@@ -763,17 +764,12 @@ export function registerProjectCommands(
       title: "スクラッチ環境を作成",
       prompt: "エイリアス (分かりやすい名前)",
       value: typeof suggestedAlias === "string" && suggestedAlias.trim() ? suggestedAlias.trim() : "scratch-dev",
-      validateInput: (v) => {
-        const t = v.trim();
-        if (!t) {
-          return "分かりやすい名前を入力してください（例: scratch-dev）。";
-        }
-        // 既存の環境（別名/ユーザー名）と重複するとsf作成が衝突するので先に弾く。
-        if (ctx.knownOrgs().some((o) => o.alias === t || o.username === t)) {
-          return "その名前は既に別の環境で使われています。別のエイリアスにしてください。";
-        }
-        return undefined;
-      },
+      // 空・重複に加え、スペース/日本語/記号も弾く（後工程の引用・コマンド分割の事故を防ぐ）。
+      validateInput: (v) =>
+        scratchAliasError(
+          v,
+          ctx.knownOrgs().flatMap((o) => [o.alias, o.username].filter((x): x is string => !!x))
+        ),
     });
     if (!alias) {
       return;

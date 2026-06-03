@@ -342,6 +342,26 @@ export function projectNameError(name: string): string | undefined {
 }
 
 /**
+ * スクラッチ環境のエイリアス（ローカルCLI別名）を検証する。空・重複に加え、スペース・日本語・
+ * 記号を弾いて `[A-Za-z0-9._-]` のみ許す（authorizeOrg の別名入力と同じ規約にそろえ、
+ * 後工程での引用やコマンド分割の事故を防ぐ）。`taken` は既存の別名/ユーザー名。OKは undefined。
+ * Pure & unit-tested.
+ */
+export function scratchAliasError(input: string, taken: string[] = []): string | undefined {
+  const v = (input || "").trim();
+  if (!v) {
+    return "分かりやすい名前を入力してください（例: scratch-dev）。";
+  }
+  if (!/^[A-Za-z0-9._-]+$/.test(v)) {
+    return "英数字と . - _ のみ使えます（スペース・日本語は不可）。例: scratch-dev";
+  }
+  if (taken.includes(v)) {
+    return "その名前は既に別の環境で使われています。別のエイリアスにしてください。";
+  }
+  return undefined;
+}
+
+/**
  * コンポーネント名の妥当性を種別ごとに検証し、NGなら日本語のエラー文を返す（OKは undefined）。
  * LWC は小文字始まりの camelCase（英数字のみ）、それ以外（Apex/Aura）は英字始まりの英数字_。
  * 加えて Salesforce の API 名上限（40文字）も検証する。
