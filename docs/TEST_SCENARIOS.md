@@ -51,7 +51,7 @@
 - 操作: 🌳 Dev Hub準備 → 🌱 スクラッチ作成
 - 内部: `sf org create scratch --definition-file ... --alias ... --duration-days N --set-default`
 - 期待: 数分で使い捨て環境ができ既定に。期限（残りN日）表示
-- 確認観点: `config/project-scratch-def.json` 不在時のフォールバック／複数Dev Hub時の選択／**エイリアス検証**（`scratchAliasError`：英数字と `. - _` のみ・空/スペース/日本語/重複を弾く＝authorizeOrg の別名規約と統一・単体テスト済）／有効日数 1〜30 の検証
+- 確認観点: `config/project-scratch-def.json` 不在時のフォールバック／複数Dev Hub時の選択／**エイリアス検証**（`scratchAliasError`：英数字と `. - _` のみ・空/スペース/日本語/重複を弾く＝authorizeOrg の別名規約と統一・単体テスト済）／**有効日数 1〜30 の検証**（`scratchDurationError`：空・小数・範囲外・非数字を弾く・単体テスト済）
 - エッジ: Dev Hub未準備→準備へ誘導。期限切れ→グレーアウト＋🗑掃除（✅ isScratchExpired 検証済）
 - 失効間近の予告（✅）: 残り**2日以内**のスクラッチは Orgカードの期限表示を**⚠️＋警告色**にして「巻き取り/再作成」を促す（`isScratchExpiringSoon`・しきい値可変・期限切れは赤の従来表示・しきい境界/非スクラッチ/不正日付を単体テスト）。失効でうっかり作業環境を失う前に気づける
 

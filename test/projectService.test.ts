@@ -40,7 +40,20 @@ import {
   apexClassNameFromPath,
   metadataNameError,
   scratchAliasError,
+  scratchDurationError,
 } from "../src/sfProject/projectService.js";
+
+test("scratchDurationError: 1〜30の整数のみ許し、空・小数・範囲外・非数字を弾く", () => {
+  assert.equal(scratchDurationError("7"), undefined);
+  assert.equal(scratchDurationError("1"), undefined);
+  assert.equal(scratchDurationError("30"), undefined);
+  assert.equal(scratchDurationError(" 7 "), undefined, "前後空白は許容");
+  assert.match(scratchDurationError("") || "", /1〜30/);
+  assert.match(scratchDurationError("0") || "", /1〜30/);
+  assert.match(scratchDurationError("31") || "", /最長30日/);
+  assert.match(scratchDurationError("7.5") || "", /1〜30/, "小数は不可");
+  assert.match(scratchDurationError("abc") || "", /1〜30/);
+});
 
 test("scratchAliasError: 英数字と . - _ を許し、空・スペース・日本語・重複を弾く", () => {
   assert.equal(scratchAliasError("scratch-dev"), undefined);

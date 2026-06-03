@@ -362,6 +362,22 @@ export function scratchAliasError(input: string, taken: string[] = []): string |
 }
 
 /**
+ * スクラッチ環境の有効日数（1〜30の整数）を検証する。Salesforce のスクラッチは最長30日。
+ * 空・小数・範囲外・数字以外を入力時点で弾く。OKは undefined。Pure & unit-tested.
+ */
+export function scratchDurationError(input: string): string | undefined {
+  const v = (input || "").trim();
+  if (!/^\d+$/.test(v)) {
+    return "1〜30 の数字を入れてください（例: 7）。";
+  }
+  const n = Number(v);
+  if (n < 1 || n > 30) {
+    return "1〜30 の数字を入れてください（例: 7）。スクラッチは最長30日です。";
+  }
+  return undefined;
+}
+
+/**
  * コンポーネント名の妥当性を種別ごとに検証し、NGなら日本語のエラー文を返す（OKは undefined）。
  * LWC は小文字始まりの camelCase（英数字のみ）、それ以外（Apex/Aura）は英字始まりの英数字_。
  * 加えて Salesforce の API 名上限（40文字）も検証する。

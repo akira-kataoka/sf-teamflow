@@ -30,6 +30,7 @@ import {
   metadataNameError,
   projectNameError,
   scratchAliasError,
+  scratchDurationError,
   sobjectNameError,
   testClassNamesError,
   buildTailLogArgs,
@@ -778,12 +779,7 @@ export function registerProjectCommands(
       title: "有効日数",
       prompt: "1〜30日",
       value: "7",
-      validateInput: (v) => {
-        const n = Number(v);
-        return Number.isInteger(n) && n >= 1 && n <= 30
-          ? undefined
-          : "1〜30 の数字を入れてください（例: 7）。";
-      },
+      validateInput: (v) => scratchDurationError(v),
     });
     if (!days) {
       return;
