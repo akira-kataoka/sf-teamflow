@@ -477,10 +477,10 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
   .grid.three { grid-template-columns: 1fr 1fr 1fr; }
   button.tile { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 11px 4px; border: 1px solid var(--vscode-panel-border, #8884); border-radius: 9px; background: var(--vscode-button-secondaryBackground, #3a3d41); color: var(--vscode-button-secondaryForeground, #fff); cursor: pointer; font-size: 11.5px; line-height: 1.2; min-height: 58px; text-align: center; }
-  button.tile:hover:not(:disabled) { filter: brightness(1.15); }
+  button.tile:hover:not(:disabled):not([aria-disabled="true"]) { filter: brightness(1.15); }
   button.tile.primary { outline: 2px solid var(--vscode-focusBorder); }
   button.tile .em { font-size: 19px; }
-  button.tile:disabled { opacity: .35; cursor: default; }
+  button.tile:disabled, button.tile[aria-disabled="true"] { opacity: .35; cursor: default; }
   .badge { position: absolute; top: 5px; right: 7px; background: var(--vscode-activityBarBadge-background, #d33); color: var(--vscode-activityBarBadge-foreground,#fff); border-radius: 9px; padding: 0 6px; font-size: 11px; }
 
   /* org cards + branch */
@@ -808,14 +808,30 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
       if (t.need==='org' && s.orgs.length===0) return false;
       return true;
     }
+    // 無効タイルは「なぜ押せないか（次に何をすれば押せるか）」を前提条件で示す。
+    function disabledReason(need) {
+      switch (need) {
+        case 'project': return '先に「① プロジェクト作成」が必要です';
+        case 'org': return '先に「環境を認証」が必要です（下の「環境」から追加できます）';
+        case 'repo': return '先に「③ バックアップ」でGitを始めてください';
+        case 'remote': return '先に「GitHubに接続」が必要です';
+        default: return '';
+      }
+    }
     function tileHtml(t) {
       const disabled = !tileEnabled(t);
       let badge = '';
       if (t.badge==='changes' && s.changes>0) badge = '<span class="badge">'+s.changes+'</span>';
       if (t.badge==='ahead' && s.ahead>0) badge = '<span class="badge">'+s.ahead+'</span>';
       if (t.badge==='deploy' && s.deployCount>0) badge = '<span class="badge">'+s.deployCount+'</span>';
-      const tip = t.desc ? ' title="'+escapeAttr(t.desc)+'"' : '';
-      return '<button class="tile '+(na.command===t.c?'primary':'')+'" data-cmd="'+t.c+'" '+(disabled?'disabled':'')+tip+'>'+
+      // 無効時は理由を先頭に、続けて説明。有効時は説明のみ。
+      const reason = disabled ? disabledReason(t.need) : '';
+      const tipText = reason ? (t.desc ? reason+' ／ '+t.desc : reason) : t.desc;
+      const tip = tipText ? ' title="'+escapeAttr(tipText)+'"' : '';
+      // disabled 属性だとホバーで title が出ない（理由を伝えられない）。aria-disabled+クラスで
+      // 見た目は無効・ツールチップは表示し、クリックは activateFrom 側で無視する。
+      const dis = disabled ? ' aria-disabled="true" tabindex="-1"' : '';
+      return '<button class="tile '+(na.command===t.c?'primary':'')+'" data-cmd="'+t.c+'"'+dis+tip+'>'+
         badge+'<span class="em">'+t.em+'</span><span>'+escapeHtml(t.label)+'</span></button>';
     }
     function renderSec(sec) {
@@ -894,7 +910,7 @@ export class HomeViewProvider implements vscode.WebviewViewProvider {
     const of = target.closest('[data-openfile]');
     if (of) { send('openFile', { path: of.getAttribute('data-openfile') }); return true; }
     const tile = target.closest('[data-cmd]');
-    if (tile && !tile.disabled) { cmd(tile.getAttribute('data-cmd')); return true; }
+    if (tile && !tile.disabled && tile.getAttribute('aria-disabled')!=='true') { cmd(tile.getAttribute('data-cmd')); return true; }
     const card = target.closest('[data-org]');
     if (card) { send('setOrg', { username: card.getAttribute('data-org') }); return true; }
     return false;
