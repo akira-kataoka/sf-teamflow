@@ -734,6 +734,29 @@ export async function pull(cwd: string): Promise<string> {
   return git(["pull", "--ff-only"], cwd);
 }
 
+/**
+ * リモートの変更を取り込んでマージする（`git pull --no-rebase`）。履歴が分岐していても
+ * マージコミットで統合できる。競合時は conflict=true を返し、作業ツリーはマージ状態のまま
+ * （ホームの競合一覧で解決→バックアップで完了）。`mergeBranch` と同じ結果形。実gitで統合テスト。
+ */
+export async function pullMerge(
+  cwd: string
+): Promise<{ ok: boolean; conflict: boolean; message: string }> {
+  const res = await run("git", ["--no-optional-locks", "pull", "--no-rebase"], {
+    cwd,
+    timeout: 60_000,
+  });
+  if (res.code === 0) {
+    return { ok: true, conflict: false, message: res.stdout.trim() };
+  }
+  const out = (res.stderr + res.stdout).toLowerCase();
+  return {
+    ok: false,
+    conflict: out.includes("conflict"),
+    message: (res.stderr || res.stdout).trim(),
+  };
+}
+
 export async function createBranch(name: string, cwd: string): Promise<void> {
   await git(["switch", "-c", name], cwd);
 }

@@ -34,6 +34,7 @@ import {
   listBranches,
   listTags,
   pull,
+  pullMerge,
   push,
   pushDeleteTag,
   pushTag,
@@ -457,7 +458,42 @@ export function registerGitCommands(
           // 初回は pull せず push -u で上流を確立し、2回目以降は pull→push。
           if (await hasUpstream(root)) {
             progress.report({ message: "取り込み (pull)" });
-            await pull(root);
+            try {
+              await pull(root);
+            } catch (pullErr) {
+              // 履歴が分岐していると ff-only の pull は失敗する。手動 git に丸投げせず、
+              // ここでマージ取り込みを提案して「取り込んでから送る」を最後まで完結させる。
+              if (!/not possible to fast-forward|have diverged|diverging|not a fast.?forward/i.test(String(pullErr))) {
+                throw pullErr;
+              }
+              const MERGE = "取り込んで統合する（マージ）";
+              const choice = await vscode.window.showWarningMessage(
+                "ローカルとリモートの変更が分かれています。リモートの変更を取り込んで統合（マージ）しますか？",
+                {
+                  modal: true,
+                  detail:
+                    "マージコミットで両方の変更を1つにまとめます。\n" +
+                    "競合が出たら、ホーム画面の競合一覧で各ファイルを解決→「バックアップ」で完了できます。",
+                },
+                MERGE
+              );
+              if (choice !== MERGE) {
+                ctx.recordActivity("GitHubと同期", "error");
+                return;
+              }
+              progress.report({ message: "取り込んでマージ (pull)" });
+              const m = await pullMerge(root);
+              if (m.conflict) {
+                vscode.window.showWarningMessage(
+                  "⚠️ 取り込みで競合が発生しました。ホーム画面の競合一覧で各ファイルを解決し、「バックアップ」で完了してください。"
+                );
+                ctx.recordActivity("GitHubと同期", "error");
+                return;
+              }
+              if (!m.ok) {
+                throw new Error(m.message);
+              }
+            }
             progress.report({ message: "バックアップ (push)" });
             await push(root, false, branch);
           } else {

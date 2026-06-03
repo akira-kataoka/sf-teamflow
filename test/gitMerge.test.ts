@@ -6,6 +6,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import {
   mergeBranch,
+  pullMerge,
   revertCommit,
   commitFiles,
   abortMerge,
@@ -315,6 +316,73 @@ test("recentCommits: 実gitのログを正しくパースする（pretty=format 
   assert.ok(commits[0].author.length > 0, "authorが取れる");
   assert.equal(commits[0].isMerge, false, "通常コミットは非マージ");
   assert.ok(commits[0].rel.length > 0, "相対日時が取れる");
+});
+
+test("pullMerge: 分岐した履歴をマージで取り込む（競合なし＝ok・両方の変更が残る）", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sftf-div-"));
+  const remote = path.join(tmp, "remote.git");
+  git(tmp, "init", "--bare", "-b", "main", remote);
+  // 作業リポA: base を push
+  const a = path.join(tmp, "a");
+  git(tmp, "clone", remote, a);
+  git(a, "config", "user.email", "t@e.com");
+  git(a, "config", "user.name", "Tester");
+  fs.writeFileSync(path.join(a, "base.txt"), "base\n");
+  git(a, "add", "-A");
+  git(a, "commit", "-m", "base");
+  git(a, "push", "-u", "origin", "main");
+  // 作業リポB: clone（base を取得）。マージコミット用に identity を local config へ。
+  const b = path.join(tmp, "b");
+  git(tmp, "clone", remote, b);
+  git(b, "config", "user.email", "t@e.com");
+  git(b, "config", "user.name", "Tester");
+  // A が前進（afile を push）
+  fs.writeFileSync(path.join(a, "afile.txt"), "A\n");
+  git(a, "add", "-A");
+  git(a, "commit", "-m", "a-change");
+  git(a, "push");
+  // B が分岐（bfile をコミット・未push）→ ahead1/behind1
+  fs.writeFileSync(path.join(b, "bfile.txt"), "B\n");
+  git(b, "add", "-A");
+  git(b, "commit", "-m", "b-change");
+
+  const m = await pullMerge(b);
+  assert.equal(m.ok, true, "分岐していてもマージで取り込める");
+  assert.equal(m.conflict, false, "別ファイルなので競合なし");
+  assert.ok(fs.existsSync(path.join(b, "afile.txt")), "リモート(A)の変更を取り込んだ");
+  assert.ok(fs.existsSync(path.join(b, "bfile.txt")), "自分(B)の変更も残る");
+});
+
+test("pullMerge: 同じ行の分岐は conflict=true（作業ツリーはマージ状態のまま）", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sftf-divc-"));
+  const remote = path.join(tmp, "remote.git");
+  git(tmp, "init", "--bare", "-b", "main", remote);
+  const a = path.join(tmp, "a");
+  git(tmp, "clone", remote, a);
+  git(a, "config", "user.email", "t@e.com");
+  git(a, "config", "user.name", "Tester");
+  fs.writeFileSync(path.join(a, "f.txt"), "base\n");
+  git(a, "add", "-A");
+  git(a, "commit", "-m", "base");
+  git(a, "push", "-u", "origin", "main");
+  const b = path.join(tmp, "b");
+  git(tmp, "clone", remote, b);
+  git(b, "config", "user.email", "t@e.com");
+  git(b, "config", "user.name", "Tester");
+  // A と B が同じファイルの同じ箇所を別内容に変更
+  fs.writeFileSync(path.join(a, "f.txt"), "from-A\n");
+  git(a, "add", "-A");
+  git(a, "commit", "-m", "a");
+  git(a, "push");
+  fs.writeFileSync(path.join(b, "f.txt"), "from-B\n");
+  git(b, "add", "-A");
+  git(b, "commit", "-m", "b");
+
+  const m = await pullMerge(b);
+  assert.equal(m.ok, false);
+  assert.equal(m.conflict, true, "同一行の分岐は競合として返す");
+  const s = await status(b);
+  assert.ok(conflictedFiles(s).includes("f.txt"), "競合ファイルがホームの一覧で解決できる");
 });
 
 test("changedFiles: 基準refが存在しなくても落ちない（committed差分は空・作業ツリーは拾う）", async () => {
