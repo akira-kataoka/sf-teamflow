@@ -1,6 +1,18 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { run, quoteExecutable, needsWinShell, winCmdQuote } from "../src/util/exec.js";
+import { run, quoteExecutable, needsWinShell, winCmdQuote, isCommandNotFoundError } from "../src/util/exec.js";
+
+test("isCommandNotFoundError: 未インストール/PATH未設定の各表現を検出（無関係はfalse）", () => {
+  assert.equal(
+    isCommandNotFoundError("コマンド「sf」が見つかりません（未インストール、または PATH 未設定の可能性があります）。"),
+    true
+  );
+  assert.equal(isCommandNotFoundError("spawn sf ENOENT"), true);
+  assert.equal(isCommandNotFoundError("'sf' is not recognized as an internal or external command"), true);
+  assert.equal(isCommandNotFoundError("bash: sf: command not found"), true);
+  assert.equal(isCommandNotFoundError("error: deploy failed"), false);
+  assert.equal(isCommandNotFoundError(""), false);
+});
 
 test("quoteExecutable: スペース無しの一般ケースは不変(従来動作維持)", () => {
   assert.equal(quoteExecutable("sf", "win32"), "sf");

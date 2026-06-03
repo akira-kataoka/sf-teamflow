@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.89.3] - 2026-06-03
+
+- 🧰 **Salesforce CLI 未インストールを起動時に proactive に案内**: これまで sf が未インストールでも起動時は黙ったままで、初心者は「拡張を入れたのに環境認証もデプロイも動かない」理由が分からず、コマンドを実行して初めて失敗で気づいていた。起動時の `sf --version` が「コマンドが見つからない」で失敗したら（`isCommandNotFoundError` で ENOENT/not recognized/command not found 等を検出）、**一度だけ**「Salesforce CLI (sf) が見つかりません。…インストール後に再起動を」と案内し「インストール方法を開く」で公式ページへ誘導。既に案内済みなら繰り返さず、sf が見つかればフラグを解除（消えたら再案内）。`isCommandNotFoundError` を純粋関数として追加し単体テストで固定（計289件pass）。
+
 ## [0.89.2] - 2026-06-03
 
 - 🚦 **「CI状況を開く」で、ブラウザを開く前に最新CIの合否をその場で通知**: これまで「CI状況(GitHub Actions)を開く」はブラウザを開くだけで、PRを出した初心者はページ遷移しないと成功/失敗が分からなかった。`gh run list --limit 1` で最新実行を取得し、「最新のCI（ワークフロー / ブランチ）: ✅ 成功 / ❌ 失敗 / 🟡 実行中」をVS Code内に通知（失敗は警告色）。「ブラウザで開く」で詳細へ。単発取得でポーリングはせず、実行が無い/取得失敗でも従来どおりブラウザは開ける安全設計。`summarizeCiRun`（status/conclusion を日本語アイコン化）を純粋関数として追加し単体テストで固定（計288件pass）。

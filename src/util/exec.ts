@@ -6,6 +6,18 @@ export interface ExecResult {
   code: number;
 }
 
+/**
+ * 実行結果テキストが「コマンド未インストール／PATH未設定」を示すかを判定する。
+ * run() は ENOENT 時に日本語の「見つかりません（未インストール…）」を stderr に載せるが、
+ * シェル経由の場合は OS 依存メッセージ（not recognized / command not found）になり得るので
+ * 両方を拾う。Pure & unit-tested.
+ */
+export function isCommandNotFoundError(text: string): boolean {
+  return /見つかりません（未インストール|ENOENT|not recognized|command not found|no such file/i.test(
+    text || ""
+  );
+}
+
 export interface ExecOptions {
   cwd?: string;
   /** Hard timeout in ms. */

@@ -8,6 +8,10 @@
 
 ## フェーズ0: 何も無い状態（最初の一歩）
 
+### S0-(-1). sf CLI 未インストールの検知（最初の前提）
+- 内部: 起動時 `sf --version` を実行。失敗かつ `isCommandNotFoundError`（ENOENT/「見つかりません」/not recognized/command not found を検出）なら **一度だけ**「sf が見つかりません。インストール後に再起動を」と案内し「インストール方法を開く」で公式ページへ
+- 確認観点: 既に警告済みなら繰り返さない（`teamflow.sfNotInstalledWarned`）／sf が見つかれば警告フラグを解除（消えたら再案内）／バージョンチェック（`isSfVersionOutdated`）は従来どおり別途。初回ユーザーが「拡張は入れたが CLI 未導入で何も動かない」状態に proactive に気づける（`isCommandNotFoundError` は単体テスト済）
+
 ### S0-0. ウォークスルー（VS Code「ようこそ／Getting Started」）
 - 内部: `contributes.walkthroughs`（プロジェクト準備→環境認証→チーム設定→CI/CD→保存の5ステップ）
 - 完了判定: 各ステップに **`completionEvents: onCommand:<実在コマンド>`** を付与。ウォークスルーのボタンからでも、**ホーム画面の同じ操作からでも**、コマンドが実行されればステップが自動でチェックされる（手動操作との二重管理を避ける）。manifest テストで「全ステップが実在コマンドへの onCommand 完了イベントを持つ」ことを固定

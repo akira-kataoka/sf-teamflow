@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { logger } from "./util/logger.js";
-import { run } from "./util/exec.js";
+import { run, isCommandNotFoundError } from "./util/exec.js";
 import { runSf, parseSfVersion, isSfVersionOutdated, summarizeCiRun } from "./util/cli.js";
 import { OrgTreeProvider, type TreeNode } from "./orgManager/orgTreeProvider.js";
 import type { OrgInfo } from "./orgManager/orgService.js";
@@ -89,7 +89,28 @@ async function warnIfSfOutdated(context: vscode.ExtensionContext): Promise<void>
   try {
     const res = await run(cliPath(), ["--version"], { timeout: 15_000 });
     const out = `${res.stdout}\n${res.stderr}`;
-    if (res.code !== 0 || !isSfVersionOutdated(out)) {
+    const NOT_INSTALLED_KEY = "teamflow.sfNotInstalledWarned";
+    if (res.code !== 0) {
+      // sf 未インストール（初回でよくある詰まり）は一度だけ proactive に案内する。
+      if (isCommandNotFoundError(out)) {
+        if (!context.globalState.get<boolean>(NOT_INSTALLED_KEY)) {
+          void context.globalState.update(NOT_INSTALLED_KEY, true);
+          const pick = await vscode.window.showWarningMessage(
+            "Salesforce CLI (sf) が見つかりません。この拡張の主な機能（環境認証・反映・テスト・デプロイ）には sf が必要です。インストール後、VS Code を再起動してください。",
+            "インストール方法を開く"
+          );
+          if (pick === "インストール方法を開く") {
+            await vscode.env.openExternal(
+              vscode.Uri.parse("https://developer.salesforce.com/tools/salesforcecli")
+            );
+          }
+        }
+      }
+      return;
+    }
+    // sf が見つかったら未インストール警告フラグを解除（次に消えたら再度案内できる）。
+    void context.globalState.update(NOT_INSTALLED_KEY, false);
+    if (!isSfVersionOutdated(out)) {
       return;
     }
     const v = parseSfVersion(out);
