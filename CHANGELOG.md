@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.88.14] - 2026-06-03
+
+- ✅ **公開準備: 最終点検＋PR/push検証用 CI（ci.yml）を追加**: 公開前チェックを実施し、`engines.vscode`(^1.85.0)↔`@types/vscode`(^1.85.0)の整合・`vsce package` の警告ゼロ・`src` 内に不要な `console.*`/`TODO`/`FIXME` が無いこと・配布 `.vsix` に `.github/` 等が混入しないことを確認（いずれも良好）。あわせて、push と Pull Request のたびに型チェック→単体テスト→本番ビルド→`.vsix` パッケージ検証を回す `ci.yml` を追加（公開はしない。公開は `release.yml` がタグ時に担当）。壊れた変更を早期検知できる体制になり、公開準備バックログ①〜⑤が一巡（計240件pass）。
+
 ## [0.88.13] - 2026-06-03
 
 - 🚀 **公開準備: 拡張リポジトリ自体に「公開用 CI」(.github/workflows/release.yml) を追加**: `v1.2.3` 形式のタグを push すると、GitHub Actions で **型チェック→単体テスト→本番ビルド→`.vsix` パッケージ→公開** を自動実行する。公開は対応する PAT secret がある時だけ行い、未設定でも `.vsix` の生成＋アーティファクト保存までは必ず成功する安全設計（`VSCE_PAT` で VS Marketplace、`OVSX_PAT` で Open VSX、`if: env.X != ''` でスキップ）。テストは Node の既知のディレクトリ走査問題を避けるためグロブ実行（`node --test "out-test/test/**/*.test.js"`）。`.github/**` は `.vscodeignore` 済みで配布 `.vsix` には含まれない。タグ運用だけで誰でも安全に再公開できる土台が整った（計240件pass）。

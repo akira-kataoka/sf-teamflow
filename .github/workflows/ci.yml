@@ -1,0 +1,42 @@
+# push / Pull Request のたびに、型チェック・単体テスト・本番ビルド・.vsix パッケージ検証を回す。
+# 公開はしない（公開は release.yml がタグ push 時に担当）。壊れた変更を早期に検知するための CI。
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run check-types
+
+      - name: Unit tests
+        run: |
+          npx tsc -p tsconfig.test.json
+          node --test "out-test/test/**/*.test.js"
+
+      - name: Build (production bundle)
+        run: npm run build
+
+      - name: Package (verify .vsix builds)
+        run: npx --yes @vscode/vsce package --no-dependencies
