@@ -90,6 +90,7 @@
   - 既に origin がある → 「GitHub同期する／接続し直す」を選択（**Unable to add remote バグ修正**）
   - CI/CDのworkflowファイルがある → **workflow scope 不足を検知**し `gh auth refresh -s workflow` を案内
   - 同名リポジトリ存在 / gh未インストール → 個別メッセージ
+  - **gh 未ログイン**（最頻の詰まり）→ `isGhNotAuthenticatedError` で検知し「ログインする（`gh auth login`）」をモーダル提示→ターミナルで実行導線（単体テスト済）
   - リポジトリ名検証（`repoNameError`: ASCII英数字と `. - _` のみ、`.`/`..`単体不可）／push失敗は原因別に案内（`pushErrorHint`: 非fast-forward / SSH鍵 / リポジトリ不在 / ネットワーク / 認証）
 
 ### S2-3. バックアップ（commit & push）

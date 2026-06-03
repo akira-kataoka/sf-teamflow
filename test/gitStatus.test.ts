@@ -19,7 +19,22 @@ import {
   summarizeChangeCounts,
   sortByChangeType,
   isNotFullyMergedError,
+  isGhNotAuthenticatedError,
 } from "../src/deploy/gitService.js";
+
+test("isGhNotAuthenticatedError: gh 未ログインの典型メッセージを検出（無関係は false）", () => {
+  assert.equal(
+    isGhNotAuthenticatedError("To get started with GitHub CLI, please run: gh auth login"),
+    true
+  );
+  assert.equal(
+    isGhNotAuthenticatedError("You are not logged into any GitHub hosts. Run gh auth login."),
+    true
+  );
+  assert.equal(isGhNotAuthenticatedError("authentication required"), true);
+  assert.equal(isGhNotAuthenticatedError("HTTP 422: name already exists on this account"), false);
+  assert.equal(isGhNotAuthenticatedError(""), false);
+});
 
 test("isNotFullyMergedError: git -d の未マージ拒否を検出（それ以外は false）", () => {
   assert.equal(

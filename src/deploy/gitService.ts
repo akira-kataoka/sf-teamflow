@@ -646,6 +646,17 @@ export function isNotFullyMergedError(errText: string): boolean {
 }
 
 /**
+ * GitHub CLI(`gh`) が「未ログイン（認証されていない）」で失敗したかを判定する。
+ * 初回公開で最も多い詰まりどころ。true のとき UI は `gh auth login` への導線を出せる。
+ * Pure & unit-tested.
+ */
+export function isGhNotAuthenticatedError(errText: string): boolean {
+  return /gh auth login|not logged in|authentication required|requires authentication|you are not logged/i.test(
+    errText || ""
+  );
+}
+
+/**
  * commit 失敗時のエラー文から、初心者向けの具体的な対処ヒントを返す（未知なら undefined）。
  * 初回ユーザーが最もよく詰まる「Git の名前/メール未設定」を日本語で案内する。Pure & unit-tested.
  */

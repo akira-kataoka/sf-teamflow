@@ -15,6 +15,7 @@ import {
   mergeBranch,
   mergeErrorHint,
   isNotFullyMergedError,
+  isGhNotAuthenticatedError,
   abortMerge,
   hasRemote,
   hasUpstream,
@@ -1041,6 +1042,22 @@ export function registerGitCommands(
     }
     if (res.code === 127 || /not found|認識されて|is not recognized/i.test(out)) {
       vscode.window.showErrorMessage("GitHub CLI (gh) が見つかりません。インストールして再度お試しください。");
+      return;
+    }
+    // gh は入っているがログインしていない（初回公開で最も多い詰まり）→ ログイン導線を出す。
+    if (isGhNotAuthenticatedError(out)) {
+      const LOGIN = "ログインする（gh auth login）";
+      const choice = await vscode.window.showWarningMessage(
+        "GitHub CLI (gh) にログインしていません。先にログインしてから、もう一度「GitHubに公開」してください。",
+        { modal: true },
+        LOGIN
+      );
+      if (choice === LOGIN) {
+        ctx.runInTerminal("gh auth login");
+        vscode.window.showInformationMessage(
+          "ターミナルでログインを完了したら、もう一度「GitHubに公開」を押してください。"
+        );
+      }
       return;
     }
     vscode.window.showErrorMessage(
