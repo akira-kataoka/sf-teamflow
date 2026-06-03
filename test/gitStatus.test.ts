@@ -18,7 +18,18 @@ import {
   isMergeFromRevListParents,
   summarizeChangeCounts,
   sortByChangeType,
+  isNotFullyMergedError,
 } from "../src/deploy/gitService.js";
+
+test("isNotFullyMergedError: git -d の未マージ拒否を検出（それ以外は false）", () => {
+  assert.equal(
+    isNotFullyMergedError("git branch -d feature/x failed: error: The branch 'feature/x' is not fully merged."),
+    true
+  );
+  assert.equal(isNotFullyMergedError("NOT FULLY MERGED"), true, "大文字小文字無視");
+  assert.equal(isNotFullyMergedError("error: branch 'x' not found"), false);
+  assert.equal(isNotFullyMergedError(""), false);
+});
 
 test("summarizeChangeCounts: 種別ごとに数え、分かりやすい順(新規→変更→削除…)で並べる", () => {
   const files = [

@@ -14,6 +14,7 @@ import {
   deleteTag,
   mergeBranch,
   mergeErrorHint,
+  isNotFullyMergedError,
   abortMerge,
   hasRemote,
   hasUpstream,
@@ -654,7 +655,30 @@ export function registerGitCommands(
         if (ok !== "削除する") {
           return;
         }
-        await deleteBranch(name, root, false);
+        try {
+          await deleteBranch(name, root, false);
+        } catch (delErr) {
+          // 「未マージ」で弾かれたときだけ、変更が失われると明示して強制削除(-D)の可否を確認する。
+          // それ以外のエラーは握りつぶさず上位の catch に投げ直す。
+          if (!isNotFullyMergedError(String(delErr))) {
+            throw delErr;
+          }
+          const FORCE = "強制削除する（変更は失われます）";
+          const forced = await vscode.window.showWarningMessage(
+            `ブランチ「${name}」には、まだどこにも取り込まれていない変更があります。`,
+            {
+              modal: true,
+              detail:
+                "強制削除すると、その変更は失われます（元に戻せません）。\n" +
+                "残したい場合は、いったんキャンセルして「取り込み(マージ)」か Pull Request で合流させてください。",
+            },
+            FORCE
+          );
+          if (forced !== FORCE) {
+            return;
+          }
+          await deleteBranch(name, root, true);
+        }
         vscode.window.showInformationMessage(`✅ ブランチ ${name} を削除しました。`);
         // #3 連動: この機能用スクラッチが残っていれば一緒に掃除を提案。
         const alias = scratchAliasForBranch(name);

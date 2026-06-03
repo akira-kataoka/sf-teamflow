@@ -638,6 +638,14 @@ export function mergeErrorHint(errText: string): string | undefined {
 }
 
 /**
+ * ブランチ削除（`git branch -d`）が「まだどこにも取り込まれていない（未マージ）」を理由に
+ * 失敗したかを判定する。true のとき UI は強制削除(-D)の可否を明示確認できる。Pure & unit-tested.
+ */
+export function isNotFullyMergedError(errText: string): boolean {
+  return /not fully merged/i.test(errText || "");
+}
+
+/**
  * commit 失敗時のエラー文から、初心者向けの具体的な対処ヒントを返す（未知なら undefined）。
  * 初回ユーザーが最もよく詰まる「Git の名前/メール未設定」を日本語で案内する。Pure & unit-tested.
  */
