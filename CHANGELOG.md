@@ -2,6 +2,10 @@
 
 形式は [Keep a Changelog](https://keepachangelog.com/) / [Semantic Versioning](https://semver.org/) に準拠します。
 
+## [0.88.15] - 2026-06-03
+
+- ✅ **公開準備: 制限モード（信頼されていないワークスペース）の挙動を確認＋公開要件を回帰テスト化**: `capabilities.untrustedWorkspaces.supported: false` のため、信頼されていない/制限モードのワークスペースでは VS Code が拡張を無効化する設計（git・sf を実行するため信頼が前提。README「信頼が必要」と整合）。`activate()` はフォルダ未オープンでも例外を投げず、重い処理は各コマンド側の「ワークスペース(フォルダ)を開いてください」ガードに委譲されることを確認。あわせて、公開（マーケットプレイス）に必要な `package.json` 不変条件を固定する `manifest.test.ts` を追加（publisher が実在・version が semver・`icon` が 128x128 以上の正方形 PNG・`engines.vscode`↔`@types/vscode` の major.minor 一致・制限モード非対応宣言＋理由・`onStartupFinished`）。将来の編集で公開要件をうっかり壊しても CI で検知できる（計247件pass）。
+
 ## [0.88.14] - 2026-06-03
 
 - ✅ **公開準備: 最終点検＋PR/push検証用 CI（ci.yml）を追加**: 公開前チェックを実施し、`engines.vscode`(^1.85.0)↔`@types/vscode`(^1.85.0)の整合・`vsce package` の警告ゼロ・`src` 内に不要な `console.*`/`TODO`/`FIXME` が無いこと・配布 `.vsix` に `.github/` 等が混入しないことを確認（いずれも良好）。あわせて、push と Pull Request のたびに型チェック→単体テスト→本番ビルド→`.vsix` パッケージ検証を回す `ci.yml` を追加（公開はしない。公開は `release.yml` がタグ時に担当）。壊れた変更を早期検知できる体制になり、公開準備バックログ①〜⑤が一巡（計240件pass）。
