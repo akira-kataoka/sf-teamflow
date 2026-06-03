@@ -400,6 +400,20 @@ export interface CommitInfo {
 }
 
 /**
+ * コミット選択ピッカーの説明行（誰が・いつ・どのハッシュ）を組み立てる。履歴/取り消しの
+ * 両ピッカーで同じ書式を使い、`matchOnDescription` で著者名・ハッシュでも絞り込めるようにする。
+ * Pure & unit-tested.
+ */
+export function formatCommitMeta(c: {
+  author: string;
+  rel: string;
+  hash: string;
+  isMerge: boolean;
+}): string {
+  return `👤 ${c.author} · ${c.rel} · ${c.hash}${c.isMerge ? " · 取り込み(マージ)" : ""}`;
+}
+
+/**
  * Parse `git log --pretty=%h\t%cr\t%an\t%p\t%s` output. The `%p` column holds the
  * (space-separated) parent hashes — 2つ以上ならマージ。subject はタブを含み得るので
  * 残り全列を連結する。Pure & unit-tested.

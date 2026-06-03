@@ -39,6 +39,7 @@ import {
   pushDeleteTag,
   pushTag,
   recentCommits,
+  formatCommitMeta,
   revertCommit,
   stageAll,
   status,
@@ -296,10 +297,15 @@ export function registerGitCommands(
     const pick = await vscode.window.showQuickPick(
       commits.map((c) => ({
         label: `${c.isMerge ? "🔀 " : ""}${c.subject || "(メッセージなし)"}`,
-        description: `${c.author} · ${c.rel} · ${c.hash}${c.isMerge ? " · 取り込み(マージ)" : ""}`,
+        description: formatCommitMeta(c),
         hash: c.hash,
       })),
-      { title: "取り消す変更を選択（ロールバック）", placeHolder: "この変更を打ち消す“取り消しコミット”を作ります（元に戻せます）" }
+      {
+        title: "取り消す変更を選択（ロールバック）",
+        placeHolder: "この変更を打ち消す“取り消しコミット”を作ります（元に戻せます）",
+        // 著者名・ハッシュ・相対日時でも絞り込めるように（一覧が長いとき便利）。
+        matchOnDescription: true,
+      }
     );
     if (!pick) {
       return;
@@ -394,11 +400,16 @@ export function registerGitCommands(
     const pick = await vscode.window.showQuickPick(
       commits.map((c) => ({
         label: `${c.isMerge ? "🔀 " : ""}${c.subject || "(メッセージなし)"}`,
-        description: `👤 ${c.author} · ${c.rel} · ${c.hash}${c.isMerge ? " · 取り込み(マージ)" : ""}`,
+        description: formatCommitMeta(c),
         hash: c.hash,
         subject: c.subject,
       })),
-      { title: "変更履歴（新しい順）", placeHolder: "コミットを選ぶと、変更されたファイルを確認できます" }
+      {
+        title: "変更履歴（新しい順）",
+        placeHolder: "コミットを選ぶと、変更されたファイルを確認できます",
+        // 著者名・ハッシュでも絞り込めるように（30件の中から特定のコミットを探しやすく）。
+        matchOnDescription: true,
+      }
     );
     if (!pick) {
       return;

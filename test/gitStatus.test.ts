@@ -20,7 +20,18 @@ import {
   sortByChangeType,
   isNotFullyMergedError,
   isGhNotAuthenticatedError,
+  formatCommitMeta,
 } from "../src/deploy/gitService.js";
+
+test("formatCommitMeta: 著者・相対日時・ハッシュを含み、マージは注記する", () => {
+  const s = formatCommitMeta({ author: "akira", rel: "2時間前", hash: "abc1234", isMerge: false });
+  assert.match(s, /👤 akira/);
+  assert.match(s, /2時間前/);
+  assert.match(s, /abc1234/);
+  assert.doesNotMatch(s, /取り込み/);
+  const m = formatCommitMeta({ author: "akira", rel: "1日前", hash: "def5678", isMerge: true });
+  assert.match(m, /取り込み\(マージ\)/);
+});
 
 test("isGhNotAuthenticatedError: gh 未ログインの典型メッセージを検出（無関係は false）", () => {
   assert.equal(
